@@ -7,3 +7,6 @@ Drakkar Config Manager (DCM) is an environment tool with the main goal of helpin
 This tool has been initiated by our modeling group, in the mid 2000's in the frame of the [DRAKKAR project](https://www.drakkar-ocean.eu/). Since then, the tool followed the evolution of NEMO, and was maintained in a specific repository of the [LEGI forge](https://servforge.legi.grenoble-inp.fr/projects/DCM). One strength of this system is the ability to trace the source code, with reference to both the revision number of the NEMOREF code as well as the revision number of the DRAKKAR code, both saved into the user configuration directory. 
 
 In July 2018, the anouncement of the major release NEMO_4.0 with deep modifications on the structure of the code implied also deep modifications in the DCM tool.  We decided to switch from the trac/svn forge to GitHub, as a new project.  The original forge will be maintained for tracability of previous DCM based configurations. 
+
+## CAUTION :
+**This repository is under construction. Do not use of fork until this CAUTION message disappears !**
