@@ -11,6 +11,9 @@ This tool has been initiated by our modeling group, in the mid 2000's in the fra
 
 In July 2018, the anouncement of the major release NEMO_4.0 with deep modifications on the structure of the code implied also deep modifications in the DCM tool.  We decided to switch from the trac/svn forge to GitHub, as a new project.  The original forge will be maintained for tracability of previous DCM based configurations. 
 
+## License :
+   DCM is distributed under the CeCILL [license](License/DCMCeCILL.md).
+
 ## Using DCM :
   Users are invited to read the [user manual](DOC/user_manual.md) to learn how to use DCM !
 
