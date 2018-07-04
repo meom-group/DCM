@@ -1,0 +1,47 @@
+#!/bin/sh
+if [ $# = 0 ] ; then
+   echo "  Usage  : $(basename $0 ) go "
+   echo "  Purpose: "
+   echo "    Create NEMO4 directory tree under the current directory."
+   echo "  Arguments : "
+   echo "    go : launch the creation !"
+   echo "  "
+   exit 0
+fi
+
+mkdir -p ./ICE
+mkdir -p ./NST
+mkdir -p ./OCE
+mkdir -p ./OCE/ASM
+mkdir -p ./OCE/BDY
+mkdir -p ./OCE/C1D
+mkdir -p ./OCE/CRS
+mkdir -p ./OCE/DIA
+mkdir -p ./OCE/DIU
+mkdir -p ./OCE/DOM
+mkdir -p ./OCE/DYN
+mkdir -p ./OCE/FLO
+mkdir -p ./OCE/ICB
+mkdir -p ./OCE/IOM
+mkdir -p ./OCE/LBC
+mkdir -p ./OCE/LDF
+mkdir -p ./OCE/OBS
+mkdir -p ./OCE/SBC
+mkdir -p ./OCE/STO
+mkdir -p ./OCE/TRA
+mkdir -p ./OCE/TRD
+mkdir -p ./OCE/USR
+mkdir -p ./OCE/ZDF
+mkdir -p ./OFF
+mkdir -p ./SAO
+mkdir -p ./SAS
+mkdir -p ./TOP
+mkdir -p ./TOP/AGE
+mkdir -p ./TOP/C14
+mkdir -p ./TOP/CFC
+mkdir -p ./TOP/MY_TRC
+mkdir -p ./TOP/PISCES
+mkdir -p ./TOP/PISCES/P2Z
+mkdir -p ./TOP/PISCES/P4Z
+mkdir -p ./TOP/PISCES/SED
+mkdir -p ./TOP/TRP
