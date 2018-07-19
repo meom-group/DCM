@@ -1,3 +1,3 @@
 #!/bin/bash
 
-svn co http://forge.ipsl.jussieu.fr/nemo/svn/NEMO/trunk -r 9922 NEMO4
+svn co http://forge.ipsl.jussieu.fr/nemo/svn/NEMO/trunk -r 9974 NEMO4
