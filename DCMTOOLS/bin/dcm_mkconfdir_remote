@@ -1,0 +1,289 @@
+#!/bin/bash
+#----------------------------------------------------------------------------------------
+#   $Id: mkconfdir_remote 690 2012-02-18 09:34:31Z molines $
+#   $Rev: 690 $
+#   $Date: 2012-02-18 10:34:31 +0100 (Sat, 18 Feb 2012) $
+#----------------------------------------------------------------------------------------
+#
+#  mkconfdir script :
+#  This script is used to create the skeleton of a new NEMO config
+#  A config is identified by the CONFIG name and the CASE 
+#  (example : ORCA2-G01 = CONFIG ORCA2 , Case G01
+#  It has been decided to follow a simple rule to name the cases : Each Drakkar site is 
+#  identified by its initial letter ; 
+#  ([B]rest, [G]renoble, [H]elsinki, [K]iel, [M]oscow, [P]aris, [T]oulouse ...
+#
+#  For CONFIG xxx and CASE yyy
+#  It creates (if necessary) directories in 
+# ${UDIR} : (the directory of sources / usually the classical Unix home directory)
+#            CONFIG_xxx/  
+#            CONFIG_xxx/xxx-yyy/
+#            CONFIG_xxx/xxx-yyy/NEMO tree
+#
+# ${CDIR} : (compilation directory. has to be defined in environment previous 
+#           to running mkconfdir)
+#  #            WCONFIG_xxx-yyy  (will receive a copy of the NEMOGCM tree + customized modules)
+#
+# ${PDIR} : Production directory where executable and run script will be. 
+#            has to be defined in environment.
+#            xxx-yyy/EXE
+#            xxx-yyy/CTL
+#
+# ${SDIR} : Stockage machine  
+#           Has to be defined in environment. Known as $ARCHIVE on adapp
+#            xxx/xxx-I          : common to all cases, initial condition etc ...
+#            xxx/xxx-yyy-S      : Stockage of results
+#            xxx/xxx-yyy-R      : Restart files
+#            xxx/xxx-yyy-MEAN   : Mean fields 
+#------------------------------------------------------
+usage()  {   
+  echo 'USAGE : mkconfdir [-h] [-v] [-H remote_host] [-U remote_user] '
+  echo '                  [-A remote_access ]  CONFIG CASE '
+  echo '      ' or
+  echo '        mkconfdir [-h] [-v] [-H remote_host] [-U remote_user] '
+  echo '                  [-A remote_access ]  CONFIG-CASE '
+  echo '        [-h ] : print this help message '
+  echo '        [-v ] : print a much more extensive explanation message '
+  echo '        [-H remote_host ]  :  specify the hostname of the S machine '
+  echo "                      default : $remote_host "
+  echo '        [-U remote_user ]  :  specify the user name on the S machine '
+  echo "                      default : $remote_user "
+  echo '        [-A remote_access] :  specify the remote access (either rsh or ssh )'
+  echo "                      default : $remote_access "
+  echo '      '
+  echo "PURPOSE : This script is used to create the skeleton of a new NEMO config"
+  echo "          It will create many directories and sub-directories in many places"
+  echo "          according to the environment variables UDIR, CDIR, PDIR and SDIR "
+  echo "          that should be set previously (in your .profile of whatever file)"
+  echo "          This version requires a SSH or RSH access to the S-machine."
+  echo "          If the SDIR is visible from this machine, use mkconfdir_local instead"
+  echo "          The -v option  gives you much more details "
+  if [ ! $1 ] ; then exit 0 ; fi
+         }
+
+ manual() { 
+  usage 1
+  echo 
+  echo '           MORE DETAILS FOLLOW ...'
+  echo 
+  echo '  This script is used to create the skeleton of a new NEMO config'
+  echo '  A config is identified by the CONFIG name and the CASE'
+  echo '  (example : ORCA2-G01 = CONFIG ORCA2 , Case G01'
+  echo '  It has been decided to follow a simple rule to name the cases :  '
+  echo '  Each Drakkar site is identified by its initial letter '
+  echo '  ([B]rest, [G]renoble, [H]elsinki, [K]iel, [M]oscow, [P]aris, [T]oulouse ...'
+  echo ''
+  echo '  For CONFIG xxx and CASE yyy'
+  echo '  It creates (if necessary) directories in'
+  echo ' ${UDIR} : (the directory of sources / usually the classical Unix home directory)'
+  echo '            CONFIG_xxx/'
+  echo '            CONFIG_xxx/xxx-yyy/'
+  echo '            CONFIG_xxx/xxx-yyy/<NEMO-tree>'
+  echo ''
+  echo ' ${CDIR} : (compilation directory. has to be defined in environment previous'
+  echo '           to running mkconfdir)'
+  echo '            WCONFIG_xxx-yyy  (will receive a copy of the NEMOGCM tree + '
+  echo '            customized modules)'
+  echo ''
+  echo ' ${PDIR} : Production directory where executable and run script will be.'
+  echo '            has to be defined in environment.'
+  echo '            xxx-yyy/EXE'
+  echo '            xxx-yyy/CTL'
+  echo ''
+  echo ' ${SDIR} : Stockage machine'
+  echo '           Has to be defined in environment. Known as ARCHIVE on adapp'
+  echo '            xxx/xxx-I          : common to all cases, initial condition etc ...'
+  echo '            xxx/xxx-yyy-S      : Stockage of results'
+  echo '            xxx/xxx-yyy-R      : Restart files'
+  echo '            xxx/xxx-yyy-MEAN   : Mean fields'
+
+ exit 0
+          }
+
+
+chkdir() { 
+   mkdir -p $1
+         }
+#------------------------------------------------------
+remote_host=ergon.idris.fr
+remote_user=$USER
+remote_access='rsh'
+    
+
+if [ $# = 0 ] ; then
+  usage
+fi
+
+while getopts :hvH:U:A: opt ; do
+  case $opt in
+   (h) usage ;;
+   (v) manual ;;
+   (H) remote_host=$OPTARG ;;
+   (U) remote_user=$OPTARG ;;
+   (A) remote_access=$OPTARG ;
+       if [[ $remote_access != 'ssh' && $remote_access != 'rsh' ]] ; then 
+          echo wrong remote access : $remote_access
+          echo can only be rsh or ssh 
+          usage
+       fi  ;;
+   (\?) echo $(basename $0 )" : -"$OPTARG" option not supported" ; usage ;;
+  esac
+done
+
+shift $(($OPTIND-1))
+
+if [ $# = 2 ] ; then
+  CONFIG=$1 
+  CASE=$2 
+elif [ $# = 1 ] ; then
+  CONFIG=${1%-*}
+  CASE=${1#*-}
+  if [ $CONFIG = $CASE ] ; then
+    echo CONFIG and CASE must be separated by '-'
+    usage
+  fi
+else
+  usage
+  exit
+fi
+
+echo
+echo Create several directory to install the ${CONFIG}-${CASE} configuration
+echo 
+
+# Check for the environment variables  UDIR CDIR, PDIR SDIR
+n=0   # error counter
+for en in UDIR CDIR PDIR SDIR  ; do
+ if [ ! $en  ] ; then
+   echo Environment variable : $en not set ... do it before running this script.
+   n=$(( n + 1 ))
+ fi
+done
+
+if [ $n != 0 ] ; then exit 1 ; fi
+
+# Create directory on $UDIR
+###########################
+mkdir -p $UDIR  # create UDIR and parent if necessary
+
+cd $UDIR
+echo CREATING on $UDIR
+chkdir CONFIG_$CONFIG
+
+cd CONFIG_$CONFIG
+chkdir ${CONFIG}-${CASE}
+
+cd ${CONFIG}-${CASE}
+  for subdir in arch cfgs src   ; do
+    chkdir $subdir
+  done
+
+  cd src
+
+  for subdir in ICE  NST  OCE  OFF  SAO  SAS  TOP ; do
+     chkdir $subdir
+  done
+
+  cd OCE
+  for subdir in ASM BDY C1D CRS DIA DIU DOM DYN FLO ICB IOM LBC LDF OBS SBC STO TRA TRD USR ZDF ; do
+     chkdir $subdir
+  done
+  cd ../
+
+  cd TOP
+  for subdir in AGE C14 CFC  MY_TRC PISCES TRP ; do
+    chkdir $subdir
+  done
+  cd ../
+
+# touch and empty file with the name of the HOMEDCM
+tag=$( basename $HOMEDCM )
+touch $tag
+
+if [ ! -f CPP.keys ] ;  then
+  \cp $HOMEDCM/EXAMPLES/CPP.keys .
+fi
+
+if [ ! -f makefile ] ;  then
+  \cp $HOMEDCM/EXAMPLES/makefile .
+  sed -e "s/CONF = CONF/CONF = $CONFIG/" makefile > tmp
+  \mv -f tmp makefile
+  sed -e "s/CASE = CASE/CASE = $CASE/" makefile > tmp
+  \mv -f tmp makefile
+fi
+
+
+# Create directory on $CDIR
+################################
+mkdir -p $CDIR  # create UDIR and parent if necessary
+
+echo CREATING on $CDIR
+cd $CDIR
+
+  chkdir W${CONFIG}-${CASE}
+  chkdir $CONFIG
+  chkdir $CONFIG/${CONFIG}-I
+  chkdir $CONFIG/${CONFIG}-${CASE}-S
+  chkdir $CONFIG/${CONFIG}-${CASE}-R
+  chkdir $CONFIG/${CONFIG}-${CASE}-MEAN
+
+# DDIR is optional. It is used when there are various workdir
+if [ $DDIR ] ; then
+  cd $DDIR
+  chkdir $CONFIG
+  chkdir $CONFIG/${CONFIG}-I
+  chkdir $CONFIG/${CONFIG}-${CASE}-S
+  chkdir $CONFIG/${CONFIG}-${CASE}-R
+  chkdir $CONFIG/${CONFIG}-${CASE}-MEAN
+fi
+
+
+# Create directories on $PDIR (production)
+###############################
+mkdir -p $PDIR  # create UDIR and parent if necessary
+
+cd $PDIR
+echo CREATING on $PDIR '(PDIR)'
+echo '================================='
+  chkdir RUN_${CONFIG}
+  chkdir RUN_${CONFIG}/${CONFIG}-${CASE}
+
+  cd RUN_${CONFIG}/${CONFIG}-${CASE}
+  chkdir EXE
+  chkdir CTL
+
+# Create directories on Stockage area
+#####################################
+echo CREATING on $SDIR '(SDIR of remote host:' $remote_host ')'
+echo "========================================================"
+# create a script to be run on remote machine
+cat  << eof > $CDIR/W${CONFIG}-${CASE}/mkconf_remote.ksh
+#!/bin/ksh
+chkdir () { if [ ! -d \$1 ] ; then mkdir \$1 ; fi ; }
+
+  mkdir -p $SDIR
+  chkdir $CONFIG
+  chkdir $CONFIG/${CONFIG}-I
+  chkdir $CONFIG/${CONFIG}-${CASE}-S
+  chkdir $CONFIG/${CONFIG}-${CASE}-R
+  chkdir $CONFIG/${CONFIG}-${CASE}-MEAN
+eof
+
+
+cd $CDIR/W${CONFIG}-${CASE}/
+chmod u+x mkconf_remote.ksh
+
+case $remote_access in 
+  ( 'rsh' )
+  rcp mkconf_remote.ksh ${remote_user}@${remote_host}:mkconf_remote.ksh ;
+  rsh $remote_host -l $remote_user ./mkconf_remote.ksh ;
+  rsh $remote_host -l $remote_user  rm -f ./mkconf_remote.ksh   ;
+  echo done on $remote_host ;;
+
+  ( 'ssh' )
+  scp mkconf_remote.ksh ${remote_user}@${remote_host}:mkconf_remote.ksh ;
+  ssh ${remote_user}@$remote_host  ./mkconf_remote.ksh ;
+  ssh ${remote_user}@$remote_host  rm -f ./mkconf_remote.ksh   ;
+  echo done on $remote_host ;;
+esac
+
