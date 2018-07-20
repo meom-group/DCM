@@ -101,43 +101,43 @@ ifeq ($(CASEREF),'none')
 else
 	@echo " CASEREF=$(CASEREF)"
   ifeq ($(OCE),'use') 
-	@-cp -f -p -R ../$(CONF)-$(CASEREF)/OCE/  $(COMPIL_DIR)/NEMO
+	@-cp -f -p -R ../$(CONF)-$(CASEREF)/src//OCE/  $(COMPIL_DIR)/NEMO
 	@-cp -f -p -R ../$(CONF)-$(CASEREF)/IOIPSL/*  $(COMPIL_DIR)/EXTERNAL/IOIPSL/src/.
   endif
   ifeq ($(ICE),'use')
-	@-cp -f -p -R ../$(CONF)-$(CASEREF)/ICE/  $(COMPIL_DIR)/NEMO
+	@-cp -f -p -R ../$(CONF)-$(CASEREF)/src/ICE/  $(COMPIL_DIR)/NEMO
   endif
   ifeq ($(TOP),'use')
-	@-cp -f -p -R ../$(CONF)-$(CASEREF)/TOP/  $(COMPIL_DIR)/NEMO
+	@-cp -f -p -R ../$(CONF)-$(CASEREF)/src/TOP/  $(COMPIL_DIR)/NEMO
   endif
   ifeq ($(OFF),'use')
-	@-cp -f -p -R ../$(CONF)-$(CASEREF)/OFF/  $(COMPIL_DIR)/NEMO
+	@-cp -f -p -R ../$(CONF)-$(CASEREF)/src/OFF/  $(COMPIL_DIR)/NEMO
   endif
   ifeq ($(NST),'use')
-	@-cp -f -p -R ../$(CONF)-$(CASEREF)/NST/  $(COMPIL_DIR)/NEMO
+	@-cp -f -p -R ../$(CONF)-$(CASEREF)/src/NST/  $(COMPIL_DIR)/NEMO
   endif
   ifeq ($(SAS),'use')
-	@-cp -f -p -R ../$(CONF)-$(CASEREF)/SAS/  $(COMPIL_DIR)/NEMO
+	@-cp -f -p -R ../$(CONF)-$(CASEREF)/src/SAS/  $(COMPIL_DIR)/NEMO
   endif
 endif
-ifeq ($(OPA),'use') 
-	@-cp -f -p -R  $(CONFIG_DIR)/OPA/ $(COMPIL_DIR)/NEMO
+ifeq ($(OCE),'use') 
+	@-cp -f -p -R  $(CONFIG_DIR)/src/OCE/ $(COMPIL_DIR)/NEMO
 	@-cp -f -p -R  $(CONFIG_DIR)/IOIPSL/*  $(COMPIL_DIR)/EXTERNAL/IOIPSL/src/.
 endif
 ifeq ($(ICE),'use')
-	@-cp -f -p -R  $(CONFIG_DIR)/ICE/ $(COMPIL_DIR)/NEMO
+	@-cp -f -p -R  $(CONFIG_DIR)/src/ICE/ $(COMPIL_DIR)/NEMO
 endif
 ifeq ($(TOP),'use')
-	@-cp -f -p -R  $(CONFIG_DIR)/TOP/ $(COMPIL_DIR)/NEMO
+	@-cp -f -p -R  $(CONFIG_DIR)/src/TOP/ $(COMPIL_DIR)/NEMO
 endif
 ifeq ($(OFF),'use')
-	@-cp -f -p -R  $(CONFIG_DIR)/OFF/ $(COMPIL_DIR)/NEMO
+	@-cp -f -p -R  $(CONFIG_DIR)/src/OFF/ $(COMPIL_DIR)/NEMO
 endif
 ifeq ($(NST),'use')
-	@-cp -f -p -R  $(CONFIG_DIR)/NST/ $(COMPIL_DIR)/NEMO
+	@-cp -f -p -R  $(CONFIG_DIR)/src/NST/ $(COMPIL_DIR)/NEMO
 endif
 ifeq ($(SAS),'use')
-	@-cp -f -p -R  $(CONFIG_DIR)/SAS/ $(COMPIL_DIR)/NEMO
+	@-cp -f -p -R  $(CONFIG_DIR)/src/SAS/ $(COMPIL_DIR)/NEMO
 endif
 	@-cp -f -p -R $(CONFIG_DIR)/arch $(COMPIL_DIR)
 	@gmake links
