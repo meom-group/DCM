@@ -56,7 +56,7 @@ WK =  $(COMPIL_DIR)/CONFIG/$(CONF)-$(CASE)/WORK
 
 CFILE := $(CONF)-$(CASE)
 
-# CFILE is used below for setting the cfg.txt file in TOOLS/COMPILE
+# CFILE is used below for setting the ref_cfgs.txt file in TOOLS/COMPILE
 ifeq ($(OCE),'use')
   CFILE:=$(CFILE) OCE
 endif
@@ -101,7 +101,7 @@ ifeq ($(CASEREF),'none')
 else
 	@echo " CASEREF=$(CASEREF)"
   ifeq ($(OCE),'use') 
-	@-cp -f -p -R ../$(CONF)-$(CASEREF)/src//OCE/  $(COMPIL_DIR)/NEMO
+	@-cp -f -p -R ../$(CONF)-$(CASEREF)/src/OCE/  $(COMPIL_DIR)/NEMO
 	@-cp -f -p -R ../$(CONF)-$(CASEREF)/IOIPSL/*  $(COMPIL_DIR)/EXTERNAL/IOIPSL/src/.
   endif
   ifeq ($(ICE),'use')
@@ -206,9 +206,9 @@ else
 	@cp -f -R $(CUS)/arch  $(COMPIL_DIR)/.
 endif
 	@gmake copyfile
-	@echo $(CFILE) > $(COMPIL_DIR)/cfgs/cfg.txt
+	@echo $(CFILE) > $(COMPIL_DIR)/cfgs/ref_cfgs.txt
 	@dcm_cpp2fcm > $(COMPIL_DIR)/cfgs/$(CONF)-$(CASE)/cpp_$(CONF)-$(CASE).fcm
-	@cd $(COMPIL_DIR) ; ./makenemo -n $(CONF)-$(CASE) -m $(MACHINE) -j0
+	@cd $(COMPIL_DIR) ; echo 'pouet' ;  ./makenemo -r $(CONF)-$(CASE) -m $(MACHINE)  -j0
 
 WORK:
 	@ln -s $(WK) WORK
@@ -217,7 +217,7 @@ cleaninst:
 	@-\rm -rf $(CDIR)/W$(CONF)-$(CASE)/*
 
 clean:
-	@cd $(COMPIL_DIR)/CONFIG/ ; ./makenemo -n $(CONF)-$(CASE) clean 
+	@cd $(COMPIL_DIR)/CONFIG/ ; ./makenemo -r $(CONF)-$(CASE) clean 
 
 # restore target is used to restore a SINGLE file from the 3levels references
 # must be invoked like : make restore RESTORE=OPA_SRC/SBC/ocesbc.F90  (for instance, with the full path relative to NEMO)
