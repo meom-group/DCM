@@ -143,16 +143,11 @@ if [ $n != 0 ] ; then exit 1 ; fi
 
 # Create directory on $UDIR
 ###########################
-mkdir -p $UDIR  # create UDIR and parent if necessary
 
-cd $UDIR
-echo CREATING on $UDIR
-chkdir CONFIG_$CONFIG
+echo CREATING CONFIG_$CONFIG/${CONFIG}-${CASE} on $UDIR
+chkdir $UDIR/CONFIG_$CONFIG/${CONFIG}-${CASE}
 
-cd CONFIG_$CONFIG
-chkdir ${CONFIG}-${CASE}
-
-cd ${CONFIG}-${CASE}
+cd $UDIR/CONFIG_$CONFIG/${CONFIG}-${CASE}
   for subdir in arch cfgs src   ; do
     chkdir $subdir
   done
@@ -175,12 +170,21 @@ cd ${CONFIG}-${CASE}
   done
   cd ../
 
+# back to config directory
+cd $UDIR/CONFIG_$CONFIG/${CONFIG}-${CASE}
 # touch and empty file with the name of the HOMEDCM
-tag=$( basename $HOMEDCM )
+
+tag=$( basename $(dirname $HOMEDCM)  )
 touch $tag
+cd $HOMEDCM
+cat << eof >> $UDIR/CONFIG_$CONFIG/${CONFIG}-${CASE}/$tag
+This configuration tree was created with DCM at the following revision :
+$(git log -v | head -3 )
+eof
+cd -
 
 if [ ! -f CPP.keys ] ;  then
-  \cp $HOMEDCM/EXAMPLES/CPP.keys .
+  \cp $HOMEDCM/templates/CPP.keys .
 fi
 
 if [ ! -f makefile ] ;  then

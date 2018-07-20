@@ -34,11 +34,11 @@ setenv          HOMEDCM2        $alter_path
 # RUNTOOLS is the associated RUNTOOL for this DCM version
 setenv          RUNTOOLS        $::env(DEVGIT)/DCM_$version/RUNTOOLS
 # REFDIR is the reference NEMO  directory
-setenv          REFDIR          ${base_path}/NEMOREF
-setenv          REFDIR2         ${alter_path}/NEMOREF
+setenv          REFDIR          ${base_path}/NEMOREF/NEMO4
+setenv          REFDIR2         ${alter_path}/NEMOREF/NEMO4
 # CUSDIR is the DRAKKAR customized directory
-setenv          CUSDIR          ${base_path}/DRAKKAR
-setenv          CUSDIR2         ${alter_path}/DRAKKAR
+setenv          CUSDIR          ${base_path}/DRAKKAR/NEMO4
+setenv          CUSDIR2         ${alter_path}/DRAKKAR/NEMO4
 
 prepend-path    PATH            ${base_path}/bin
 

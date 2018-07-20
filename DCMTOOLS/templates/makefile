@@ -189,32 +189,26 @@ endif
 # source code from the reference sources.
 copyref:
 	@echo "    copy reference version to $(COMPIL_DIR) "
-	@cp -f -R $(REF)/NEMOGCM/NEMO $(COMPIL_DIR)/.
-	@cp -f -R $(REF)/NEMOGCM/EXTERNAL $(COMPIL_DIR)/.
-	@if [ ! -d $(COMPIL_DIR)/CONFIG ] ; then mkdir $(COMPIL_DIR)/CONFIG ; fi
-	@if [ ! -d $(COMPIL_DIR)/CONFIG/$(CONF)-$(CASE) ] ; then mkdir $(COMPIL_DIR)/CONFIG/$(CONF)-$(CASE) ; fi
-	@if [ ! -d $(COMPIL_DIR)/CONFIG/$(CONF)-$(CASE)/EXP00 ] ; then mkdir $(COMPIL_DIR)/CONFIG/$(CONF)-$(CASE)/EXP00 ; fi
-	@if [ ! -d $(COMPIL_DIR)/CONFIG/$(CONF)-$(CASE)/MY_SRC ] ; then mkdir $(COMPIL_DIR)/CONFIG/$(CONF)-$(CASE)/MY_SRC ; fi
-	@cp -f -R $(REF)/NEMOGCM/CONFIG/makenemo $(COMPIL_DIR)/CONFIG/.
-	@cp -f -R $(REF)/NEMOGCM/ARCH $(COMPIL_DIR)/.
-	@if [ ! -d $(COMPIL_DIR)/TOOLS ] ; then mkdir $(COMPIL_DIR)/TOOLS ; fi
-	@cp -f -R $(REF)/NEMOGCM/TOOLS/COMPILE $(COMPIL_DIR)/TOOLS/.
+	@cp -f -R $(REF)/src $(COMPIL_DIR)/.
+	@cp -f -R $(REF)/ext $(COMPIL_DIR)/.
+	@cp -f -R $(REF)/mk  $(COMPIL_DIR)/.
+	@cp -f -R $(REF)/arch  $(COMPIL_DIR)/.
+	@mkdir -p $(COMPIL_DIR)/cfgs/$(CONF)-$(CASE)/EXPREF
+	@mkdir -p $(COMPIL_DIR)/cfgs/$(CONF)-$(CASE)/MY_SRC
+	@cp -f -R $(REF)/makenemo $(COMPIL_DIR)/
 ifeq ($(REFONLY),'yes')
 	@echo "    WARNING : DRAKKAR version is not used "
 else
 	@echo "    copy DRAKKAR version to $(COMPIL_DIR) "
-	@cp -f -R $(CUS)/NEMOGCM/NEMO $(COMPIL_DIR)/.
-	@cp -f -R $(CUS)/NEMOGCM/EXTERNAL $(COMPIL_DIR)/.
-	@cp -f -R $(CUS)/NEMOGCM/CONFIG/makenemo $(COMPIL_DIR)/CONFIG/.
-	@cp -f -R $(CUS)/NEMOGCM/ARCH $(COMPIL_DIR)/.
-	@cp -f -R $(CUS)/NEMOGCM/TOOLS/COMPILE $(COMPIL_DIR)/TOOLS/.
+	@cp -f -R $(CUS)/src $(COMPIL_DIR)/.
+	@cp -f -R $(CUS)/ext $(COMPIL_DIR)/.
+	@cp -f -R $(CUS)/mk  $(COMPIL_DIR)/.
+	@cp -f -R $(CUS)/arch  $(COMPIL_DIR)/.
 endif
 	@gmake copyfile
-	@if [ ! -d $(COMPIL_DIR)/CONFIG/$(CONF)-$(CASE) ] ; \
-	then mkdir $(COMPIL_DIR)/CONFIG/$(CONF)-$(CASE) ; fi
-	@echo $(CFILE) > $(COMPIL_DIR)/CONFIG/cfg.txt
-	@dcm_cpp2fcm > $(COMPIL_DIR)/CONFIG/$(CONF)-$(CASE)/cpp_$(CONF)-$(CASE).fcm
-	@cd $(COMPIL_DIR)/CONFIG/ ; ./makenemo -n $(CONF)-$(CASE) -m $(MACHINE) -j0
+	@echo $(CFILE) > $(COMPIL_DIR)/cfgs/cfg.txt
+	@dcm_cpp2fcm > $(COMPIL_DIR)/cfgs/$(CONF)-$(CASE)/cpp_$(CONF)-$(CASE).fcm
+	@cd $(COMPIL_DIR) ; ./makenemo -n $(CONF)-$(CASE) -m $(MACHINE) -j0
 
 WORK:
 	@ln -s $(WK) WORK
