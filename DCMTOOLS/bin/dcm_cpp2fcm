@@ -1,0 +1,10 @@
+#!/bin/bash
+# This script transform a cppkey list in an ascii file to a cpp.fcm compliant string
+if [ ! -f CPP.keys ] ; then 
+  echo "Missing CPP.keys in this config"
+  exit
+fi
+
+list=$( cat CPP.keys | grep -v '^#' | sed -e 's/P_P//' -e 's/=//' -e 's/\\//')
+
+echo  ' bld::tool::fppkeys'$list
