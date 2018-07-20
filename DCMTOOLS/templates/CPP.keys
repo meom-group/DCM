@@ -1,0 +1,34 @@
+# 
+# This is an example of a CPP.keys file (using all the available CPP keys --not necesserary compatible together-- )
+# The syntax is quite free, line starting with # are comments and not taken into account
+# P_P, '=' and all '\' are not necessary (they are skipped in the process of building cpp.fcm file).
+# cpp2fcm.ksh  will be used in makefile in order to fit the fcm syntax. You can make a try of this
+# command (no arguments) in the current dir : it will display what would be cpp.fcm 
+
+key_agrif
+key_asminc
+key_c1d
+key_cice
+key_cice4
+key_cyclone
+key_diadct
+key_diaharm
+key_diahth
+key_diainstant
+key_example
+key_floats
+key_iomput
+key_mpp_mpi
+key_nemocice_decomp
+key_netcdf4
+key_nosignedzero
+key_oa3mct_v3
+key_oasis3
+key_sed
+key_sed_off
+key_si3
+key_top
+key_trdmxl_trc
+key_trdtrc
+key_vectopt_loop
+key_vertical
