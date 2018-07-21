@@ -52,7 +52,7 @@ LOC = $(PWD)
 
 CONFIG_DIR = $(UDIR)/CONFIG_$(CONF)/$(CONF)-$(CASE)
 COMPIL_DIR = $(CDIR)/W$(CONF)-$(CASE)
-WK =  $(COMPIL_DIR)/CONFIG/$(CONF)-$(CASE)/WORK
+WK =  $(COMPIL_DIR)/cfgs/$(CONF)-$(CASE)/WORK
 
 CFILE := $(CONF)-$(CASE)
 
@@ -101,40 +101,40 @@ ifeq ($(CASEREF),'none')
 else
 	@echo " CASEREF=$(CASEREF)"
   ifeq ($(OCE),'use') 
-	@-cp -f -p -R ../$(CONF)-$(CASEREF)/src/OCE/  $(COMPIL_DIR)/NEMO
-	@-cp -f -p -R ../$(CONF)-$(CASEREF)/IOIPSL/*  $(COMPIL_DIR)/EXTERNAL/IOIPSL/src/.
+	@-cp -f -p -R ../$(CONF)-$(CASEREF)/src/OCE/  $(COMPIL_DIR)/src/
+	@-cp -f -p -R ../$(CONF)-$(CASEREF)/ext/IOIPSL/*  $(COMPIL_DIR)/ext/IOIPSL/src/.
   endif
   ifeq ($(ICE),'use')
-	@-cp -f -p -R ../$(CONF)-$(CASEREF)/src/ICE/  $(COMPIL_DIR)/NEMO
+	@-cp -f -p -R ../$(CONF)-$(CASEREF)/src/ICE/  $(COMPIL_DIR)/src
   endif
   ifeq ($(TOP),'use')
-	@-cp -f -p -R ../$(CONF)-$(CASEREF)/src/TOP/  $(COMPIL_DIR)/NEMO
+	@-cp -f -p -R ../$(CONF)-$(CASEREF)/src/TOP/  $(COMPIL_DIR)/src
   endif
   ifeq ($(OFF),'use')
-	@-cp -f -p -R ../$(CONF)-$(CASEREF)/src/OFF/  $(COMPIL_DIR)/NEMO
+	@-cp -f -p -R ../$(CONF)-$(CASEREF)/src/OFF/  $(COMPIL_DIR)/src
   endif
   ifeq ($(NST),'use')
-	@-cp -f -p -R ../$(CONF)-$(CASEREF)/src/NST/  $(COMPIL_DIR)/NEMO
+	@-cp -f -p -R ../$(CONF)-$(CASEREF)/src/NST/  $(COMPIL_DIR)/src
   endif
   ifeq ($(SAS),'use')
-	@-cp -f -p -R ../$(CONF)-$(CASEREF)/src/SAS/  $(COMPIL_DIR)/NEMO
+	@-cp -f -p -R ../$(CONF)-$(CASEREF)/src/SAS/  $(COMPIL_DIR)/src
   endif
 endif
 ifeq ($(OCE),'use') 
-	@-cp -f -p -R  $(CONFIG_DIR)/src/OCE/ $(COMPIL_DIR)/NEMO
-	@-cp -f -p -R  $(CONFIG_DIR)/IOIPSL/*  $(COMPIL_DIR)/EXTERNAL/IOIPSL/src/.
+	@-cp -f -p -R  $(CONFIG_DIR)/src/OCE/ $(COMPIL_DIR)/src
+	@-cp -f -p -R  $(CONFIG_DIR)/ext/IOIPSL/*  $(COMPIL_DIR)/ext/IOIPSL/src/.
 endif
 ifeq ($(ICE),'use')
-	@-cp -f -p -R  $(CONFIG_DIR)/src/ICE/ $(COMPIL_DIR)/NEMO
+	@-cp -f -p -R  $(CONFIG_DIR)/src/ICE/ $(COMPIL_DIR)/src
 endif
 ifeq ($(TOP),'use')
-	@-cp -f -p -R  $(CONFIG_DIR)/src/TOP/ $(COMPIL_DIR)/NEMO
+	@-cp -f -p -R  $(CONFIG_DIR)/src/TOP/ $(COMPIL_DIR)/src
 endif
 ifeq ($(OFF),'use')
-	@-cp -f -p -R  $(CONFIG_DIR)/src/OFF/ $(COMPIL_DIR)/NEMO
+	@-cp -f -p -R  $(CONFIG_DIR)/src/OFF/ $(COMPIL_DIR)/src
 endif
 ifeq ($(NST),'use')
-	@-cp -f -p -R  $(CONFIG_DIR)/src/NST/ $(COMPIL_DIR)/NEMO
+	@-cp -f -p -R  $(CONFIG_DIR)/src/NST/ $(COMPIL_DIR)/src
 endif
 ifeq ($(SAS),'use')
 	@-cp -f -p -R  $(CONFIG_DIR)/src/SAS/ $(COMPIL_DIR)/NEMO
@@ -161,12 +161,12 @@ ifeq ($(PREV_CONFIG),'none')
 	@echo "no previous configuration defined"
 else
 	@echo "   copy a previous configuration $(PREV_CONFIG) to local directory"
-	-cp -R $(PREV_CONFIG)/OCE .
-	-cp -R $(PREV_CONFIG)/ICE . 
-	-cp -R $(PREV_CONFIG)/TOP . 
-	-cp -R $(PREV_CONFIG)/NST . 
-	-cp -R $(PREV_CONFIG)/IOIPSL . 
-	-cp -R $(PREV_CONFIG)/SAS . 
+	-cp -R $(PREV_CONFIG)/src/OCE ./src/
+	-cp -R $(PREV_CONFIG)/src/ICE ./src/
+	-cp -R $(PREV_CONFIG)/src/TOP ./src/ 
+	-cp -R $(PREV_CONFIG)/src/NST ./src/ 
+	-cp -R $(PREV_CONFIG)/src/SAS ./src/ 
+	-cp -R $(PREV_CONFIG)/ext/IOIPSL ./ext/
 endif
 	@gmake links
 
@@ -208,7 +208,7 @@ endif
 	@gmake copyfile
 	@echo $(CFILE) > $(COMPIL_DIR)/cfgs/ref_cfgs.txt
 	@dcm_cpp2fcm > $(COMPIL_DIR)/cfgs/$(CONF)-$(CASE)/cpp_$(CONF)-$(CASE).fcm
-	@cd $(COMPIL_DIR) ; echo 'pouet' ;  ./makenemo -r $(CONF)-$(CASE) -m $(MACHINE)  -j0
+	@cd $(COMPIL_DIR) ;  ./makenemo -r $(CONF)-$(CASE) -m $(MACHINE)  -j0
 
 WORK:
 	@ln -s $(WK) WORK
@@ -228,18 +228,18 @@ ifeq ($(RESTORE),)
 	@echo "    Nothing to restore, guy !"
 else
 	@echo "    Restoring  $(RESTORE) from REFERENCES "
-	@-cp  $(REF)/NEMOGCM/NEMO/$(RESTORE)  $(COMPIL_DIR)/NEMO/$(RESTORE)
+	@-cp  $(REF)/src/$(RESTORE)  $(COMPIL_DIR)/src/$(RESTORE)
   ifeq ($(REFONLY),'yes') 
 	@echo "    WARNING : nothing restored from DRAKKAR "
   else
 	@echo "    Restoring  $(RESTORE) from DRAKKAR "
-	@-cp  $(CUS)/NEMOGCM/NEMO/$(RESTORE)  $(COMPIL_DIR)/NEMO/$(RESTORE)
+	@-cp  $(CUS)/src/$(RESTORE)  $(COMPIL_DIR)/src/$(RESTORE)
   endif
   ifeq ($(CASEREF),'none')
 	@echo "no CASEREF to take into account"
   else
 	@echo " CASEREF=$(CASEREF) "
-	@-cp  ../$(CONF)-$(CASEREF)/$(RESTORE)  $(COMPIL_DIR)/NEMO/$(RESTORE)
+	@-cp  ../$(CONF)-$(CASEREF)/$(RESTORE)  $(COMPIL_DIR)/src/$(RESTORE)
   endif
 endif
 
@@ -249,33 +249,30 @@ ifeq ($(RESTORE),)
 	@echo "    Nothing to restore, guy !"
 else
 	@echo "    Restoring  $(RESTORE) from REFERENCES "
-	@-cp  $(REF)/NEMOGCM/EXTERNAL/IOIPSL/src/$(RESTORE)  $(COMPIL_DIR)/EXTERNAL/IOIPSL/src/$(RESTORE)
+	@-cp  $(REF)/ext/IOIPSL/src/$(RESTORE)  $(COMPIL_DIR)/ext/IOIPSL/src/$(RESTORE)
   ifeq ($(REFONLY),'yes') 
 	@echo "    WARNING : nothing restored from DRAKKAR "
   else
 	@echo "    Restoring  $(RESTORE) from DRAKKAR "
-	@-cp  $(CUS)/NEMOGCM/EXTERNAL/IOIPSL/src/$(RESTORE)  $(COMPIL_DIR)/EXTERNAL/IOIPSL/src/$(RESTORE)
+	@-cp  $(CUS)/ext/IOIPSL/src/$(RESTORE)  $(COMPIL_DIR)/ext/IOIPSL/src/$(RESTORE)
   endif
   ifeq ($(CASEREF),'none')
 	@echo "no CASEREF to take into account"
   else
 	@echo " CASEREF=$(CASEREF) "
-	@-cp  ../$(CONF)-$(CASEREF)/IOIPSL/$(RESTORE)  $(COMPIL_DIR)/EXTERNAL/IOIPSL/src/$(RESTORE)
+	@-cp  ../$(CONF)-$(CASEREF)/ext/$(RESTORE)  $(COMPIL_DIR)/ext/IOIPSL/src/$(RESTORE)
   endif
 endif
 links:
-	@-ln -sf OPA_SRC/*.*0 .
-	@-ln -sf OPA_SRC/*/*.*0 .
-	@-ln -sf OPATAM_SRC/*.*0 .
-	@-ln -sf OPATAM_SRC/*/*.*0 .
-	@-ln -sf LIM_SRC_2/*.*0 .
-	@-ln -sf LIM_SRC_3/*.*0 .
-	@-ln -sf TOP_SRC/*.*0 .
-	@-ln -sf TOP_SRC/*/*.*0 .
-	@-ln -sf NST_SRC/*.*0 .
-	@-ln -sf SAS_SRC/*.*0 .
-	@-ln -sf IOIPSL/*.*0 .
-	@-ln -sf ARCH/*.fcm .
+	@-ln -sf src/OCE/*.*0 .
+	@-ln -sf src/OCE/*/*.*0 .
+	@-ln -sf src/ICE/*.*0 .
+	@-ln -sf src/TOP/*.*0 .
+	@-ln -sf src/TOP/*/*.*0 .
+	@-ln -sf src/NST/*.*0 .
+	@-ln -sf src/SAS/*.*0 .
+	@-ln -sf ext/src/IOIPSL/*.*0 .
+	@-ln -sf arch/*.fcm .
 
 update_history:
 ifeq ($(SVN),'check')
