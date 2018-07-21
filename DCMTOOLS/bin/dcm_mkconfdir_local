@@ -148,9 +148,13 @@ echo CREATING CONFIG_$CONFIG/${CONFIG}-${CASE} on $UDIR
 chkdir $UDIR/CONFIG_$CONFIG/${CONFIG}-${CASE}
 
 cd $UDIR/CONFIG_$CONFIG/${CONFIG}-${CASE}
-  for subdir in arch cfgs src   ; do
+  for subdir in arch cfgs src ext  ; do
     chkdir $subdir
   done
+
+  cd ext
+    chkdir IOIPSL/src
+  cd ..
 
   cd src
 
@@ -169,6 +173,8 @@ cd $UDIR/CONFIG_$CONFIG/${CONFIG}-${CASE}
     chkdir $subdir
   done
   cd ../
+
+  
 
 # back to config directory
 cd $UDIR/CONFIG_$CONFIG/${CONFIG}-${CASE}
