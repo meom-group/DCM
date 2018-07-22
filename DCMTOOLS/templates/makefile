@@ -20,7 +20,7 @@ REFONLY = 'no'
 # MACHINE : name of architecture for compilation. Assume that a arch_${MACHINE}.fcm exists in ARCH 
 # to know available arch_xxx.fcm, use dcm_lsarch.ksh. You can edit/add your own arch_xxx.fcm in
 # CONF-CASE/ARCH/ directory
-MACHINE = ifort_meol
+MACHINE = GCC_meom
 
 # NCOMPIL_PROC : number of procs to use for the compilation of the code.
 NCOMPIL_PROC = 1
