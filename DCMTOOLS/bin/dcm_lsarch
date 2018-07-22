@@ -1,0 +1,20 @@
+#!/bin/bash
+echo " Available arch files :"
+echo " NEMOREF standard " 
+ls -l $HOMEDCM/NEMOREF/NEMO4/arch/*.fcm 2> /dev/null | awk '{ print $NF}'
+echo " NEMOREF CNRS " 
+ls -l $HOMEDCM/NEMOREF/NEMO4/arch/CNRS/*.fcm 2> /dev/null | awk '{ print $NF}'
+echo " NEMOREF MERCATOR " 
+ls -l $HOMEDCM/NEMOREF/NEMO4/arch/MERCATOR/*.fcm 2> /dev/null | awk '{ print $NF}'
+echo " NEMOREF NOC " 
+ls -l $HOMEDCM/NEMOREF/NEMO4/arch/NOC/*.fcm 2> /dev/null | awk '{ print $NF}'
+echo " NEMOREF UKMO " 
+ls -l $HOMEDCM/NEMOREF/NEMO4/arch/UKMO/*.fcm 2> /dev/null | awk '{ print $NF}'
+echo " NEMOREF CMCC " 
+ls -l $HOMEDCM/NEMOREF/NEMO4/arch/CMCC/*.fcm 2> /dev/null | awk '{ print $NF}'
+echo " NEMOREF INGV " 
+ls -l $HOMEDCM/NEMOREF/NEMO4/arch/INGV/*.fcm 2> /dev/null | awk '{ print $NF}'
+echo " DRAKKAR custom " 
+ls -l $HOMEDCM/DRAKKAR/NEMO4/arch/*.fcm 2> /dev/null | awk '{ print $NF}'
+ls -l $HOMEDCM/DRAKKAR/NEMO4/arch/CNRS/*.fcm 2> /dev/null | awk '{ print $NF}'
+ls -l $HOMEDCM/DRAKKAR/NEMO4/arch/MEOM/*.fcm 2> /dev/null | awk '{ print $NF}'
