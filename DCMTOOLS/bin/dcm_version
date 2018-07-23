@@ -7,11 +7,17 @@ g="\033[32m"  # green
 b="\033[34m"  # blue
 m="\033[35m"  # magenta
 k="\033[0m"   # black/reset
+#
+# more font effect
+bld="\033[1m"
+ita="\033[3m"
+und="\033[4m"
+str="\033[9m"
             }
 
 set_color
 echo "========================================================="
-printf " Actual DCM version is: $r%s$k \n"  $( basename $(dirname $HOMEDCM ) )
+printf " Actual DCM version is: $bld$r%s$k \n"  $( basename $(dirname $HOMEDCM ) )
 echo 
 printf "$g"
   echo " origin git repository : "
