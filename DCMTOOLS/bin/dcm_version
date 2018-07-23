@@ -13,7 +13,16 @@ set_color
 echo "========================================================="
 printf " Actual DCM version is: $r%s$k \n"  $( basename $(dirname $HOMEDCM ) )
 echo 
+printf "$g"
+  echo " origin git repository : "
+  cd $HOMEDCM
+ git remote -v | grep fetch | awk '{print $2}'
+  cd - > /dev/null 2>&1
+printf "$k"
+echo
+
 printf "$b" 
+  echo " current commit:  "
 git log $HOMEDCM | head -4 | grep commit
 git log $HOMEDCM | head -4 | grep Date
 printf "$k"
