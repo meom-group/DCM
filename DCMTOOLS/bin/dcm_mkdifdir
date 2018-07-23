@@ -1,0 +1,88 @@
+#!/bin/bash
+#------------------------------------------------------------------------------
+#  $Id$
+#------------------------------------------------------------------------------
+# This script is to build a file of differences between the actual version 
+# in this directory (WORK) and the reference version 
+#
+
+usage()  {
+    echo "USAGE : $( basename $0 ) [-h ] [-l] "
+    echo "        [-h] : this help message "
+    echo "        [-l] : also includes util, UTIL and IOIPSL in the diff "
+    echo "        [-s] : only give the name of files which differs "
+    echo "        [-o] : only give the name of files which do not exist in one"
+    echo "               of the directories "
+    echo "        "
+    echo "PURPOSE : This script builds a file of differences between "
+    echo "          the actual version in this directory (WORK) "
+    echo "          and the reference version. The file name is "
+    echo "          diflist.$ext"
+    echo "          This script must be used in either a WORK directory"
+    echo "          or a CONFIG-CASE directory"
+    exit 0
+         }
+
+ext=$(date | sed -e 's/ /_/g' | sed -e 's/__/_/g' )
+
+#if [ $# = 0 ] ; then usage ; fi
+filter=' cat --'
+
+while getopts :hlso opt ; do
+  case $opt in 
+   (h) usage ;;
+   (l) long_ver=1 ;;
+   (s) filter=' grep diff ' ;;
+   (o) filter=' grep Only ' ;;
+   (\?) echo $(basename $0)" : -"$OPTARG " option not known " ; usage ;;
+  esac
+done
+
+# look for where we are and determine the config and case
+here=$(pwd -P)
+if [ $(basename $here) != WORK ]  ; then
+   if [ -d WORK ] ; then
+     cd WORK
+     here=$(pwd -P )
+     cd $here  # we want that cd ../ goes up in the CDIR not in UDIR
+   else
+     echo ERROR : No WORK DIRECTORY ACCESSIBLE from $(basename $here)
+     exit 1
+   fi
+fi
+tmp=$( echo $here | sed -e "s@$CDIR@@" | sed -e 's@/@ @g' | awk '{ print $1}' )
+CONFCASE=${tmp#W}
+CONFIG=${CONFCASE%-*}
+CASE=${CONFCASE#*-}
+
+WLOC=$CDIR/W${CONFCASE}
+CLOC=$UDIR/CONFIG_${CONFIG}/$CONFCASE
+
+touch $CLOC/diflist.$ext
+
+if [ $long_ver ] ; then
+  diff -bic $WLOC/arch                ${REFDIR}/arch/                 | $filter           >>  $CLOC/diflist.$ext
+  diff -bic $WLOC/ext/IOIPSL/src/     ${REFDIR}/etx/IOIPSL/src/       | $filter           >>  $CLOC/diflist.$ext
+fi
+
+diff -bic  $WLOC/src/ICE/  ${REFDIR}/src/ICE/   | $filter     >> $CLOC/diflist.$ext
+diff -bic  $WLOC/src/TOP/  ${REFDIR}/src/TOP/   | $filter     >> $CLOC/diflist.$ext
+
+for f in $WLOC/src/TOP/*  ; do
+   g=$( basename $f )
+   if [ -d $f ] ; then 
+       diff -bic  $WLOC/src/TOP/$g ${REFDIR}/src/TOP/$g | $filter >> $CLOC/diflist.$ext
+   fi
+done
+
+diff -bic  $WLOC/src/OCE/ ${REFDIR}/src/OCE/    | $filter     >> $CLOC/diflist.$ext
+
+for f in $WLOC/src/OCE/*  ; do
+   g=$( basename $f )
+   if [ -d $f ] ; then 
+       diff -bic  $WLOC/src/OCE/$g ${REFDIR}/src/OCE/$g | $filter >> $CLOC/diflist.$ext
+   fi
+done
+
+## already done above   ?
+## diff -bic  $WLOC/src/OCE/ ${REFDIR}/src/OCE/  | $filter           >> $CLOC/diflist.$ext
