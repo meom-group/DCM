@@ -257,8 +257,8 @@ echo '================================='
 echo CREATING on $SDIR '(SDIR of remote host:' $remote_host ')'
 echo "========================================================"
 # create a script to be run on remote machine
-cat  << eof > $CDIR/W${CONFIG}-${CASE}/mkconf_remote.ksh
-#!/bin/ksh
+cat  << eof > $CDIR/W${CONFIG}-${CASE}/zmkconf_remote.sh
+#!/bin/bash
 chkdir () { if [ ! -d \$1 ] ; then mkdir \$1 ; fi ; }
 
   mkdir -p $SDIR
@@ -271,19 +271,19 @@ eof
 
 
 cd $CDIR/W${CONFIG}-${CASE}/
-chmod u+x mkconf_remote.ksh
+chmod u+x zmkconf_remote.sh
 
 case $remote_access in 
   ( 'rsh' )
-  rcp mkconf_remote.ksh ${remote_user}@${remote_host}:mkconf_remote.ksh ;
-  rsh $remote_host -l $remote_user ./mkconf_remote.ksh ;
-  rsh $remote_host -l $remote_user  rm -f ./mkconf_remote.ksh   ;
+  rcp zmkconf_remote.sh ${remote_user}@${remote_host}:zmkconf_remote.sh ;
+  rsh $remote_host -l $remote_user ./zmkconf_remote.sh ;
+  rsh $remote_host -l $remote_user  rm -f ./zmkconf_remote.sh   ;
   echo done on $remote_host ;;
 
   ( 'ssh' )
-  scp mkconf_remote.ksh ${remote_user}@${remote_host}:mkconf_remote.ksh ;
-  ssh ${remote_user}@$remote_host  ./mkconf_remote.ksh ;
-  ssh ${remote_user}@$remote_host  rm -f ./mkconf_remote.ksh   ;
+  scp zmkconf_remote.sh ${remote_user}@${remote_host}:zmkconf_remote.sh ;
+  ssh ${remote_user}@$remote_host  ./zmkconf_remote.sh ;
+  ssh ${remote_user}@$remote_host  rm -f ./zmkconf_remote.sh   ;
   echo done on $remote_host ;;
 esac
 
