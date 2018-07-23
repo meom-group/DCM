@@ -1,0 +1,43 @@
+#!/bin/bash
+#------------------------------------------------------------------------------
+#  $Id: lookforkey90 411 2010-12-12 21:24:06Z forge $
+#  $Rev: 411 $
+#  $Date: 2010-12-12 22:24:06 +0100 (Sun, 12 Dec 2010) $
+#------------------------------------------------------------------------------
+usage()  {
+     echo "USAGE : $(basename $0 ) [-h ] key_name "
+     echo "       key_name : a CPP key to look for in f90 code"
+     echo "  "
+     echo "PURPOSE : Look for key_name in all f90 programs in the "
+     echo "          actual directory"
+     exit 0
+         }
+
+if [ $# = 0 ] ; then usage ; fi
+while getopts :h opt ; do
+  case $opt in 
+   (h) usage ;;
+   (\?) echo $(basename $0 )" : -"$OPTARG" option not supported" ; usage ;;
+  esac
+done
+
+shift $(($OPTIND-1))
+
+if [ ${#1} = 0 ] ; then
+   echo missing key_name !
+   echo "#############################################"
+   usage
+fi
+
+key_name=$1
+
+echo Search modules with use of key:  $key_name
+echo Module Name  : number of lines where $key_name appears
+ 
+grep  $key_name *.[Ffh]90 | grep key | \
+  awk -F: '{ x[$1]=++x[$1] } END {for (val in x) { print val " : " x[val] " lines" }} ' | \
+  sort
+
+grep  $key_name *.[Ffh]| grep key | \
+  awk -F: '{ x[$1]=++x[$1] } END {for (val in x) { print val " : " x[val] " lines" }} ' | \
+  sort

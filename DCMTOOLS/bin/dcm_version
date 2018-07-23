@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# function for text color
+set_color() {
+r="\033[31m"  # red
+g="\033[32m"  # green
+b="\033[34m"  # blue
+m="\033[35m"  # magenta
+k="\033[0m"   # black/reset
+            }
+
+set_color
+echo "========================================================="
+printf " Actual DCM version is: $r%s$k \n"  $( basename $(dirname $HOMEDCM ) )
+echo 
+printf "$b" 
+git log $HOMEDCM | head -4 | grep commit
+git log $HOMEDCM | head -4 | grep Date
+printf "$k"
+echo "========================================================="

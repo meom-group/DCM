@@ -1,0 +1,95 @@
+#!/bin/bash
+# Purpose : install one of the packages delivered with NEMO in tools/
+#   exemple dcm_mktools -m gfortran_linux_legi -n WEIGHTS
+
+#set -vx
+usage() {
+        echo " usage : ${b_n} [-h] [-a] [-n name] [-m compiler] [-c confname]"
+        echo
+        echo "    PURPOSE : install one of the tools provided as"
+        echo "         companions program to NEMO distribution"
+        echo
+        echo "    OPTIONS:"
+        echo "      -h : this help message"
+        echo "      -a : list available tools name and exit"
+        echo "      -n : name of the tool to install"
+        echo "      -m : name of the compiler to use"
+        echo "           default is " $x_m
+        echo "      -c confcase : if specified, installs the tools in the same"
+        echo "                 working directory than confcase, otherwise, create"
+        echo "                 its own working area in $CDIR/WTOOLS"
+        echo 
+        echo "    The name of the compiler can be search with dcm_lsarch"
+        exit 0
+        }
+
+avail_tools() {
+        echo  Available TOOLS for NEMO:
+        ls -1 ${CUSDIR}/tools
+        echo
+        exit 0
+              }
+
+b_n=$(basename ${0})
+x_m=gfortran_linux_legi
+confcase=''
+
+if [ $# = 0 ] ; then usage ; fi 
+
+while  getopts :han:m:c: V  ; do
+   case $V in
+     (h)  usage ;;
+     (a) avail_tools ;;
+     (n) x_n=${OPTARG} ;;
+     (m) x_m=${OPTARG} ;;
+     (c) confcase=${OPTARG} ;;
+     (:)  echo ${b_n}" : -"${OPTARG}" option : missing value" 1>&2;
+        exit 2;;
+     (\?) echo ${b_n}" : -"${OPTARG}" option : not supported" 1>&2;
+        exit 2;;
+   esac
+done
+
+# create Working dir
+if [ $confcase ] ; then
+   # set WTOOL as TOOLS in the WCONFIG directory
+   CONFIG=${confcase%-*}
+   WTOOLS=W$confcase
+   # copy ARCH files into the WCONFIG directory ( allow better customization of the fcm files)
+   cp -rf $UDIR/CONFIG_${CONFIG}/$confcase/arch/*  $CDIR/$WTOOLS/arch/
+else
+   WTOOLS=WTOOLS
+fi
+
+mkdir -p  $CDIR/$WTOOLS/tools/$x_n
+mkdir -p  $CDIR/$WTOOLS/ext
+
+
+# copy reference
+cp -rf ${REFDIR}/mk  $CDIR/$WTOOLS/
+cp -rf ${REFDIR}/tools/maketools  $CDIR/$WTOOLS/tools/
+cp -rf ${REFDIR}/arch/ $CDIR/$WTOOLS/
+cp -rf ${REFDIR}/ext/FCM  $CDIR/$WTOOLS/ext
+cp -rf ${REFDIR}/tools/$x_n  $CDIR/$WTOOLS/tools/
+
+# copy customization
+cp -rf ${CUSDIR}/mk  $CDIR/$WTOOLS
+if [ -f ${CUSDIR}/tools/maketools ] ; then
+  cp -rf ${CUSDIR}/tools/maketools  $CDIR/$WTOOLS/tools/
+fi
+cp -rf ${CUSDIR}/arch/ $CDIR/$WTOOLS/
+
+if [ -d ${CUSDIR}/tools/$x_n ] ; then 
+  cp -rf ${CUSDIR}/tools/$x_n   $CDIR/$WTOOLS/tools/
+fi
+
+# compile the tool
+cd $CDIR/$WTOOLS/tools
+export PATH=$PATH:$CDIR/$WTOOLS/ext/FCM/bin
+./maketools -m $x_m -n $x_n
+
+
+echo 
+echo
+echo
+echo $x_n is ready to use in the $CDIR/$WTOOLS/tools/$x_n directory 

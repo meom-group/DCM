@@ -1,0 +1,40 @@
+#!/bin/bash
+# $Rev: 413 $ 
+# $Id: chcase 413 2010-12-14 09:22:10Z forge $ 
+# $Date: 2010-12-14 10:22:10 +0100 (Tue, 14 Dec 2010) $
+# 
+# A usefull tool to change the CASE of a pre-existing configuration, especially
+# in CTL directories.  See also chconfig to change the CONFIG part of the name
+
+usage() {
+   echo "USAGE : chcase oldcase newcase"
+   echo " "
+   echo "PURPOSE :  A usefull tool to change the CASE of a pre-existing "
+   echo "           configuration, especially in CTL directories.  "
+   echo "           See also chconfig to change the CONFIG part of the name."
+   exit 0
+        }
+
+if [ $# != 2 ] ; then usage ; fi
+
+ old=$1
+ new=$2
+
+for f in $( ls * | grep $old ) ; do
+  g=`echo $f | sed -e "s/$old/$new/g" `
+  mv $f $g
+done
+
+for f  in * ; do
+ sed -e "s/$old/$new/g" $f > tmp
+ mv tmp $f
+done
+
+chmod +x *sh
+
+# restore Old Journal, if any
+if [ -f Journal ] ; then
+ sed -e "s/$new/$old/g" Journal > tmp
+ mv tmp Journal.$old
+fi
+

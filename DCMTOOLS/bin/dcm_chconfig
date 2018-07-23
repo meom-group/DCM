@@ -1,0 +1,35 @@
+#!/bin/bash
+#---------------------------------------------------------------------------------
+# $Rev: 413 $
+# $Id: chconfig 413 2010-12-14 09:22:10Z forge $
+# $Date: 2010-12-14 10:22:10 +0100 (Tue, 14 Dec 2010) $
+#---------------------------------------------------------------------------------
+# A usefull tool to change the CONFIG of a pre-existing configuration, especially
+# in CTL directories.  See also chcase to change the CASE part of the name
+ 
+
+usage()  {
+   echo "USAGE : chconfig oldconfig newconfig"
+   echo "  "
+   echo "PURPOSE : A usefull tool to change the CONFIG of a pre-existing "
+   echo "          configuration, especially in CTL directories. "
+   echo "          See also chcase to change the CASE part of the name."
+   exit 0
+         }
+
+if [ $# != 2 ] ; then usage ; fi
+
+ old=$1
+ new=$2
+
+for f in $( ls * | grep $old ) ; do
+ g=`echo $f | sed -e "s/$old/$new/g" `
+ mv $f $g
+done
+
+for f in * ; do 
+ sed -e "s/$old/$new/g" $f > tmp
+ mv tmp $f
+done
+
+chmod +x *sh

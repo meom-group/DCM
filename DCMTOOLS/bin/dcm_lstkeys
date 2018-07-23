@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# set up a list of CPP keys used in a bunch for f90 files.
+
+ grep key_ [a-z]*90 | grep defined | \
+awk ' { if (match($0,"defined")) { \
+            before = substr($0,1,RSTART-1); \
+            pattern = substr($0,RSTART,RLENGTH); \
+            after = substr($0,RSTART+RLENGTH); \
+            printf("%s\n", after); }  }' | awk '{print $1}' | sort -u
+
