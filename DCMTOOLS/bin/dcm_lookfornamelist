@@ -1,0 +1,10 @@
+#!/bin/bash
+# This script scan all the local F90 files and set up a list of the used NAMELIST statements.
+# Assume that NAMELIST statement are capitalized...
+
+grep NAMELIST *90 | awk -F/ '{print $2}' | sort -u  > lst_namelist.txt
+for blk in $(cat lst_namelist.txt ) ; do
+   grep -A 10 "/$blk/" *90 | awk '{print $0 ; if ( $NF != "&" ) exit }'
+   echo 
+
+done
