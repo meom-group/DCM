@@ -1,0 +1,110 @@
+#!/bin/bash
+#-------------------------------------------------------------------------------
+# $Id: getfile 668 2012-01-20 08:21:19Z molines $
+# $Rev: 668 $
+# $Date: 2012-01-20 09:21:19 +0100 (Fri, 20 Jan 2012) $
+#-------------------------------------------------------------------------------
+#  This script is used to import an existing file in the WORK directory into
+# the private editing area (CONFIG-CASE). It takes care of the links.
+
+usage () {
+    echo "USAGE: $( basename $0 ) [-h] [-r] [-d] file_to_import "
+    echo  '    One must be either in WORK directory or CONFIG-CASE directory'
+    echo '     [-h ] : This help message '
+    echo '     [-r ] : option to get the file from the NEMOREF directory'
+    echo '     [-d ] : option to get the file from the DRAKKAR directory'
+    echo '     by default get the file from the actual WORK directory '
+    echo '   '
+    echo "PURPOSE : This script is used to import an existing file in the "
+    echo "          WORK directory into the private editing area (CONFIG-CASE)."
+    echo "          It takes care of the links."
+    exit 0
+         }
+
+if [ $# = 0 ] ; then usage ; fi
+
+pref=''
+while getopts :hrd opt ; do
+  case $opt in 
+   (h)  usage ;;
+   (r) pref=$REFDIR/src ;; 
+   (d) pref=$CUSDIR/src ;; 
+   (\?) echo $(basename $0 )" : -"$OPTARG" option not supported" ; usage ;;
+  esac
+done
+
+shift $(($OPTIND-1))
+
+
+if [ ${#1} = 0 ] ; then
+   echo missing file name !
+   echo "#############################################"
+   usage
+fi
+
+file=$1
+
+# look for where we are and determine the config and case
+here=$(pwd -P )
+if [ $( basename $here ) != 'WORK' ] ; then
+   if [ -d WORK ] ; then
+     cd WORK
+     here=$(pwd -P)
+   else
+     echo No WORK DIRECTORY ACCESSIBLE from $here
+     exit 1
+   fi
+fi
+
+WCONFCASE=$(basename ${here%/cfgs/*} )
+CONFCASE=${WCONFCASE#W}
+CONFIG=${CONFCASE%-*}
+CASE=${CONFCASE#*-}
+
+if [ ! $pref ] ; then
+   pref=$CDIR/$WCONFCASE/src
+fi
+
+TARGET_DIR=${UDIR}/CONFIG_${CONFIG}/${CONFCASE}/src/
+
+if [ ! -f $file ] ; then
+   echo ERROR : $file  does not exist
+   exit 1
+fi
+
+if [ ! -L $file ] ; then 
+   echo ERROR: $file is not a link to the NEMO tree
+   exit 1
+fi
+
+SOURCE_FILE=$( ls -l $file | awk '{print $NF}' )
+LOC_SOURCE_FILE=${SOURCE_FILE##*/src/}
+
+if [ ! -f $SOURCE_FILE ] ; then
+   echo ERROR : $SOURCE_FILE  does not exist
+   exit 1
+fi
+
+TARGET_FILE=${TARGET_DIR}$(echo $LOC_SOURCE_FILE )
+
+if [ ! -f  $pref/$LOC_SOURCE_FILE ] ; then
+   echo ERROR : $pref/$LOC_SOURCE_FILE does not exist
+   exit 1
+fi
+
+echo copy from $pref/$LOC_SOURCE_FILE to
+echo $TARGET_FILE
+
+if [ ! -d $(dirname $TARGET_FILE ) ] ; then mkdir $(dirname $TARGET_FILE ) ; fi
+
+if [ -f $TARGET_FILE ] ; then
+    echo "WARNING : $TARGET_FILE allready exists"
+    echo "   We rename the actual to $TARGET_FILE.$$ "
+    mv -i $TARGET_FILE $TARGET_FILE.$$
+fi
+
+   cp  $pref/$LOC_SOURCE_FILE $TARGET_FILE
+
+# add a link in the CONFIG-CASE directory
+cd ${UDIR}/CONFIG_$CONFIG/$CONFCASE
+ln -sf src/$LOC_SOURCE_FILE  $file

@@ -1,0 +1,95 @@
+#!/bin/bash
+#------------------------------------------------------------------------------
+#  $Id$
+#------------------------------------------------------------------------------
+# This script is used to remove a file from the private CONFIG-CASE directory.
+# The file is moved to .trash/ directory and the original file is restored in
+# the WORK directory following the DCM hierarchy
+
+usage()  {
+    echo "USAGE   : $(basename $0) [ -h] [-s ]''file in current tree' "
+    echo '         You must be in a CONFIG-CASE directory '
+    echo '         [-h] : this help message'
+    echo '         [-s] : no confirmation is asked '
+    echo 
+    echo 'PURPOSE : This script is used to remove a file from the private '
+    echo '          CONFIG-CASE directory. The file is moved to .trash/ '
+    echo '          directory and the original file is restored in the WORK '
+    echo '          directory following the DCM hierarchy '
+    exit 0
+         }
+
+if [ $# = 0 ] ; then usage ; fi 
+
+while getopts :hs opt ; do
+  case $opt in 
+   (h)  usage   ;;
+   (s)  noask=1 ;;
+   (\?) echo $(basename $0 )" : -"$OPTARG" option not supported" ; usage ;;
+  esac
+done
+
+shift $(($OPTIND-1))
+
+if [ ${#1} = 0 ] ; then
+   echo missing file name !
+   echo "#############################################"
+   usage
+fi
+
+file=$1
+
+# look for where we are and determine the config and case
+here=$(basename $(pwd -P) )
+echo $here | grep -q -e '-'
+if [ $? != 0 ] ; then
+   echo You are not in the root of a CONFIG-CASE ...
+   echo Sorry, cannot remove $1 from $here
+   echo "#############################################"
+   exit 1
+fi
+
+CONFIG=${here%-*}
+CASE=${here#*-}
+echo "CONFIG =" $CONFIG
+echo "CASE   =" $CASE
+
+if [ ! $noask ]  ; then
+  echo -n " You want to remove $1 from this CASE. OK  (y/n )  ?  "
+  read ans
+
+  if [ $ans = 'n' ] ; then
+     echo $1 NOT removed
+     exit 0
+  fi
+
+  echo -n " Are you sure  (y/n) ? "
+  read ans
+
+  if [ $ans = 'n' ] ; then
+    echo $1 NOT removed
+    exit 0
+  fi
+fi
+
+# Yes we will remove this file 
+if [ ! -L $file ] ; then
+   echo ERROR: $file is not a link to the NEMO tree
+   exit 1
+fi
+
+fulname=$( ls -l $file | awk '{ print $NF}')
+if [ ! -d .trash ] ; then mkdir .trash ; fi
+
+echo $fulname
+echo $fulname | grep -q IOIPSL
+if [ $? = 0 ] ; then
+  gmake restoreioipsl RESTORE=$file  # yes $file
+else
+  gmake restore RESTORE=$fulname
+fi
+
+\rm $file
+
+mv $fulname .trash
+echo $file has been moved to .trash directory.
