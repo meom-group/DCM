@@ -14,6 +14,9 @@ CASEREF = 'none'
 # PREV_CONFIG  (type the full path or 'none' )
 PREV_CONFIG = 'none'
 
+# TEST_CASE ( on of CANAL  ICEDYN  ISOMIP  LOCK_EXCHANGE  OVERFLOW VORTEX  WAD)
+TEST_CASE = 'none'
+
 # REFONLY ( yes or no : if yes, only reference is used, not the drakkar customs)
 REFONLY = 'no'
 
@@ -184,6 +187,16 @@ else
 endif
 	@gmake links
 
+# Target test_case : import respective test_case into the current config
+test_case:
+ifeq ($(TEST_CASE),'none')
+	@echo "no test_case configuration defined"
+else
+	@echo "   copy a test case  configuration $(TEST_CASE) to local directory"
+	-cp -R $(REFDIR)/tests/$(TEST_CASE)/MY_SRC ./src/
+endif
+	@gmake links
+
 
 # Target copyref is to be done each time we need to rebuild the
 # source code from the reference sources.
@@ -305,7 +318,8 @@ help:
 	@echo  - make install       : install this configuration on the $(COMPIL_DIR)
 	@echo  - make               : compile the code with actuall arch file : arch_$(MACHINE).fcm
 	@echo  - make copyconfig    : clone PREV_CONFIG fortran files in the current directory
-	@echo  - make copyconfigall : clone PREV_CONFIG fortran files, CPP_KEYS, and fcm files un the current directory
+	@echo  - make copyconfigall : clone PREV_CONFIG fortran files, CPP_KEYS, and fcm files in the current directory
+	@echo  - make test_case     : clone TEST_CASE fortran files, CPP_KEYS, and fcm files in the current directory
 	@echo  - make cleaninst     : remove previous installation completly
 	@echo  - make clean         : perform a makenemo clean in $(COMPIL_DIR)/CONFIG
 	@echo  - make links   : redo links in the local directory
