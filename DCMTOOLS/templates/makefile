@@ -228,23 +228,28 @@ ifeq ($(RESTORE),)
 	@echo "    Nothing to restore, guy !"
 else
 	@echo "    Restoring  $(RESTORE) from REFERENCES "
-	@-cp  $(REF)/src/$(RESTORE)  $(COMPIL_DIR)/src/$(RESTORE)
+	@-cp  $(REF)/$(RESTORE)  $(COMPIL_DIR)/$(RESTORE)
   ifeq ($(REFONLY),'yes') 
 	@echo "    WARNING : nothing restored from DRAKKAR "
   else
+    ifneq ("$(wildcard $(CUS)/$(RESTORE))","")
 	@echo "    Restoring  $(RESTORE) from DRAKKAR "
-	@-cp  $(CUS)/src/$(RESTORE)  $(COMPIL_DIR)/src/$(RESTORE)
+	@-cp  $(CUS)/$(RESTORE)  $(COMPIL_DIR)/$(RESTORE)
+    else
+	@echo "         ===>  $(RESTORE) not in  DRAKKAR "
+    endif
   endif
   ifeq ($(CASEREF),'none')
-	@echo "no CASEREF to take into account"
+	@echo "         ===> no CASEREF to take into account"
   else
-	@echo " CASEREF=$(CASEREF) "
-	@-cp  ../$(CONF)-$(CASEREF)/$(RESTORE)  $(COMPIL_DIR)/src/$(RESTORE)
+	@echo "    Restoring  $(RESTORE) from CASEREF=$(CASEREF) "
+	@-cp  ../$(CONF)-$(CASEREF)/$(RESTORE)  $(COMPIL_DIR)/$(RESTORE)
   endif
 endif
 
 
 restoreioipsl:
+# likely not working. Fix later if necessary.
 ifeq ($(RESTORE),)
 	@echo "    Nothing to restore, guy !"
 else
