@@ -1,0 +1,95 @@
+#!/bin/bash
+#------------------------------------------------------------------------------
+# $Id$
+#------------------------------------------------------------------------------
+# This script allow internal comparison of DRAKKAR and NEMOREF (primary purpose)
+# but also  between alt version of DRAKKAR and NEMOREF as pointed out by
+# environment variables CUSDIR2 and REFDIR2 [ set up in the module file).
+#
+
+usage() {
+    echo "USAGE: $( basename $0 ) [-t] [-x <xdiff_tool>] [-a ATL ] [-h] local_file "
+    echo " "
+    echo "   PURPOSE:"
+    echo "       This script allow internal comparison of DRAKKAR and NEMOREF"
+    echo "     (primary purpose), but also  between alt version of DRAKKAR and "
+    echo "     NEMOREF as pointed out by  environment variables CUSDIR2 and "
+    echo "     REFDIR2 [ set up in the module file)."
+    echo "       It behave very similarly to dcm_cmpfile, but work for files"
+    echo "     within DCM. Therefore, this tool is to be used into DCM sub dir."
+    echo "       Default behaviour determine if you are either in DRAKKAR or "
+    echo "     NEMOREF and make the corresponding comparision."
+    echo " "
+    echo "   OPTIONS:"
+    echo '      [-t ] : use  diff instead of xdiff '
+    echo '      [-x <xdiff_tool> ] : choose xdiff_tool instead of meld.'
+    echo '      [-a ALT ] : choose alternative TGT_DIR '
+    echo '         ALT = 1 : use REFDIR2 '
+    echo '         ALT = 2 : use CUSDIR2 '
+    echo '      [-h ] : This help message'
+    exit 0
+        }
+
+if [ $# = 0 ] ; then usage ; fi
+
+XDIFF=meld
+ALT=0
+
+while getopts :hx:a:t opt ; do
+  case $opt in 
+   (h)  usage ;;
+   (t)  noxdiff=1 ;;
+   (x)  XDIFF=${OPTARG} ;;
+   (x)  ALT=${OPTARG} ;;
+   (\?) echo $(basename $0 )" : -"$OPTARG" option not supported" ; usage ;;
+  esac
+done
+
+shift $(($OPTIND-1))
+file=$1
+
+# verify that you are in a DCM subdirectory
+SRC_DIR=''
+echo $(pwd) | grep -q -e 'NEMOREF/NEMO4/src'
+if [ $? = 0 ] ; then
+   SRC_DIR=$REFDIR
+   TGT_DIR=$CUSDIR
+fi
+echo $(pwd) | grep -q -e 'DRAKKAR/NEMO4/src'
+if [ $? = 0 ] ; then
+   SRC_DIR=$CUSDIR
+   TGT_DIR=$REFDIR
+fi
+
+case $ALT in
+( 1 ) TGT_DIR=$REFDIR2 ;;
+( 2 ) TGT_DIR=$CUSDIR2 ;;
+( * ) echo ALT can be only 1 or 2, so far !
+      usage ;;
+esac
+
+if [ ! $SRC_DIR ] ; then
+  echo " +++ ERROR : You are not in a DCM/src subdirectory ..."
+  exit 1
+fi
+
+echo WORKING WITH $TGT_DIR/src
+
+if [ ! -f $file ] ; then
+   echo ERROR : $file  does not exist
+   exit 1
+fi
+
+SOURCE_FILE=$(pwd)/$file
+REF_FILE=$( echo $SOURCE_FILE | sed -e "s@$SRC_DIR@$TGT_DIR@" )
+
+if [ ! -f $REF_FILE ] ; then
+  echo $file is not in $TGT_DIR
+  exit 1
+fi
+
+if [ $noxdiff ] ; then
+  diff -bic  $SOURCE_FILE $REF_FILE
+else
+  $XDIFF  $SOURCE_FILE $REF_FILE 
+fi
