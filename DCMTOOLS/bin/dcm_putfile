@@ -1,0 +1,106 @@
+#!/bin/bash
+#------------------------------------------------------------------------------
+#   $Id$
+#------------------------------------------------------------------------------
+usage() {
+      echo "USAGE : $(basename $0 ) [-h] file_name "
+      echo "       [-h]      : print this help message "
+      echo "       file name : name of the local file to upload to DCM "
+      echo "    "
+      echo "PURPOSE : This script is used by DCM administrator. It copies a "
+      echo "          file from a working configuration to the CUSDIR of the"
+      echo "          actual DCM corresponding to $HOMEDCM"
+      exit 0
+        }
+
+chkdir() { mkdir -p $1 ; }
+
+safecp() {
+   if [ -f $2 ]  ; then
+      echo "WARNING : $2 allready exists"
+      echo "   We rename the actual to $2.$$ "
+      mv -i $2 $2.$$
+   fi
+   cp  $1 $2
+         }
+#------------------------------------------------------------------------------
+
+if [ $# = 0 ] ; then  usage ; fi
+
+while getopts :h opt ; do
+  case $opt in 
+   (h) usage ;;
+   (\?) $(basename $0)" : -"$OPTARG " option not available " ; usage ;;
+  esac
+done
+
+shift $(($OPTIND-1))
+
+if [ ${#1} = 0 ] ; then
+   echo missing file name !
+   echo "#############################################"
+   usage
+fi
+
+file=$1
+
+pref='.'
+   
+
+# look for where we are and determine the config and case
+here=$(pwd -P)
+b_n=$(basename $here)
+# b_n can be : a config dir where a WORK exists
+#                WORK
+#                IOIPSL/src
+#                ARCH
+#                AGRIF
+#                CONFIG-CASE
+case $b_n in 
+  ( WORK ) ;;
+  ( src  ) 
+     tmp=$(basename $( dirname $here) )
+     if [ $tmp = IOIPSL ] ; then 
+         safecp $1 $HOMEDCM/DRAKKAR/NEMO4/ext/IOIPSL/src
+     else
+         echo Sorry: This src directory is not an IOIPSL/src
+         echo        No action taken.
+         exit 1 
+     fi 
+     exit 0 ;;
+
+  ( ARCH ) 
+    safecp $file $HOMEDCM/DRAKKAR/NEMO4/arch/
+    exit 0 ;;
+
+  ( AGRIF ) 
+    safecp $file $HOMEDCM/DRAKKAR/NEMO4/ext/AGRIF/
+    exit 0 ;;
+
+  (  * ) 
+    if [ -d WORK ] ; then
+       cd WORK
+    else
+     echo No WORK DIRECTORY ACCESSIBLE from $b_n
+    exit 1 
+    fi  ;;
+esac
+
+if [ ! -L $file ] ; then 
+   echo ERROR: $file is not a link to the NEMO tree
+   exit 1
+fi
+
+SOURCE_FILE=$( ls -l $file | awk '{ print $NF }' )
+TARGET_DIR=$HOMEDCM/DRAKKAR/NEMO4/src/
+
+
+if [ ! -f $SOURCE_FILE ] ; then
+   echo ERROR : $SOURCE_FILE  does not exist
+   exit 1
+else
+   TARGET_FILE=${TARGET_DIR}$( echo $SOURCE_FILE | sed -e 's@../@@' )
+   TARGET_FILE=${TARGET_DIR}$( echo $SOURCE_FILE | sed -e 's@src/@ @' | awk '{print $NF}' )
+   chkdir $( dirname  $TARGET_FILE )
+   safecp $SOURCE_FILE $TARGET_FILE
+fi
