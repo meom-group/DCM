@@ -1,0 +1,47 @@
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+!  MPP_OPTIMIZE namelist template
+! -------------------------------
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+!
+!'''''''''''''''''''''''''''''''''''''''''
+!       namspace  spatial indexes
+!,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+&namspace
+    nn_jpk   = 31           ! number of vertical level
+    nn_izoom = 1            ! i-index of point (1,1) of the zoomed region/ jpidta
+    nn_jzoom = 1            ! j-index of point (1,1) of the zoomed region/ jpjdta
+/
+!'''''''''''''''''''''''''''''''''''''
+!      namproc
+!''''''''''''''''''''''''''''''''''''
+&namproc
+     nn_procmax = 80         ! maximum number of proc to look for
+     nn_procmin = 1          ! minimum number of proc 
+     ln_memchk  = .false.    ! optimization of memory
+/
+!''''''''''''''''''''''''''''''''''''''
+!      namparam
+!''''''''''''''''''''''''''''''''''''''
+&namparam
+   rn_ppmcal = 225000000.    ! maximum memory for 1 processor
+   rn_ppmin  = 0.4           ! minimum ratio for filling the available memory
+   rn_ppmax  = 0.9           ! maximum ratio for filling the available memory
+/
+!'''''''''''''''''''''''''''''''''''''''
+!      namfile  of filename
+!,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+&namfile
+     cn_fbathy = 'bathymetry_depth_ORCA_R2_V3.nc'  ! bathy file name
+     cn_var    = 'Bathymetry'                      ! Bathy variable name
+     cn_x      = 'x'                               ! bathy x dimension name
+     cn_y      = 'y'                               ! bathy y dimension name
+     ln_zps    = .true.                            ! partial step flag
+/
+!
+!''''''''''''''''''''''''''''''''''''''
+!      namkeep  option -keep.  Specify the root name of the overdata file
+!,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+&namkeep
+    cn_fovdta = 'ORCA2-zahir'   ! Root for the overdata file name
+                                ! complete name will be {covdta}.{jpni}x{jpnj}_{jpnij}
+/
