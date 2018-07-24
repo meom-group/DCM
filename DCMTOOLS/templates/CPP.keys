@@ -15,7 +15,6 @@ key_diadct
 key_diaharm
 key_diahth
 key_diainstant
-key_example
 key_floats
 key_iomput
 key_mpp_mpi
@@ -24,11 +23,7 @@ key_netcdf4
 key_nosignedzero
 key_oa3mct_v3
 key_oasis3
-key_sed
-key_sed_off
 key_si3
 key_top
-key_trdmxl_trc
 key_trdtrc
 key_vectopt_loop
-key_vertical
