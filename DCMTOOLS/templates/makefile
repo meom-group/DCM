@@ -14,8 +14,13 @@ CASEREF = 'none'
 # PREV_CONFIG  (type the full path or 'none' )
 PREV_CONFIG = 'none'
 
-# TEST_CASE ( on of CANAL  ICEDYN  ISOMIP  LOCK_EXCHANGE  OVERFLOW VORTEX  WAD)
+# TEST_CASE ( one of CANAL  ICEDYN  ISOMIP  LOCK_EXCHANGE  OVERFLOW VORTEX  WAD)
 TEST_CASE = 'none'
+
+# NEMO REFERENC CASE ( one of AGRIF_DEMO AMM12 C1D_PAPA GYRE_BFM GYRE_PISCES ORCA2_ICE_PISCES
+#                      ORCA2_OFF_PISCES ORCA2_OFF_TRC ORCA2_SAS_ICE  SPITZ12 )
+NEMO_REF_CASE = 'none'
+
 
 # REFONLY ( yes or no : if yes, only reference is used, not the drakkar customs)
 REFONLY = 'no'
@@ -204,6 +209,18 @@ else
 endif
 	@gmake links
 
+# Target nemo_ref_case : import respective nemo reference case into the current config
+nemo_ref_case:
+ifeq ($(NEMO_REF_CASE),'none')
+	@echo "no NEMO reference case configuration defined"
+else
+	@echo "   copy a nemo reference  case  configuration $(NEMO_REF_CASE) to local directory"
+	-cp -f -R $(REFDIR)/cfgs/$(NEMO_REF_CASE)/MY_SRC ./src/
+	-cat $(REFDIR)/cfgs/$(NEMO_REF_CASE)/cpp_$(NEMO_REF_CASE).fcm | awk '{for (i=2 ; i <= NF ; i++ ) print $$i }' > CPP.keys
+	-cat $(REFDIR)/cfgs/ref_cfgs.txt | grep $(NEMO_REF_CASE) | sed -e "s/$(NEMO_REF_CASE)/$(CONF)-$(CASE)/" > $(CONF)-$(CASE)_cfgs.txt
+endif
+	@gmake links
+
 
 # Target copyref is to be done each time we need to rebuild the
 # source code from the reference sources.
@@ -334,6 +351,7 @@ help:
 	@echo  - make copyconfig    : clone PREV_CONFIG fortran files in the current directory
 	@echo  - make copyconfigall : clone PREV_CONFIG fortran files, CPP_KEYS, and fcm files in the current directory
 	@echo  - make test_case     : clone TEST_CASE fortran files, CPP_KEYS, and fcm files in the current directory
+	@echo  - make nemo_ref_case : clone NEMO_REF_CASE fortran files, CPP_KEYS, and fcm files in the current directory
 	@echo  - make cleaninst     : remove previous installation completly
 	@echo  - make clean         : perform a makenemo clean in $(COMPIL_DIR)/CONFIG
 	@echo  - make links   : redo links in the local directory
