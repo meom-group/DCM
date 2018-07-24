@@ -15,11 +15,13 @@ CASEREF = 'none'
 PREV_CONFIG = 'none'
 
 # TEST_CASE ( one of CANAL  ICEDYN  ISOMIP  LOCK_EXCHANGE  OVERFLOW VORTEX  WAD)
-TEST_CASE = 'none'
+#  NO QUOTE ' ' AROUND TEST_CASE
+TEST_CASE = none
 
 # NEMO REFERENC CASE ( one of AGRIF_DEMO AMM12 C1D_PAPA GYRE_BFM GYRE_PISCES ORCA2_ICE_PISCES
 #                      ORCA2_OFF_PISCES ORCA2_OFF_TRC ORCA2_SAS_ICE  SPITZ12 )
-NEMO_REF_CASE = 'none'
+#  NO QUOTE ' ' AROUND NEMO_REF_CASE
+NEMO_REF_CASE = none
 
 
 # REFONLY ( yes or no : if yes, only reference is used, not the drakkar customs)
