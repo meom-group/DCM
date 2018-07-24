@@ -50,18 +50,19 @@ file=$1
 
 # verify that you are in a DCM subdirectory
 SRC_DIR=''
-echo $(pwd) | grep -q -e 'NEMOREF/NEMO4/src'
+echo $(pwd) | grep -q -e 'NEMOREF/NEMO4'
 if [ $? = 0 ] ; then
    SRC_DIR=$REFDIR
    TGT_DIR=$CUSDIR
 fi
-echo $(pwd) | grep -q -e 'DRAKKAR/NEMO4/src'
+echo $(pwd) | grep -q -e 'DRAKKAR/NEMO4'
 if [ $? = 0 ] ; then
    SRC_DIR=$CUSDIR
    TGT_DIR=$REFDIR
 fi
 
 case $ALT in
+( 0 ) ;;
 ( 1 ) TGT_DIR=$REFDIR2 ;;
 ( 2 ) TGT_DIR=$CUSDIR2 ;;
 ( * ) echo ALT can be only 1 or 2, so far !
