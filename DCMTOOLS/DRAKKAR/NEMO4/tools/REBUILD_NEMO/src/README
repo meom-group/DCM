@@ -1,0 +1,2 @@
+This version mainly differ from the NEMOREF version because it fills the holes left by
+land processor elimination in nav_lon, nav_lat
