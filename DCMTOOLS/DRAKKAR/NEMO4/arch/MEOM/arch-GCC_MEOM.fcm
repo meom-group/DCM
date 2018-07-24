@@ -14,7 +14,7 @@
 # USER_LIB    additional libraries to pass to the linker, e.g. -l<library>
 
 
-%XIOS_HOME           $DEVDIR/xios-2.0
+%XIOS_HOME           $DEVDIR/xios-2.5
 %OASIS_HOME          $WORKDIR/now/models/oa3mct
 
 %NCDF_INC            -I/usr/include
