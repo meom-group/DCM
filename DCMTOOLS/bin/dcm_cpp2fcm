@@ -7,4 +7,4 @@ fi
 
 list=$( cat CPP.keys | grep -v '^#' | sed -e 's/P_P//' -e 's/=//' -e 's/\\//')
 
-echo  ' bld::tool::fppkeys'$list
+echo  ' bld::tool::fppkeys '$list
