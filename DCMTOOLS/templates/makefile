@@ -23,7 +23,7 @@ REFONLY = 'no'
 # MACHINE : name of architecture for compilation. Assume that a arch_${MACHINE}.fcm exists in ARCH 
 # to know available arch_xxx.fcm, use dcm_lsarch.ksh. You can edit/add your own arch_xxx.fcm in
 # CONF-CASE/ARCH/ directory
-MACHINE = GCC_meom
+MACHINE = GCC_MEOM
 
 # NCOMPIL_PROC : number of procs to use for the compilation of the code.
 NCOMPIL_PROC = 1
@@ -37,6 +37,7 @@ TOP = 'notused'
 OFF = 'notused'
 NST = 'notused'
 SAS = 'notused'
+MY_SRC='notused'
 # if set to 'check' maintain an 'install_history' file giving 
 #  the date of install and the svn info of $HOMEDCM
 SVN = 'no'
@@ -140,7 +141,11 @@ ifeq ($(NST),'use')
 	@-cp -f -p -R  $(CONFIG_DIR)/src/NST/ $(COMPIL_DIR)/src
 endif
 ifeq ($(SAS),'use')
-	@-cp -f -p -R  $(CONFIG_DIR)/src/SAS/ $(COMPIL_DIR)/NEMO
+	@-cp -f -p -R  $(CONFIG_DIR)/src/SAS/ $(COMPIL_DIR)/src
+endif
+# MY_SRC, if used must be the last one to copy
+ifeq ($(MY_SRC),'use')
+	@-cp -f -p -R  $(CONFIG_DIR)/src/MY_SRC/ $(COMPIL_DIR)/cfgs/$(CONF)-$(CASE)/
 endif
 	@-cp -f -p -R $(CONFIG_DIR)/arch $(COMPIL_DIR)
 	@gmake links
@@ -193,7 +198,9 @@ ifeq ($(TEST_CASE),'none')
 	@echo "no test_case configuration defined"
 else
 	@echo "   copy a test case  configuration $(TEST_CASE) to local directory"
-	-cp -R $(REFDIR)/tests/$(TEST_CASE)/MY_SRC ./src/
+	-cp -f -R $(REFDIR)/tests/$(TEST_CASE)/MY_SRC ./src/
+	-cat $(REFDIR)/tests/$(TEST_CASE)/cpp_$(TEST_CASE).fcm | awk '{for (i=2 ; i <= NF ; i++ ) print $$i }' > CPP.keys
+	-cat $(REFDIR)/tests/demo_cfgs.txt | grep $(TEST_CASE) | sed -e "s/$(TEST_CASE)/$(CONF)-$(CASE)/" > $(CONF)-$(CASE)_cfgs.txt
 endif
 	@gmake links
 
@@ -219,7 +226,11 @@ else
 	@cp -f -R $(CUS)/arch  $(COMPIL_DIR)/.
 endif
 	@gmake copyfile
+ifeq ("$(wildcard $(CONF)-$(CASE)_cfgs.txt)","")
 	@echo $(CFILE) > $(COMPIL_DIR)/cfgs/ref_cfgs.txt
+else
+	@cp $(CONF)-$(CASE)_cfgs.txt $(COMPIL_DIR)/cfgs/ref_cfgs.txt
+endif
 	@dcm_cpp2fcm > $(COMPIL_DIR)/cfgs/$(CONF)-$(CASE)/cpp_$(CONF)-$(CASE).fcm
 	@cd $(COMPIL_DIR) ;  ./makenemo -r $(CONF)-$(CASE) -m $(MACHINE)  -j0
 
@@ -291,6 +302,9 @@ links:
 	@-ln -sf src/SAS/*.*0 .
 	@-ln -sf ext/src/IOIPSL/*.*0 .
 	@-ln -sf arch/*.fcm .
+ifneq ("$(wildcard src/MY_SRC/*)","")
+	@-ln -sf src/MY_SRC/*.*0 .
+endif
 
 update_history:
 ifeq ($(SVN),'check')
