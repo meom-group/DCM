@@ -1,0 +1,5 @@
+DANGER with this tools as it uses link to the main routines in src/ :
+  Modification for these linked module interfere with NEMO itself ( in the WCONFIG directory)
+
+===> import the linked files as local_file.
+===> Need to erase the link before copyng the file ( TBD ! )
