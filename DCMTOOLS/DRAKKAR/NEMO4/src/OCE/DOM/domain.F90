@@ -319,11 +319,11 @@ CONTAINS
 
 #if defined key_drakkar
       REWIND( numnam_ref )              ! Namelist namrun in reference namelist : Parameters of the run
-      READ  ( numnam_ref, namrun_drk, IOSTAT = ios, ERR = 901)
-901   IF( ios /= 0 )   CALL ctl_nam ( ios , 'namrun_drk in reference namelist', lwp )
+      READ  ( numnam_ref, namrun_drk, IOSTAT = ios, ERR = 905)
+905   IF( ios /= 0 )   CALL ctl_nam ( ios , 'namrun_drk in reference namelist', lwp )
       REWIND( numnam_cfg )              ! Namelist namrun in configuration namelist : Parameters of the run
-      READ  ( numnam_cfg, namrun_drk, IOSTAT = ios, ERR = 902 )
-902   IF( ios >  0 )   CALL ctl_nam ( ios , 'namrun_drk in configuration namelist', lwp )
+      READ  ( numnam_cfg, namrun_drk, IOSTAT = ios, ERR = 906 )
+906   IF( ios >  0 )   CALL ctl_nam ( ios , 'namrun_drk in configuration namelist', lwp )
       IF(lwm) WRITE ( numond, namrun_drk )
 !{ DRAKKAR modification : NEMO reads restart files :
 !       <CN_OCERST_INDIR>.<<nn_no-1>>/<CN_OCERST_IN>-<<nn_no -1 >>_<RANK>.nc

@@ -105,7 +105,6 @@ CONTAINS
          &             rn_ice_tem, rn_ice_sal, rn_ice_age,                     &
          &             ln_vol, nn_volctl, nn_rimwidth, nb_jpk_bdy
 #if defined key_drakkar
-      INTEGER  :: inum             !  logical unit for shlat2d
       REAL(wp) :: zshlat           !: working variable
       REAL(wp), DIMENSION(:,:) , ALLOCATABLE :: zshlat2d
       LOGICAL  :: ln_shlat2d
@@ -125,11 +124,11 @@ CONTAINS
 
 #if defined key_drakkar
       REWIND( numnam_ref )              ! Namelist namlbc in reference namelist : Lateral momentum boundary condition
-      READ  ( numnam_ref, namlbc_drk, IOSTAT = ios, ERR = 901 )
-901   IF( ios /= 0 )   CALL ctl_nam ( ios , 'namlbc_drk in reference namelist', lwp )
+      READ  ( numnam_ref, namlbc_drk, IOSTAT = ios, ERR = 905 )
+905   IF( ios /= 0 )   CALL ctl_nam ( ios , 'namlbc_drk in reference namelist', lwp )
       REWIND( numnam_cfg )              ! Namelist namlbc in configuration namelist : Lateral momentum boundary condition
-      READ  ( numnam_cfg, namlbc_drk, IOSTAT = ios, ERR = 902 )
-902   IF( ios >  0 )   CALL ctl_nam ( ios , 'namlbc_drk in configuration namelist', lwp )
+      READ  ( numnam_cfg, namlbc_drk, IOSTAT = ios, ERR = 906 )
+906   IF( ios >  0 )   CALL ctl_nam ( ios , 'namlbc_drk in configuration namelist', lwp )
       IF(lwm) WRITE ( numond, namlbc_drk )
 #endif
       
