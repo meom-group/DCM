@@ -154,6 +154,7 @@ CONTAINS
       IF ( ln_shlat2d ) THEN
          IF(lwp) WRITE(numout,*) '         READ shlat as a 2D coefficient in a file '
          ALLOCATE (zshlat2d(jpi,jpj) )
+         rn_shlat = 9999.  ! set rn_shlat to a dummy value to force fmask modif
          CALL iom_open(sn_shlat2d%clname, inum)
          CALL iom_get (inum, jpdom_data, sn_shlat2d%clvar, zshlat2d, 1) !
          CALL iom_close(inum)
