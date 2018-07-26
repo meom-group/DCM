@@ -17,7 +17,7 @@ str="\033[9m"
 
 set_color
 echo "========================================================="
-printf " Actual DCM version is: $bld$r%s$k \n"  $( basename $(dirname $HOMEDCM ) )
+printf " Actual $bld${r}DCM$k version is: $bld$r%s$k \n"  $( basename $(dirname $HOMEDCM ) )
 echo 
 printf "$g"
   echo " origin git repository : "
@@ -33,3 +33,9 @@ git log $HOMEDCM | head -4 | grep Date
   cd - > /dev/null 2>&1
 printf "$k"
 echo "========================================================="
+echo
+printf "Actual $bld${r}NEMOREF$k revision is : \n" 
+
+svn info $REFDIR| grep -e URL -e Revision -e 'Last Changed Rev' -e 'Last Changed Date'
+echo "========================================================="
+
