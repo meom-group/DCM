@@ -85,7 +85,7 @@ MODULE iom
   
    !!----------------------------------------------------------------------
    !! NEMO/OCE 4.0 , NEMO Consortium (2018)
-   !! $Id: iom.F90 9930 2018-07-11 14:12:14Z smasson $
+   !! $Id: iom.F90 9984 2018-07-20 13:46:02Z andmirek $
    !! Software governed by the CeCILL licence (./LICENSE)
    !!----------------------------------------------------------------------
 CONTAINS
@@ -149,10 +149,10 @@ CONTAINS
       IF(.NOT.llrst_context) CALL set_scalar
       !
       IF( TRIM(cdname) == TRIM(cxios_context) ) THEN  
-         CALL set_grid( "T", glamt, gphit, .FALSE. ) 
-         CALL set_grid( "U", glamu, gphiu, .FALSE. )
-         CALL set_grid( "V", glamv, gphiv, .FALSE. )
-         CALL set_grid( "W", glamt, gphit, .FALSE. )
+         CALL set_grid( "T", glamt, gphit, .FALSE., .FALSE. ) 
+         CALL set_grid( "U", glamu, gphiu, .FALSE., .FALSE. )
+         CALL set_grid( "V", glamv, gphiv, .FALSE., .FALSE. )
+         CALL set_grid( "W", glamt, gphit, .FALSE., .FALSE. )
          CALL set_grid_znl( gphit )
          !
          IF( ln_cfmeta ) THEN   ! Add additional grid metadata
@@ -170,10 +170,10 @@ CONTAINS
       IF( TRIM(cdname) == TRIM(cxios_context)//"_crs" ) THEN  
          CALL dom_grid_crs   ! Save the parent grid information  & Switch to coarse grid domain
          !
-         CALL set_grid( "T", glamt_crs, gphit_crs, .FALSE. ) 
-         CALL set_grid( "U", glamu_crs, gphiu_crs, .FALSE. ) 
-         CALL set_grid( "V", glamv_crs, gphiv_crs, .FALSE. ) 
-         CALL set_grid( "W", glamt_crs, gphit_crs, .FALSE. ) 
+         CALL set_grid( "T", glamt_crs, gphit_crs, .FALSE., .FALSE. ) 
+         CALL set_grid( "U", glamu_crs, gphiu_crs, .FALSE., .FALSE. ) 
+         CALL set_grid( "V", glamv_crs, gphiv_crs, .FALSE., .FALSE. ) 
+         CALL set_grid( "W", glamt_crs, gphit_crs, .FALSE., .FALSE. ) 
          CALL set_grid_znl( gphit_crs )
           !
          CALL dom_grid_glo   ! Return to parent grid domain
@@ -226,13 +226,13 @@ CONTAINS
       ! automatic definitions of some of the xml attributs
       IF( TRIM(cdname) == TRIM(crxios_context) ) THEN
 !set names of the fields in restart file IF using XIOS to read data
-          CALL iom_set_rst_context()
+          CALL iom_set_rst_context(.TRUE.)
           CALL iom_set_rst_vars(rst_rfields)
 !set which fields are to be read from restart file
           CALL iom_set_rstr_active()
       ELSE IF( TRIM(cdname) == TRIM(cwxios_context) ) THEN
 !set names of the fields in restart file IF using XIOS to write data
-          CALL iom_set_rst_context()
+          CALL iom_set_rst_context(.FALSE.)
           CALL iom_set_rst_vars(rst_wfields)
 !set which fields are to be written to a restart file
           CALL iom_set_rstw_active(fname)
@@ -570,7 +570,7 @@ CONTAINS
 #endif
    END SUBROUTINE iom_set_rstw_active
 
-   SUBROUTINE iom_set_rst_context( ) 
+   SUBROUTINE iom_set_rst_context(ld_rstr) 
      !!---------------------------------------------------------------------
       !!                   ***  SUBROUTINE  iom_set_rst_context  ***
       !!
@@ -578,6 +578,9 @@ CONTAINS
       !!              context 
       !!               
       !!---------------------------------------------------------------------
+   LOGICAL, INTENT(IN)               :: ld_rstr
+!ld_rstr is true for restart context. There is no need to define grid for 
+!restart read, because it's read from file
 #if defined key_iomput
    TYPE(xios_domaingroup)            :: domaingroup_hdl 
    TYPE(xios_domain)                 :: domain_hdl 
@@ -588,7 +591,7 @@ CONTAINS
 
      CALL xios_get_handle("domain_definition",domaingroup_hdl) 
      CALL xios_add_child(domaingroup_hdl, domain_hdl, "grid_N") 
-     CALL set_grid("N", glamt, gphit, .TRUE.) 
+     CALL set_grid("N", glamt, gphit, .TRUE., ld_rstr) 
  
      CALL xios_get_handle("axis_definition",axisgroup_hdl) 
      CALL xios_add_child(axisgroup_hdl, axis_hdl, "nav_lev") 
@@ -1934,7 +1937,7 @@ CONTAINS
    END SUBROUTINE iom_context_finalize
 
 
-   SUBROUTINE set_grid( cdgrd, plon, plat, ldxios )
+   SUBROUTINE set_grid( cdgrd, plon, plat, ldxios, ldrxios )
       !!----------------------------------------------------------------------
       !!                     ***  ROUTINE set_grid  ***
       !!
@@ -1946,7 +1949,7 @@ CONTAINS
       !
       INTEGER  :: ni, nj
       REAL(wp), DIMENSION(jpi,jpj,jpk) ::   zmask
-      LOGICAL, INTENT(IN) :: ldxios
+      LOGICAL, INTENT(IN) :: ldxios, ldrxios
       !!----------------------------------------------------------------------
       !
       ni = nlei-nldi+1
@@ -1954,7 +1957,9 @@ CONTAINS
       !
       CALL iom_set_domain_attr("grid_"//cdgrd, ni_glo=jpiglo, nj_glo=jpjglo, ibegin=nimpp+nldi-2, jbegin=njmpp+nldj-2, ni=ni, nj=nj)
       CALL iom_set_domain_attr("grid_"//cdgrd, data_dim=2, data_ibegin = 1-nldi, data_ni = jpi, data_jbegin = 1-nldj, data_nj = jpj)
-      CALL iom_set_domain_attr("grid_"//cdgrd, lonvalue = RESHAPE(plon(nldi:nlei, nldj:nlej),(/ ni*nj /)),   &
+!don't define lon and lat for restart reading context. 
+      IF ( .NOT.ldrxios ) &
+         CALL iom_set_domain_attr("grid_"//cdgrd, lonvalue = RESHAPE(plon(nldi:nlei, nldj:nlej),(/ ni*nj /)),   &
          &                                     latvalue = RESHAPE(plat(nldi:nlei, nldj:nlej),(/ ni*nj /)))  
       !
       IF ( ln_mskland .AND. (.NOT.ldxios) ) THEN
