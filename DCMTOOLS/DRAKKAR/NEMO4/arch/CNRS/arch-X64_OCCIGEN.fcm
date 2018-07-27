@@ -33,7 +33,7 @@
 %NCDF_HOME           $NETCDFHOME
 %NCDF_HOME_FORTRAN   $NETCDFFHOME
 %HDF5_HOME           $NETCDFFHOME
-%XIOS_HOME           $WORKDIR/DEV/xios_2.0_rev_924
+%XIOS_HOME           $DEVDIR/xios-2.5_rev_1565
 %OASIS_HOME          $WORKDIR/now/models/oa3mct
 
 %NCDF_INC            -I$NETCDF_INCDIR -I$NETCDFF_INCDIR
@@ -48,7 +48,9 @@
 %FCFLAGS             -i4 -r8 -O3 -fp-model precise -xAVX -fno-alias
 %FFLAGS              %FCFLAGS
 %LD                  mpif90
-%FPPFLAGS            -P -C -traditional
+#%FPPFLAGS            -P -C -traditional
+#  With -C and compiling with agrif, conv fails.
+%FPPFLAGS            -P  -traditional
 %LDFLAGS             -lstdc++
 %AR                  ar
 %ARFLAGS             rs
