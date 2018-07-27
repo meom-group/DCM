@@ -28,8 +28,8 @@ echo
 
 printf "$b" 
   echo " current commit:  "
-git log $HOMEDCM | head -4 | grep commit
-git log $HOMEDCM | head -4 | grep Date
+git log  | head -4 | grep commit
+git log  | head -4 | grep Date
   cd - > /dev/null 2>&1
 printf "$k"
 echo "========================================================="
