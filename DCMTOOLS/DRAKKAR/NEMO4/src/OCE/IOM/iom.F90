@@ -695,9 +695,7 @@ CONTAINS
       ENDIF
       ! do we read the overlap 
       ! ugly patch SM+JMM+RB to overwrite global definition in some cases
-      !llnoov = (jpni * jpnj ) == jpnij .AND. .NOT. lk_agrif
-      !llnoov = .true.
-      llnoov = .NOT. lk_agrif
+      llnoov = (jpni * jpnj ) == jpnij .AND. .NOT. lk_agrif
       ! create the file name by added, if needed, TRIM(Agrif_CFixed()) and TRIM(clsuffix)
       ! =============
       clname   = trim(cdname)
