@@ -107,8 +107,8 @@ MODULE nemogcm
 
    !!----------------------------------------------------------------------
    !! NEMO/OCE 4.0 , NEMO Consortium (2018)
-   !! $Id: nemogcm.F90 9780 2018-06-12 12:12:51Z jchanut $
-   !! Software governed by the CeCILL licence     (./LICENSE)
+   !! $Id: nemogcm.F90 10068 2018-08-28 14:09:04Z nicolasmartin $
+   !! Software governed by the CeCILL license (see ./LICENSE)
    !!----------------------------------------------------------------------
 CONTAINS
 

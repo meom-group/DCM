@@ -45,8 +45,8 @@ MODULE dtatsd
 
    !!----------------------------------------------------------------------
    !! NEMO/OCE 4.0 , NEMO Consortium (2018)
-   !! $Id: dtatsd.F90 9598 2018-05-15 22:47:16Z nicolasmartin $ 
-   !! Software governed by the CeCILL licence     (./LICENSE)
+   !! $Id: dtatsd.F90 10068 2018-08-28 14:09:04Z nicolasmartin $ 
+   !! Software governed by the CeCILL license (see ./LICENSE)
    !!----------------------------------------------------------------------
 CONTAINS
 

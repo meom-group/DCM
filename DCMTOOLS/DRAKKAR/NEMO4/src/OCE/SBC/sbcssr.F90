@@ -65,8 +65,8 @@ MODULE sbcssr
 
    !!----------------------------------------------------------------------
    !! NEMO/OCE 4.0 , NEMO Consortium (2018)
-   !! $Id: sbcssr.F90 9727 2018-06-01 16:52:17Z mathiot $
-   !! Software governed by the CeCILL licence     (./LICENSE)
+   !! $Id: sbcssr.F90 10068 2018-08-28 14:09:04Z nicolasmartin $
+   !! Software governed by the CeCILL license (see ./LICENSE)
    !!----------------------------------------------------------------------
 CONTAINS
 

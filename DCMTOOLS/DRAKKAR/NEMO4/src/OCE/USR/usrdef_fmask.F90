@@ -29,8 +29,8 @@ MODULE usrdef_fmask
 #  include "vectopt_loop_substitute.h90"
    !!----------------------------------------------------------------------
    !! NEMO/OCE 4.0 , NEMO Consortium (2018)
-   !! $Id:$ 
-   !! Software governed by the CeCILL licence     (./LICENSE)
+   !! $Id: usrdef_fmask.F90 10069 2018-08-28 14:12:24Z nicolasmartin $ 
+   !! Software governed by the CeCILL license (see ./LICENSE)
    !!----------------------------------------------------------------------
 CONTAINS
 

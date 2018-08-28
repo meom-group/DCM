@@ -85,8 +85,8 @@ MODULE iom
   
    !!----------------------------------------------------------------------
    !! NEMO/OCE 4.0 , NEMO Consortium (2018)
-   !! $Id: iom.F90 9984 2018-07-20 13:46:02Z andmirek $
-   !! Software governed by the CeCILL licence (./LICENSE)
+   !! $Id: iom.F90 10068 2018-08-28 14:09:04Z nicolasmartin $
+   !! Software governed by the CeCILL license (see ./LICENSE)
    !!----------------------------------------------------------------------
 CONTAINS
 

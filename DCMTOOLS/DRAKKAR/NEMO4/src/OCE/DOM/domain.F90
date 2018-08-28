@@ -52,8 +52,8 @@ MODULE domain
 
    !!-------------------------------------------------------------------------
    !! NEMO/OCE 4.0 , NEMO Consortium (2018)
-   !! $Id: domain.F90 9919 2018-07-10 15:07:05Z smasson $
-   !! Software governed by the CeCILL licence        (./LICENSE)
+   !! $Id: domain.F90 10068 2018-08-28 14:09:04Z nicolasmartin $
+   !! Software governed by the CeCILL license (see ./LICENSE)
    !!-------------------------------------------------------------------------
 CONTAINS
 

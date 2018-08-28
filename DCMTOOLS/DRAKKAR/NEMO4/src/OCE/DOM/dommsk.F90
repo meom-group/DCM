@@ -49,8 +49,8 @@ MODULE dommsk
 #  include "vectopt_loop_substitute.h90"
    !!----------------------------------------------------------------------
    !! NEMO/OCE 4.0 , NEMO Consortium (2018)
-   !! $Id: dommsk.F90 9657 2018-05-28 10:19:58Z clem $ 
-   !! Software governed by the CeCILL licence     (./LICENSE)
+   !! $Id: dommsk.F90 10068 2018-08-28 14:09:04Z nicolasmartin $ 
+   !! Software governed by the CeCILL license (see ./LICENSE)
    !!----------------------------------------------------------------------
 CONTAINS
 

@@ -40,8 +40,8 @@ MODULE restart
 #  include "vectopt_loop_substitute.h90"
    !!----------------------------------------------------------------------
    !! NEMO/OCE 4.0 , NEMO Consortium (2018)
-   !! $Id: restart.F90 9903 2018-07-09 13:04:55Z smasson $
-   !! Software governed by the CeCILL licence     (./LICENSE)
+   !! $Id: restart.F90 10068 2018-08-28 14:09:04Z nicolasmartin $
+   !! Software governed by the CeCILL license (see ./LICENSE)
    !!----------------------------------------------------------------------
 CONTAINS
 
