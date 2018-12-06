@@ -294,7 +294,6 @@ CONTAINS
          &             ln_cfmeta, ln_iscpl, ln_xios_read, nn_wxios
 #if defined key_drakkar
       CHARACTER(lc)  :: cl_no
-      NAMELIST/namrun_drk/ cn_dirout
 #endif
       NAMELIST/namdom/ ln_linssh, rn_isfhmin, rn_rdt, rn_atfp, ln_crs, ln_meshmask
 #if defined key_netcdf4
@@ -318,13 +317,6 @@ CONTAINS
       IF(lwm) WRITE ( numond, namrun )
 
 #if defined key_drakkar
-      REWIND( numnam_ref )              ! Namelist namrun in reference namelist : Parameters of the run
-      READ  ( numnam_ref, namrun_drk, IOSTAT = ios, ERR = 905)
-905   IF( ios /= 0 )   CALL ctl_nam ( ios , 'namrun_drk in reference namelist', lwp )
-      REWIND( numnam_cfg )              ! Namelist namrun in configuration namelist : Parameters of the run
-      READ  ( numnam_cfg, namrun_drk, IOSTAT = ios, ERR = 906 )
-906   IF( ios >  0 )   CALL ctl_nam ( ios , 'namrun_drk in configuration namelist', lwp )
-      IF(lwm) WRITE ( numond, namrun_drk )
 !{ DRAKKAR modification : NEMO reads restart files :
 !       <CN_OCERST_INDIR>.<<nn_no-1>>/<CN_OCERST_IN>-<<nn_no -1 >>_<RANK>.nc
       ! Add extension (job number to the restart dir. Differ for restart input and restart output
@@ -367,9 +359,6 @@ CONTAINS
          WRITE(numout,*) '      additional CF standard metadata ln_cfmeta       = ', ln_cfmeta
          WRITE(numout,*) '      overwrite an existing file      ln_clobber      = ', ln_clobber
          WRITE(numout,*) '      NetCDF chunksize (bytes)        nn_chunksz      = ', nn_chunksz
-#if defined key_drakkar
-         WRITE(numout,*) '      Output directory                cn_dirout       = ', cn_dirout
-#endif
          WRITE(numout,*) '      IS coupling at the restart step ln_iscpl        = ', ln_iscpl
          IF( TRIM(Agrif_CFixed()) == '0' ) THEN
             WRITE(numout,*) '      READ restart for a single file using XIOS ln_xios_read =', ln_xios_read

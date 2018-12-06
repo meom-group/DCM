@@ -45,7 +45,7 @@ MODULE dtatsd
 
    !!----------------------------------------------------------------------
    !! NEMO/OCE 4.0 , NEMO Consortium (2018)
-   !! $Id: dtatsd.F90 10068 2018-08-28 14:09:04Z nicolasmartin $ 
+   !! $Id: dtatsd.F90 10213 2018-10-23 14:40:09Z aumont $ 
    !! Software governed by the CeCILL license (see ./LICENSE)
    !!----------------------------------------------------------------------
 CONTAINS
@@ -244,27 +244,29 @@ CONTAINS
 !!gm  This should be removed from the code   ===>>>>  T & S files has to be changed
       !
       !                                   !==   ORCA_R2 configuration and T & S damping   ==! 
-      IF( cn_cfg == "orca" .AND. nn_cfg == 2 .AND. ln_tsd_dmp ) THEN    ! some hand made alterations
-         !
-         ij0 = 101   ;   ij1 = 109                       ! Reduced T & S in the Alboran Sea
-         ii0 = 141   ;   ii1 = 155
-         DO jj = mj0(ij0), mj1(ij1)
-            DO ji = mi0(ii0), mi1(ii1)
-               sf_tsd(jp_tem)%fnow(ji,jj,13:13) = sf_tsd(jp_tem)%fnow(ji,jj,13:13) - 0.20_wp
-               sf_tsd(jp_tem)%fnow(ji,jj,14:15) = sf_tsd(jp_tem)%fnow(ji,jj,14:15) - 0.35_wp
-               sf_tsd(jp_tem)%fnow(ji,jj,16:25) = sf_tsd(jp_tem)%fnow(ji,jj,16:25) - 0.40_wp
-               !
-               sf_tsd(jp_sal)%fnow(ji,jj,13:13) = sf_tsd(jp_sal)%fnow(ji,jj,13:13) - 0.15_wp
-               sf_tsd(jp_sal)%fnow(ji,jj,14:15) = sf_tsd(jp_sal)%fnow(ji,jj,14:15) - 0.25_wp
-               sf_tsd(jp_sal)%fnow(ji,jj,16:17) = sf_tsd(jp_sal)%fnow(ji,jj,16:17) - 0.30_wp
-               sf_tsd(jp_sal)%fnow(ji,jj,18:25) = sf_tsd(jp_sal)%fnow(ji,jj,18:25) - 0.35_wp
+      IF( cn_cfg == "orca" .OR. cn_cfg == "ORCA" ) THEN
+         IF( nn_cfg == 2 .AND. ln_tsd_dmp ) THEN    ! some hand made alterations
+            !
+            ij0 = 101   ;   ij1 = 109                       ! Reduced T & S in the Alboran Sea
+            ii0 = 141   ;   ii1 = 155
+            DO jj = mj0(ij0), mj1(ij1)
+               DO ji = mi0(ii0), mi1(ii1)
+                  sf_tsd(jp_tem)%fnow(ji,jj,13:13) = sf_tsd(jp_tem)%fnow(ji,jj,13:13) - 0.20_wp
+                  sf_tsd(jp_tem)%fnow(ji,jj,14:15) = sf_tsd(jp_tem)%fnow(ji,jj,14:15) - 0.35_wp
+                  sf_tsd(jp_tem)%fnow(ji,jj,16:25) = sf_tsd(jp_tem)%fnow(ji,jj,16:25) - 0.40_wp
+                  !
+                  sf_tsd(jp_sal)%fnow(ji,jj,13:13) = sf_tsd(jp_sal)%fnow(ji,jj,13:13) - 0.15_wp
+                  sf_tsd(jp_sal)%fnow(ji,jj,14:15) = sf_tsd(jp_sal)%fnow(ji,jj,14:15) - 0.25_wp
+                  sf_tsd(jp_sal)%fnow(ji,jj,16:17) = sf_tsd(jp_sal)%fnow(ji,jj,16:17) - 0.30_wp
+                  sf_tsd(jp_sal)%fnow(ji,jj,18:25) = sf_tsd(jp_sal)%fnow(ji,jj,18:25) - 0.35_wp
+               END DO
             END DO
-         END DO
-         ij0 =  87   ;   ij1 =  96                          ! Reduced temperature in Red Sea
-         ii0 = 148   ;   ii1 = 160
-         sf_tsd(jp_tem)%fnow( mi0(ii0):mi1(ii1) , mj0(ij0):mj1(ij1) ,  4:10 ) = 7.0_wp
-         sf_tsd(jp_tem)%fnow( mi0(ii0):mi1(ii1) , mj0(ij0):mj1(ij1) , 11:13 ) = 6.5_wp
-         sf_tsd(jp_tem)%fnow( mi0(ii0):mi1(ii1) , mj0(ij0):mj1(ij1) , 14:20 ) = 6.0_wp
+            ij0 =  87   ;   ij1 =  96                          ! Reduced temperature in Red Sea
+            ii0 = 148   ;   ii1 = 160
+            sf_tsd(jp_tem)%fnow( mi0(ii0):mi1(ii1) , mj0(ij0):mj1(ij1) ,  4:10 ) = 7.0_wp
+            sf_tsd(jp_tem)%fnow( mi0(ii0):mi1(ii1) , mj0(ij0):mj1(ij1) , 11:13 ) = 6.5_wp
+            sf_tsd(jp_tem)%fnow( mi0(ii0):mi1(ii1) , mj0(ij0):mj1(ij1) , 14:20 ) = 6.0_wp
+         ENDIF
       ENDIF
 !!gm end
       !

@@ -42,6 +42,9 @@ MODULE iom
 # endif
    USE ioipsl, ONLY :  ju2ymds    ! for calendar
    USE crs             ! Grid coarsening
+#if defined key_top
+   USE trc, ONLY    :  profsed
+#endif
    USE lib_fortran 
    USE diurnal_bulk, ONLY : ln_diurnal_only, ln_diurnal
 
@@ -85,7 +88,7 @@ MODULE iom
   
    !!----------------------------------------------------------------------
    !! NEMO/OCE 4.0 , NEMO Consortium (2018)
-   !! $Id: iom.F90 10068 2018-08-28 14:09:04Z nicolasmartin $
+   !! $Id: iom.F90 10361 2018-11-30 08:33:05Z davestorkey $
    !! Software governed by the CeCILL license (see ./LICENSE)
    !!----------------------------------------------------------------------
 CONTAINS
@@ -192,10 +195,10 @@ CONTAINS
       !
       ! vertical grid definition
       IF(.NOT.llrst_context) THEN
-          CALL iom_set_axis_attr( "deptht", paxis = gdept_1d )
-          CALL iom_set_axis_attr( "depthu", paxis = gdept_1d )
-          CALL iom_set_axis_attr( "depthv", paxis = gdept_1d )
-          CALL iom_set_axis_attr( "depthw", paxis = gdepw_1d )
+          CALL iom_set_axis_attr( "deptht",  paxis = gdept_1d )
+          CALL iom_set_axis_attr( "depthu",  paxis = gdept_1d )
+          CALL iom_set_axis_attr( "depthv",  paxis = gdept_1d )
+          CALL iom_set_axis_attr( "depthw",  paxis = gdepw_1d )
 
           ! Add vertical grid bounds
           jkmin = MIN(2,jpk)  ! in case jpk=1 (i.e. sas2D)
@@ -205,10 +208,10 @@ CONTAINS
           zw_bnds(1,:        ) = gdepw_1d(:)
           zw_bnds(2,1:jpkm1  ) = gdepw_1d(jkmin:jpk)
           zw_bnds(2,jpk:     ) = gdepw_1d(jpk) + e3t_1d(jpk)
-          CALL iom_set_axis_attr( "deptht", bounds=zt_bnds )
-          CALL iom_set_axis_attr( "depthu", bounds=zt_bnds )
-          CALL iom_set_axis_attr( "depthv", bounds=zt_bnds )
-          CALL iom_set_axis_attr( "depthw", bounds=zw_bnds )
+          CALL iom_set_axis_attr( "deptht", bounds=zw_bnds )
+          CALL iom_set_axis_attr( "depthu", bounds=zw_bnds )
+          CALL iom_set_axis_attr( "depthv", bounds=zw_bnds )
+          CALL iom_set_axis_attr( "depthw", bounds=zt_bnds )
           !
 # if defined key_floats
           CALL iom_set_axis_attr( "nfloat", (/ (REAL(ji,wp), ji=1,jpnfl) /) )
@@ -218,6 +221,9 @@ CONTAINS
           ! SIMIP diagnostics (4 main arctic straits)
           CALL iom_set_axis_attr( "nstrait", (/ (REAL(ji,wp), ji=1,4) /) )
 # endif
+#if defined key_top
+          CALL iom_set_axis_attr( "profsed", paxis = profsed )
+#endif
           CALL iom_set_axis_attr( "icbcla", class_num )
           CALL iom_set_axis_attr( "iax_20C", (/ REAL(20,wp) /) )
           CALL iom_set_axis_attr( "iax_28C", (/ REAL(28,wp) /) )

@@ -107,7 +107,7 @@ MODULE nemogcm
 
    !!----------------------------------------------------------------------
    !! NEMO/OCE 4.0 , NEMO Consortium (2018)
-   !! $Id: nemogcm.F90 10068 2018-08-28 14:09:04Z nicolasmartin $
+   !! $Id: nemogcm.F90 10350 2018-11-21 14:12:15Z mathiot $
    !! Software governed by the CeCILL license (see ./LICENSE)
    !!----------------------------------------------------------------------
 CONTAINS
@@ -155,6 +155,7 @@ CONTAINS
       ! check that all process are still there... If some process have an error,
       ! they will never enter in step and other processes will wait until the end of the cpu time!
       IF( lk_mpp )   CALL mpp_max( nstop )
+
 #if defined key_drakkar
       IF(lwp) WRITE(numout,cform_bbb)   ! Flag BBBBBB
 #else
@@ -452,7 +453,7 @@ CONTAINS
       !                                      ! Active tracers
       IF( ln_traqsr    )   CALL tra_qsr_init      ! penetrative solar radiation qsr
                            CALL tra_bbc_init      ! bottom heat flux
-      IF( ln_trabbl    )   CALL tra_bbl_init      ! advective (and/or diffusive) bottom boundary layer scheme
+                           CALL tra_bbl_init      ! advective (and/or diffusive) bottom boundary layer scheme
                            CALL tra_dmp_init      ! internal tracer damping
                            CALL tra_adv_init      ! horizontal & vertical advection
                            CALL tra_ldf_init      ! lateral mixing
