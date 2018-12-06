@@ -253,7 +253,7 @@ CONTAINS
          ENDIF
 #if defined key_drakkar
          IF ( nn_hdmp == -2 ) THEN
-            CALL dtacof( nn_hdmp, nn_file, 'TRA', resto )
+            CALL dtacof( nn_file, 'TRA', resto )
          ELSE
 #endif
          !                          ! Read in mask from file
@@ -305,7 +305,7 @@ CONTAINS
       !!----------------------------------------------------------------------
       !
       !
-      ALLOCATE(zdct(jpi,jpj,jpk)
+      ALLOCATE(zdct(jpi,jpj,jpk))
 
       presto(:,:,:) = 0._wp
       !
@@ -373,7 +373,7 @@ CONTAINS
            IF (lwp) WRITE(numout,*) '~~~~~'
        ENDIF
        ! Particular cases
-       IF ( cp_cfg == 'natl' ) THEN  ! ALL NATL config have an eastern  Med sea truncated
+       IF ( cn_cfg == 'natl' ) THEN  ! ALL NATL config have an eastern  Med sea truncated
          ! Eastern Med Sea truncated in NATL
          ! Lonmin     ! Lonmax       ! Latmin        ! Latmax       ! Band      ! relax time   !
          !  deg E     ! deg E        !  deg N        ! Deg N        !  deg      !   days       !
@@ -454,7 +454,7 @@ CONTAINS
       REAL(wp), DIMENSION(:,:), ALLOCATABLE :: zpatch
       REAL(wp), DIMENSION(:),   ALLOCATABLE :: zmask
       !!------------------------------------------------------------------------
-      ALLOCATE(zpatch(jpi,jpj),  zmask(jpk)
+      ALLOCATE(zpatch(jpi,jpj),  zmask(jpk))
  
       zpatch = 0._wp
       zcoef  = 1._wp/ptmax/86400._wp

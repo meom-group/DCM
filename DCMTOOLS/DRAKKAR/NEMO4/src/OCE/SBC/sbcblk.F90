@@ -131,6 +131,7 @@ MODULE sbcblk
    INTEGER, PARAMETER ::   np_ECMWF     = 4   ! "ECMWF" algorithm       (IFS cycle 31)
 
 #if defined key_drakkar
+   INTEGER  :: inum
    LOGICAL  ::   ln_kata     ! logical flag for katabatic winds enhancement
    CHARACTER(len=32) :: cl_katfile                !: katabatic filename
    REAL(wp) , PUBLIC, ALLOCATABLE, SAVE, DIMENSION(:,:) :: rmskkatax  !: array for katamask (T-point)
@@ -194,6 +195,7 @@ CONTAINS
          &                 cn_dir , ln_taudif, rn_zqt, rn_zu,                         & 
          &                 rn_pfac, rn_efac, rn_vfac, ln_Cd_L12, ln_Cd_L15
 #if defined key_drakkar
+      TYPE(FLD_N) :: sn_kati, sn_katj
       NAMELIST/namsbc_blk_drk/ ln_kata, sn_kati, sn_katj
 #endif
       !!---------------------------------------------------------------------

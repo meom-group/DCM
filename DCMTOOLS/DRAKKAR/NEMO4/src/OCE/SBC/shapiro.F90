@@ -10,7 +10,6 @@ MODULE shapiro
    !! * Modules used
    USE in_out_manager
    USE dom_oce         ! ocean space and time domain
-   USE wrk_nemo        ! work arrays
    USE timing          ! Timing
    USE lbclnk
 
@@ -41,7 +40,7 @@ MODULE shapiro
 
       ! * Local variable
       INTEGER                               :: ji, jj, jn ! dummy loop index
-      REAL(wp), POINTER, DIMENSION(:,:)     :: zvarout    ! working array
+      REAL(wp), DIMENSION(:,:), ALLOCATABLE :: zvarout    ! working array
       REAL(wp), PARAMETER                   :: rp_aniso_diff_XY=2.25 !  anisotrope case (???)
                                                           ! Empirical value for 140 iterations
                                                           ! for an anisotropic ratio of 1.5.
@@ -53,9 +52,9 @@ MODULE shapiro
 !
 !------------------------------------------------------------------------------
 !
-      IF( nn_timing == 1 )  CALL timing_start('Shapiro')
-      !
-      CALL wrk_alloc( jpi,jpj, zvarout )
+      IF( ln_timing )  CALL timing_start('Shapiro')
+      ! 
+      ALLOCATE(zvarout(jpi,jpj) )
 
 !     Global ocean case
       IF (( cd_overlap == 'MERCA_GLOB' )   .OR.   &
@@ -102,8 +101,8 @@ MODULE shapiro
          ENDDO  ! end loop jn
       ENDIF
 
-      CALL wrk_dealloc( jpi,jpj, zvarout )
-      IF( nn_timing == 1 )  CALL timing_stop('Shapiro')
+      DEALLOCATE(zvarout)
+      IF( ln_timing )  CALL timing_stop('Shapiro')
 !
 END SUBROUTINE Shapiro_1D     
 
