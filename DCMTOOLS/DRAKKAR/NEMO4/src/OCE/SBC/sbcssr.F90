@@ -35,10 +35,6 @@ MODULE sbcssr
 
    REAL(wp), PUBLIC, ALLOCATABLE, SAVE, DIMENSION(:,:) ::   erp   !: evaporation damping   [kg/m2/s]
    REAL(wp), PUBLIC, ALLOCATABLE, SAVE, DIMENSION(:,:) ::   qrp   !: heat flux damping        [w/m2]
-#if defined key_drakkar
-   ! local modification of ssr
-   REAL(wp), PUBLIC, ALLOCATABLE, SAVE, DIMENSION(:,:) ::   erpcoef !:  multiplicating coef for local change to erp
-#endif
 
    !                                   !!* Namelist namsbc_ssr *
    INTEGER, PUBLIC ::   nn_sstr         ! SST/SSS restoring indicator
@@ -49,6 +45,8 @@ MODULE sbcssr
    REAL(wp)        ::   rn_sssr_bnd     ! ABS(Max./Min.) value of erp term [mm/day]
 
 #if defined key_drakkar
+   ! local modification of ssr
+   REAL(wp), PUBLIC, ALLOCATABLE, SAVE, DIMENSION(:,:) ::   erpcoef !:  multiplicating coef for local change to erp
    ! filtering of model fields
    LOGICAL, PUBLIC ::   ln_sssr_flt     ! flag to filter sss for restoring
    INTEGER, PUBLIC ::   nn_shap_iter    ! number of iteration for shapiro
@@ -140,12 +138,35 @@ CONTAINS
             ELSEIF( nn_sssr == 2 ) THEN                               !* Salinity damping term (volume flux (emp) and associated heat flux (qns)
                zsrp = rn_deds / rday                                  ! from [mm/day] to [kg/m2/s]
                zerp_bnd = rn_sssr_bnd / rday                          !       -              -    
+#if defined key_drakkar
+               !  fliter model field 
+               IF (ln_sssr_flt ) THEN
+                  CALL Shapiro_1D ( sss_m(:,:), nn_shap_iter, 'ORCA_GLOB', zsss_m )
+                  CALL Shapiro_1D ( sst_m(:,:), nn_shap_iter, 'ORCA_GLOB', zsst_m )
+                  zsss_m = zsss_m * tmask(:,:,1)
+                  zsst_m = zsst_m * tmask(:,:,1)
+               ELSE
+                  zsss_m = sss_m * tmask(:,:,1)
+                  zsst_m = sst_m * tmask(:,:,1)
+               ENDIF
+#endif
                DO jj = 1, jpj
                   DO ji = 1, jpi                            
+#if defined key_drakkar
+                   ! use filters model fields and multiply zerp by erpcoef
+                     zerp = zsrp * ( 1. - 2.*rnfmsk(ji,jj) )   &      ! No damping in vicinity of river mouths
+                        &        * ( zsss_m(ji,jj) - sf_sss(1)%fnow(ji,jj,1) )   &
+                        &        / MAX(  zsss_m(ji,jj), 1.e-20   )               &
+                        &        * erpcoef(ji,jj)
+                     IF( ln_sssr_bnd )   zerp = SIGN( 1., zerp ) * MIN( zerp_bnd, ABS(zerp) )
+                   ! use distance to the coast
+                     IF( ln_sssr_msk )   zerp = zerp * distcoast(ji,jj) ! multiply by weigh to fade zerp out near the coast
+#else
                      zerp = zsrp * ( 1. - 2.*rnfmsk(ji,jj) )   &      ! No damping in vicinity of river mouths
                         &        * ( sss_m(ji,jj) - sf_sss(1)%fnow(ji,jj,1) )   &
                         &        / MAX(  sss_m(ji,jj), 1.e-20   ) * tmask(ji,jj,1)
                      IF( ln_sssr_bnd )   zerp = SIGN( 1., zerp ) * MIN( zerp_bnd, ABS(zerp) )
+#endif
                      emp(ji,jj) = emp (ji,jj) + zerp
                      qns(ji,jj) = qns(ji,jj) - zerp * rcp * sst_m(ji,jj)
                      erp(ji,jj) = zerp
@@ -176,6 +197,12 @@ CONTAINS
       REAL(wp) ::   zsrp     ! local scalar for unit conversion of rn_deds factor
       REAL(wp) ::   zerp_bnd ! local scalar for unit conversion of rn_epr_max factor
       INTEGER  ::   ierror   ! return error code
+#if defined key_drakkar
+      INTEGER  ::   ii0, ii1, ii2, ij0, ij1, ij2, inum
+      REAL(wp) :: zalph
+      CHARACTER(LEN=100) ::  cl_coastfile
+      NAMELIST/namsbc_ssr_drk/ ln_sssr_flt, ln_sssr_msk, sn_coast, rn_dist, nn_shap_iter
+#endif
       !!
       CHARACTER(len=100) ::  cn_dir          ! Root directory for location of ssr files
       TYPE(FLD_N) ::   sn_sst, sn_sss        ! informations about the fields to be read
@@ -198,6 +225,17 @@ CONTAINS
 902   IF( ios >  0 )   CALL ctl_nam ( ios , 'namsbc_ssr in configuration namelist', lwp )
       IF(lwm) WRITE ( numond, namsbc_ssr )
 
+#if defined key_drakkar
+      REWIND( numnam_ref )              ! Namelist namsbc_ssr in reference namelist : 
+      READ  ( numnam_ref, namsbc_ssr_drk, IOSTAT = ios, ERR = 903)
+903   IF( ios /= 0 )   CALL ctl_nam ( ios , 'namsbc_ssr_drk in reference namelist', lwp )
+
+      REWIND( numnam_cfg )              ! Namelist namsbc_ssr in configuration namelist :
+      READ  ( numnam_cfg, namsbc_ssr_drk, IOSTAT = ios, ERR = 904 )
+904   IF( ios >  0 )   CALL ctl_nam ( ios , 'namsbc_ssr_drk in configuration namelist', lwp )
+      IF(lwm) WRITE ( numond, namsbc_ssr )
+#endif
+
       IF(lwp) THEN                 !* control print
          WRITE(numout,*) '   Namelist namsbc_ssr :'
          WRITE(numout,*) '      SST restoring term (Yes=1)             nn_sstr        = ', nn_sstr
@@ -207,6 +245,14 @@ CONTAINS
          WRITE(numout,*) '         dE/dS (restoring magnitude on SST)     rn_deds     = ', rn_deds, ' mm/day'
          WRITE(numout,*) '         flag to bound erp term                 ln_sssr_bnd = ', ln_sssr_bnd
          WRITE(numout,*) '         ABS(Max./Min.) erp threshold           rn_sssr_bnd = ', rn_sssr_bnd, ' mm/day'
+#if defined key_drakkar
+         WRITE(numout,*) '      Filtering of sss for restoring         ln_sssr_flt = ', ln_sssr_flt 
+         IF ( ln_sssr_flt ) THEN
+            WRITE(numout,*) '      Number of used Shapiro filter           nn_shap_iter = ', nn_shap_iter
+         ENDIF
+         WRITE(numout,*) '      Limit sss restoring near the coast     ln_sssr_msk = ', ln_sssr_msk
+         IF ( ln_sssr_msk ) WRITE(numout,*) '      Decaying lenght scale from the coast   rn_dist     = ', rn_dist, ' km'
+#endif
       ENDIF
       !
       !                            !* Allocate erp and qrp array
@@ -239,6 +285,52 @@ CONTAINS
          IF( sf_sss(1)%ln_tint )   ALLOCATE( sf_sss(1)%fdta(jpi,jpj,1,2), STAT=ierror )
          IF( ierror > 0 )   CALL ctl_stop( 'STOP', 'sbc_ssr: unable to allocate sf_sss data array' )
          !
+#if defined key_drakkar
+         ! if masking of coastal area is used
+         IF ( ln_sssr_msk ) THEN
+            ALLOCATE( distcoast(jpi,jpj),STAT=ierror )  
+            IF( ierror > 0 )   CALL ctl_stop( 'STOP', 'sbc_ssr: unable to allocate erp and qrp array' )
+            WRITE(cl_coastfile,'(a,a)' ) TRIM( cn_dir ), TRIM( sn_coast%clname )
+            CALL iom_open ( cl_coastfile, inum )                          ! open file
+            CALL iom_get  ( inum, jpdom_data, sn_coast%clvar, distcoast ) ! read tcoast  in m
+            CALL iom_close( inum )
+            ! transform distcoast to weight 
+            rn_dist=rn_dist*1000.  ! tranform rn_dist to m
+            distcoast(:,:)=0.5*(tanh(3.*(distcoast(:,:)*distcoast(:,:)/rn_dist/rn_dist - 1 )) + 1 )
+         ENDIF
+      ALLOCATE( erpcoef(jpi,jpj),STAT=ierror )
+      IF( ierror > 0 )   CALL ctl_stop( 'STOP', 'sbc_ssr: unable to allocate erpcoef' )
+      ! DRAKKAR { initialize erpcoef to increase erp in the med sea
+      erpcoef(:,:) = 1._wp
+!!! JMM : see how do to it nicely either in a an external file of is a usr_ routine
+! to keep the spirit of NEMO 4 
+!     IF( cp_cfg == "orca" .AND. jp_cfg == 25 ) THEN  ! ORCA R025 configuration
+!        !! add extra SSS restoring in the Red Sea
+!        ii0= 1280       ;  ii1 = 1325
+!        ij0= 560        ;  ij1 = 625
+!        erpcoef( mi0(ii0):mi1(ii1) , mj0(ij0):mj1(ij1)) =  5.0
+
+         !! add extra SSS restoring in the Med sea (x3) decreasing to 1 into the alboran sea
+!        ii1 = 1145  ; ii2 =  1330
+!        ij1 = 626   ; ij2 =  726
+!        erpcoef( mi0(ii1):mi1(ii2) , mj0(ij1):mj1(ij2)) = 3.0
+
+         !! decrease in alboran sea (along i )
+!        ii0= 1128       ;  ii1 = 1144
+!        ij0= 645        ;  ij1 = 670
+!        DO jj=mj0(ij0), mj1(ij1)
+!           DO ji= mi0(ii0), mi1(ii1)
+!              !zalph=( alph1 -alph0 )* (I - ii0 )/(ii1-ii0) + alph0
+               !zalph=( 3.    - 1.   )* (I - ii0 )/(ii1-ii0) + 1.
+!              zalph=     2.   *    (mig(ji)-ii0)/(ii1-ii0) + 1.
+!              erpcoef(ji,jj) = zalph 
+!           ENDDO
+!        ENDDO
+!     ENDIF
+
+
+
+#endif
       ENDIF
       !
       !                            !* Initialize qrp and erp if no restoring 

@@ -425,13 +425,12 @@
    sn_sst      = 'sst_data'              ,        24         ,  'sst'    ,    .false.  , .false., 'yearly'  ,    ''            ,    ''    ,     ''
    sn_sss      = 'BSAS12-MJM03_y1992m01d02.1d_gridTsurf' , -12 , 'sosaline' , .false.  , .true. , 'yearly'  ,    ''            ,    ''    ,     ''
 /
-!@@@@@@@@@@@@@  REQUIRE WORK ON CODE @@@@@@@@@@@@@@@@@@ JMM
 !-----------------------------------------------------------------------
 &namsbc_ssr_drk !   surface boundary condition : sea surface restoring   (ln_ssr =T)
 !-----------------------------------------------------------------------
-   ln_sssr_flt = .false.   ! use filtering of SSS model for sss restoring
-   nn_shap_iter   =  300   ! number of iteration of the shapiro filter 
-   ln_sssr_msk = .false.   ! use a mask near the coast
+   ln_sssr_flt  = .false.  ! use filtering of SSS model for sss restoring
+   nn_shap_iter =  300     ! number of iteration of the shapiro filter 
+   ln_sssr_msk  = .false.  ! use a mask near the coast
 !              !  file name                             ! frequency (hours) ! variable  ! time interp. !  clim  ! 'yearly'/ ! weights  ! rotation !  land/sea mask !
 !              !                                        !  (if <0  months)  !   name    !   (logical)  !  (T/F) ! 'monthly' ! filename ! pairing  !  filename      !
    sn_coast    = 'BSAS12_distcoast' , 0 , 'Tcoast' , .false.      , .true. , 'yearly'  ,  ''      , ''       , ''
