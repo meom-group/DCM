@@ -107,7 +107,7 @@ CONTAINS
 #if defined key_drakkar
       REAL(wp) :: zshlat           !: working variable
       REAL(wp), DIMENSION(:,:) , ALLOCATABLE :: zshlat2d
-      LOGICAL  :: ln_shlat2d
+      LOGICAL     :: ln_shlat2d
       TYPE(FLD_N) :: sn_shlat2d
       !!
       NAMELIST/namlbc_drk/ ln_shlat2d, sn_shlat2d
