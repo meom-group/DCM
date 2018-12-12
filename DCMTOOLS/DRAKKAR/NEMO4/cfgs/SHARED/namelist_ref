@@ -62,11 +62,6 @@
    nn_chunksz  =       0     !  chunksize (bytes) for NetCDF file (works only with iom_nf90 routines)
 /
 !-----------------------------------------------------------------------
-&namrun_drk        !   parameters of the run
-!-----------------------------------------------------------------------
-   cn_dirout   = "CN_DIROUT"  ! directory for model output
-/
-!-----------------------------------------------------------------------
 &namdom        !   time and space domain
 !-----------------------------------------------------------------------
    ln_linssh   = .true.    !  =T  linear free surface  ==>>  model level are fixed in time
