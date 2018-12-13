@@ -397,10 +397,10 @@
    rn_si1      =   23.0       !  2BD : longest depth of extinction
    
    cn_dir      = './'      !  root directory for the chlorophyl data location
-   !___________!_________________________!___________________!___________!_____________!________!___________!__________________!__________!_______________!
-   !           !  file name              ! frequency (hours) ! variable  ! time interp.!  clim  ! 'yearly'/ ! weights filename ! rotation ! land/sea mask !
-   !           !                         !  (if <0  months)  !   name    !   (logical) !  (T/F) ! 'monthly' !                  ! pairing  !    filename   !
-   sn_chl      = 'BSAS12_chlaseawifs_c1m-99-05_smooth' , -1  , 'CHLA'    ,   .true.    , .true. , 'yearly'  , ''               , ''       , ''
+   !___________!_________________________!___________________!___________!_____________!________!___________!__________!__________!_______________!
+   !           !  file name              ! frequency (hours) ! variable  ! time interp.!  clim  ! 'yearly'/ ! weights  ! rotation ! land/sea mask !
+   !           !                         !  (if <0  months)  !   name    !   (logical) !  (T/F) ! 'monthly' ! filename ! pairing  !    filename   !
+   sn_chl      = 'BSAS12_chlaseawifs_c1m-99-05_smooth' , -1  , 'CHLA'    ,   .true.    , .true. , 'yearly'  , ''       , ''       , ''
 /
 !-----------------------------------------------------------------------
 &namsbc_ssr    !   surface boundary condition : sea surface restoring   (ln_ssr =T)
@@ -414,11 +414,11 @@
       rn_sssr_bnd =   4.e0    !  ABS(Max/Min) value of the damping erp term [mm/day]
 
    cn_dir      = './'      !  root directory for the SST/SSS data location
-   !___________!_________________________!___________________!___________!_____________!________!___________!__________________!__________!_______________!
-   !           !  file name              ! frequency (hours) ! variable  ! time interp.!  clim  ! 'yearly'/ ! weights filename ! rotation ! land/sea mask !
-   !           !                         !  (if <0  months)  !   name    !   (logical) !  (T/F) ! 'monthly' !                  ! pairing  !    filename   !
-   sn_sst      = 'sst_data'              ,        24         ,  'sst'    ,    .false.  , .false., 'yearly'  ,    ''            ,    ''    ,     ''
-   sn_sss      = 'BSAS12-MJM03_y1992m01d02.1d_gridTsurf' , -12 , 'sosaline' , .false.  , .true. , 'yearly'  ,    ''            ,    ''    ,     ''
+   !___________!_________________________!___________________!___________!_____________!________!___________!___________!__________!_______________!
+   !           !  file name              ! frequency (hours) ! variable  ! time interp.!  clim  ! 'yearly'/ ! weights e ! rotation ! land/sea mask !
+   !           !                         !  (if <0  months)  !   name    !   (logical) !  (T/F) ! 'monthly' !  filename ! pairing  !    filename   !
+   sn_sst      = 'sst_data'              ,        24         ,  'sst'    ,    .false.  , .false., 'yearly'  ,    ''     ,    ''    ,     ''
+   sn_sss      = 'BSAS12-MJM03_y1992m01d02.1d_gridTsurf' , -12 , 'sosaline' , .false.  , .true. , 'yearly'  ,    ''     ,    ''    ,     ''
 /
 !-----------------------------------------------------------------------
 &namsbc_ssr_drk !   surface boundary condition : sea surface restoring   (ln_ssr =T)
@@ -426,22 +426,23 @@
    ln_sssr_flt  = .false.  ! use filtering of SSS model for sss restoring
    nn_shap_iter =  300     ! number of iteration of the shapiro filter 
    ln_sssr_msk  = .false.  ! use a mask near the coast
-!              !  file name                             ! frequency (hours) ! variable  ! time interp. !  clim  ! 'yearly'/ ! weights  ! rotation !  land/sea mask !
-!              !                                        !  (if <0  months)  !   name    !   (logical)  !  (T/F) ! 'monthly' ! filename ! pairing  !  filename      !
-   sn_coast    = 'BSAS12_distcoast' , 0 , 'Tcoast' , .false.      , .true. , 'yearly'  ,  ''      , ''       , ''
+   !___________!____________________!___________________!__________!_____________!________!___________!__________!__________!_______________!
+   !           !  file name         ! frequency (hours) ! variable ! time interp.!  clim  ! 'yearly'/ ! weights  ! rotation ! land/sea mask !
+   !           !                    !  (if <0  months)  !   name   !   (logical) !  (T/F) ! 'monthly' ! filename ! pairing  !    filename   !
+   sn_coast    = 'BSAS12_distcoast' , 0                 , 'Tcoast' , .false.     , .true. , 'yearly'  ,  ''      , ''       , ''
 
    rn_dist    =  20.      ! distance to the coast
 /      
 !-----------------------------------------------------------------------
 &namsbc_rnf    !   runoffs                                              (ln_rnf =T)
 !-----------------------------------------------------------------------
-   ln_rnf_mouth = .true.      !  specific treatment at rivers mouths
-      rn_hrnf     =  10.e0    !  depth over which enhanced vertical mixing is used    (ln_rnf_mouth=T)
-      rn_avt_rnf  =   2.e-3   !  value of the additional vertical mixing coef. [m2/s] (ln_rnf_mouth=T)
-   rn_rfact    =   1.e0       !  multiplicative factor for runoff
-   ln_rnf_depth = .false.     !  read in depth information for runoff
-   ln_rnf_tem  = .false.      !  read in temperature information for runoff
-   ln_rnf_sal  = .false.      !  read in salinity information for runoff
+   ln_rnf_mouth  = .true.     !  specific treatment at rivers mouths
+      rn_hrnf    =  10.e0     !  depth over which enhanced vertical mixing is used    (ln_rnf_mouth=T)
+      rn_avt_rnf =   2.e-3    !  value of the additional vertical mixing coef. [m2/s] (ln_rnf_mouth=T)
+   rn_rfact      =   1.e0     !  multiplicative factor for runoff
+   ln_rnf_depth  = .false.    !  read in depth information for runoff
+   ln_rnf_tem    = .false.    !  read in temperature information for runoff
+   ln_rnf_sal    = .false.    !  read in salinity information for runoff
    ln_rnf_depth_ini = .false. ! compute depth at initialisation from runoff file
       rn_rnf_max  = 5.735e-4  !  max value of the runoff climatologie over global domain ( ln_rnf_depth_ini = .true )
       rn_dep_max  = 150.      !  depth over which runoffs is spread ( ln_rnf_depth_ini = .true )
@@ -589,7 +590,6 @@
    rn_shlat    =    0.     !  shlat = 0  !  0 < shlat < 2  !  shlat = 2  !  2 < shlat
    ln_vorlat   = .false.   !  consistency of vorticity boundary condition with analytical Eqs.
 /
-!@@@@@@@@@@@@@@@  WIP  JMM  @@@@@@@@@@@@@@@@@@@@@@@
 !-----------------------------------------------------------------------
 &namlbc_drk    !   lateral momentum boundary condition                  (default: NO selection)
 !-----------------------------------------------------------------------
@@ -724,6 +724,15 @@
       rn_boost =  50.         !  local boost factor  [-]
 /
 !-----------------------------------------------------------------------
+&namdrg_top_drk    !   TOP friction     (ln_boost = T )
+!-----------------------------------------------------------------------
+   cn_dir      = './'      !  root directory for the boost file ( top friction)
+   !___________!____________!___________________!___________!_____________!________!___________!___________!__________!_______________!
+   !           !  file name ! frequency (hours) ! variable  ! time interp.!  clim  ! 'yearly'/ ! weights e ! rotation ! land/sea mask !
+   !           !            !  (if <0  months)  !   name    !   (logical) !  (T/F) ! 'monthly' !  filename ! pairing  !    filename   !
+   sn_boost    = 'tfr_coef' ,       -12.        , 'tfr_coef',   .false.   , .true. , 'yearly'  ,   ''      ,   ''     ,   ''
+/
+!-----------------------------------------------------------------------
 &namdrg_bot    !   BOTTOM friction                                      (ln_OFF =F)
 !-----------------------------------------------------------------------
    rn_Cd0      =  1.e-3    !  drag coefficient [-]
@@ -733,6 +742,15 @@
    rn_z0       =  3.e-3    !  roughness [m] (ln_loglayer=T)
    ln_boost    = .false.   !  =T regional boost of Cd0 ; =F constant
       rn_boost =  50.         !  local boost factor  [-]
+/
+!-----------------------------------------------------------------------
+&namdrg_bot_drk    !   BOTTOM friction     (ln_boost = T )
+!-----------------------------------------------------------------------
+   cn_dir      = './'      !  root directory for the boost file ( bot friction)
+   !___________!____________!___________________!___________!_____________!________!___________!___________!__________!_______________!
+   !           !  file name ! frequency (hours) ! variable  ! time interp.!  clim  ! 'yearly'/ ! weights e ! rotation ! land/sea mask !
+   !           !            !  (if <0  months)  !   name    !   (logical) !  (T/F) ! 'monthly' !  filename ! pairing  !    filename   !
+   sn_boost    = 'bfr_coef' ,       -12.        , 'bfr_coef',   .false.   , .true. , 'yearly'  ,   ''      ,   ''     ,   ''
 /
 !-----------------------------------------------------------------------
 &nambbc        !   bottom temperature boundary condition                (default: OFF)
@@ -839,11 +857,19 @@
       !                             !   = 31 F(i,j,k,t)=F(local velocity and grid-spacing)
       !                        !  time invariant coefficients:  aht0 = 1/2  Ud*Ld   (lap case) 
       !                             !                           or   = 1/12 Ud*Ld^3 (blp case)
-      rn_Ud        = 0.01           !  lateral diffusive velocity [m/s] (nn_aht_ijk_t= 0, 10, 20, 30)
+      rn_Ud        = 0.0193         !  lateral diffusive velocity [m/s] (nn_aht_ijk_t= 0, 10, 20, 30)
       rn_Ld        = 200.e+3        !  lateral diffusive length   [m]   (nn_aht_ijk_t= 0, 10)
-
-! @@@@@@@@@@@@@ JMM
-!!!! rn_aht_0         =  67.52   !  horizontal eddy diffusivity for tracers [m2/s] BSAS12 (ref 47.5 N)
+!----------------------------------------------------------------------------
+!  drakkar comment : for the case  nn_aht_ijk_t = 20 ( only rn_Ud is used )
+!                                                              LAP             BILAP
+!           aht[uv](:,:) = fac*Ud * max(e1,e2)(:,:) ^ n    [ fac=1/2, n=1 ; fac=1/12, n=3)
+!  In 3.6   aht[uv](:,:) = rn_aht_0 * [ max(e1,e2)(:,:)/ max(e1,e2) ] ^ n 
+!     ===>  rn_Ud = rn_aht_0/fac/MAX(e1,e2)^n
+!3.6 :  rn_aht_0         =  67.52   !  horizontal eddy diffusivity for tracers [m2/s] BSAS12 (ref 47.5 N)
+!        rn_Ud = 67.52 * 2 / (7012)^1 = 0.0193  !! ( lap)
+!   for a bilap this will give a max bilap of
+!   aht_max = 1/12 * 0.0193 * ( 7012)^3 = 3.319 10^9 m4/s )
+!----------------------------------------------------------------------------
 
 /
 !-----------------------------------------------------------------------
