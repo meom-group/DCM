@@ -594,6 +594,7 @@
 &namlbc_drk    !   lateral momentum boundary condition                  (default: NO selection)
 !-----------------------------------------------------------------------
    ln_shlat2d  = .false.   !  use 2D file for shlat
+   cn_dir      = './'
    !___________!____________________!___________________!___________!_____________!________!___________!__________________!__________!_______________!
    !           !  file name         ! frequency (hours) ! variable  ! time interp.!  clim  ! 'yearly'/ ! weights filename ! rotation ! land/sea mask !
    !           !                    !  (if <0  months)  !   name    !   (logical) !  (T/F) ! 'monthly' !                  ! pairing  !    filename   !
@@ -654,7 +655,7 @@
    rn_time_dmp_out =  10.     ! Outflow damping time GADA01e
    nn_rimwidth  = 1           !  width of the relaxation zone
    ln_vol     = .true.        !  total volume correction (see nn_volctl parameter)
-   nn_volctl  = 0            !  = 0, the total water flux across open boundaries is zero
+   nn_volctl  = 0             !  = 0, the total water flux across open boundaries is zero
    nb_jpk_bdy    = -1         ! number of levels in the bdy data (set < 0 if consistent with planned run)
 /
 !-----------------------------------------------------------------------
@@ -870,7 +871,6 @@
 !   for a bilap this will give a max bilap of
 !   aht_max = 1/12 * 0.0193 * ( 7012)^3 = 3.319 10^9 m4/s )
 !----------------------------------------------------------------------------
-
 /
 !-----------------------------------------------------------------------
 &namtra_mle    !   mixed layer eddy parametrisation (Fox-Kemper)       (default: OFF)
@@ -916,12 +916,17 @@
 !-----------------------------------------------------------------------
 &namtra_dmp_drk !   tracer: T & S newtonian damping                      (default: OFF)
 !-----------------------------------------------------------------------
-   nn_hdmp     =   -2      !  horizontal shape =-1, damping in Med and Red Seas only
-                           !                   =XX, damping poleward of XX degrees (XX>0)
-                           !                      + F(distance-to-coast) + Red and Med Seas
+   nn_hdmp     =   -2      !  -2 = Drakkar customisation ( use dtacof in tradmp.F90 )
+                           !  any other value : Nemo standard code
    nn_file     =    0      !  create a damping.coeff NetCDF file (=1) or not (=0)
+                           !  The output file can then be used as input resto file (cn_resto)
    ln_dmpmask  = .false.   !  Read dmp_mask.nc file  when T (between 0 and 1 )
    rn_timsk    =  730.     !  Time scale used for dmp_mask
+   cn_dir      =  './'     ! directtory wher to find damping mask
+   !___________!____________!___________________!___________!_____________!________!___________!___________!__________!_______________!
+   !           !  file name ! frequency (hours) ! variable  ! time interp.!  clim  ! 'yearly'/ ! weights e ! rotation ! land/sea mask !
+   !           !            !  (if <0  months)  !   name    !   (logical) !  (T/F) ! 'monthly' !  filename ! pairing  !    filename   !
+   sn_dmp      = 'dmp_mask' ,       -12.        ,  'wdmp'   ,   .false.   , .true. , 'yearly'  ,   ''      ,   ''     ,   ''
 /
 
 !!======================================================================
@@ -1021,7 +1026,7 @@
       !                             !  = 32  F(i,j,k)=F(local gridscale and deformation rate)
       !                        !  time invariant coefficients :  ahm = 1/2  Uv*Lv   (lap case)
       !                             !                            or  = 1/12 Uv*Lv^3 (blp case)
-      rn_Uv      = 0.1              !  lateral viscous velocity [m/s] (nn_ahm_ijk_t= 0, 10, 20, 30)
+      rn_Uv      = 0.02683          !  lateral viscous velocity [m/s] (nn_ahm_ijk_t= 0, 10, 20, 30)
       rn_Lv      = 10.e+3           !  lateral viscous length   [m]   (nn_ahm_ijk_t= 0, 10)
       !                       !  Smagorinsky settings  (nn_ahm_ijk_t= 32) :
       rn_csmc       = 3.5         !  Smagorinsky constant of proportionality
@@ -1029,8 +1034,16 @@
       rn_maxfac     = 1.0         !  multiplier of theorectical upper limit
       !                       !  iso-neutral laplacian operator (ln_dynldf_iso=T) :
       rn_ahm_b      = 0.0         !  background eddy viscosity  [m2/s]
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!   rn_ahm_0_blp     =  -.077e10  !  horizontal bilaplacian eddy viscosity [m4/s] (BSAS12 ref 47.5 N)
+!----------------------------------------------------------------------------
+!  drakkar comment : for the case  nn_aht_ijk_t = 20 ( only rn_Ud is used )
+!                                                              LAP             BILAP
+!           ahm[tf](:,:) = fac*Uv * max(e1,e2)(:,:) ^ n    [ fac=1/2, n=1 ; fac=1/12, n=3)
+!  In 3.6   ahm[tf](:,:) = rn_ahm_0 * [ max(e1,e2)(:,:)/ max(e1,e2) ] ^ n 
+!     ===>  rn_Uv = rn_amt_0/fac/MAX(e1,e2)^n
+!3.6 : rn_ahm_0_blp     =  -.077e10  !  horizontal bilaplacian eddy viscosity [m4/s] (BSAS12 ref 47.5 N)
+
+!        rn_Uv = 0.077e10 * 12 /(7012)^3 = 0.02683   (bilap )
+!----------------------------------------------------------------------------
 /
 !-----------------------------------------------------------------------
 &namdta_dyn    !   offline ocean input files                            (OFF_SRC only)

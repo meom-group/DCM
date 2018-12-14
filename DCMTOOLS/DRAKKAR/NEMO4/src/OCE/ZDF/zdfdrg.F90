@@ -32,7 +32,7 @@ MODULE zdfdrg
    USE lib_mpp        ! distributed memory computing
    USE prtctl         ! Print control
 #if defined key_drakkar
-   USE fldread
+   USE fldread, ONLY : FLD_N
 #endif
 
    IMPLICIT NONE

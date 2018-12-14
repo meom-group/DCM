@@ -32,7 +32,7 @@ MODULE dommsk
    USE lbclnk         ! ocean lateral boundary conditions (or mpp link)
    USE lib_mpp        ! Massively Parallel Processing library
 #if defined key_drakkar
-   USE fldread        ! for the case shlat2d
+   USE fldread , ONLY : FLD_N    ! for the case shlat2d
 #endif
 
    IMPLICIT NONE
@@ -107,10 +107,11 @@ CONTAINS
 #if defined key_drakkar
       REAL(wp) :: zshlat           !: working variable
       REAL(wp), DIMENSION(:,:) , ALLOCATABLE :: zshlat2d
-      LOGICAL     :: ln_shlat2d
+      CHARACTER(LEN=255)  :: cn_dir
+      LOGICAL  :: ln_shlat2d
       TYPE(FLD_N) :: sn_shlat2d
       !!
-      NAMELIST/namlbc_drk/ ln_shlat2d, sn_shlat2d
+      NAMELIST/namlbc_drk/ ln_shlat2d, cn_dir, sn_shlat2d
 #endif
       !!---------------------------------------------------------------------
       !
@@ -154,8 +155,8 @@ CONTAINS
          IF(lwp) WRITE(numout,*) '         READ shlat as a 2D coefficient in a file '
          ALLOCATE (zshlat2d(jpi,jpj) )
          rn_shlat = 9999.  ! set rn_shlat to a dummy value to force fmask modif
-         CALL iom_open(sn_shlat2d%clname, inum)
-         CALL iom_get (inum, jpdom_data, sn_shlat2d%clvar, zshlat2d, 1) !
+         CALL iom_open(TRIM(cn_dir)//'/'//TRIM(sn_shlat2d%clname), inum)
+         CALL iom_get (inum, jpdom_data,       sn_shlat2d%clvar, zshlat2d, 1) !
          CALL iom_close(inum)
       ENDIF
 #endif

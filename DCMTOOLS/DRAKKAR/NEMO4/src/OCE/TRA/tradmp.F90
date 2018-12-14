@@ -36,6 +36,9 @@ MODULE tradmp
    USE lib_mpp        ! MPP library
    USE prtctl         ! Print control
    USE timing         ! Timing
+#if defined key_drakkar
+   USE fldread , ONLY : FLD_N      ! for setting dmpmask 
+#endif
 
    IMPLICIT NONE
    PRIVATE
@@ -49,11 +52,13 @@ MODULE tradmp
    CHARACTER(LEN=200) , PUBLIC ::   cn_resto    !: name of netcdf file containing restoration coefficient field
    !
 #if defined key_drakkar
-   INTEGER , PUBLIC ::   nn_hdmp     ! > 0 standard NEMO CODE
-                                     ! = -2 = DRAKKAR customization
-   INTEGER , PUBLIC ::   nn_file     ! = 1 create a damping.coeff NetCDF file 
-   LOGICAL  ::   ln_dmpmask          !  flag for using mask_dmp file
-   REAL(wp) ::   rn_timsk            !  restoring time scale used with mask_dmp       [days] 
+   INTEGER            ::   nn_hdmp     ! > 0 standard NEMO CODE
+                                       ! = -2 = DRAKKAR customization
+   INTEGER            ::   nn_file     ! = 1 create a damping.coeff NetCDF file 
+   LOGICAL            ::   ln_dmpmask  !  flag for using mask_dmp file
+   REAL(wp)           ::   rn_timsk    !  restoring time scale used with mask_dmp       [days] 
+   CHARACTER(LEN=255) ::   cn_dir      !  directory for damping mask
+   TYPE(FLD_N)        ::   sn_dmp      ! structure for setting the damping file
 #endif
    REAL(wp), PUBLIC, ALLOCATABLE, SAVE, DIMENSION(:,:,:) ::   resto    !: restoring coeff. on T and S (s-1)
 
@@ -183,7 +188,7 @@ CONTAINS
       NAMELIST/namtra_dmp/ ln_tradmp, nn_zdmp, cn_resto
 #if defined key_drakkar
       INTEGER :: jk ! dummy loop index
-      NAMELIST/namtra_dmp_drk/ nn_hdmp , nn_file, ln_dmpmask, rn_timsk
+      NAMELIST/namtra_dmp_drk/ nn_hdmp , nn_file, ln_dmpmask, rn_timsk, cn_dir, sn_dmp
 #endif
       !!----------------------------------------------------------------------
       !
@@ -267,7 +272,7 @@ CONTAINS
       !
    END SUBROUTINE tra_dmp_init
 
-
+#if defined key_drakkar
    SUBROUTINE dtacof(kn_file, cdtype , presto )
       !!----------------------------------------------------------------------
       !!                  ***  ROUTINE dtacof  ***
@@ -289,18 +294,16 @@ CONTAINS
       INTEGER  ::   ji, jj, jk                  ! dummy loop indices
       INTEGER  ::   ii0, ii1, ij0, ij1          ! local integers
       INTEGER  ::   imask        ! File handle 
-!{DRAKKAR
       INTEGER  ::   jrelax                      ! width of buffer zone
       INTEGER  ::   inum                        ! Logical unit for reading dmp_mask
       REAL(wp) ::   ztrelax, ztvanish           ! restoring time scale
       REAL(wp) ::   zlon1, zlon2                ! Longitude min and max for patch
       REAL(wp) ::   zbw, zd1, zd2               ! Band width, depth limit
       REAL(wp) ::   zv1, zv2                    ! local scalars
-!}
       REAL(wp) ::   zinfl, zlon                 ! local scalars
       REAL(wp) ::   zlat, zlat0, zlat1, zlat2   !   -      -
       REAL(wp) ::   zsdmp, zbdmp                !   -      -
-      CHARACTER(len=80)                   :: cfile
+      CHARACTER(len=80)                   :: cfile, cvar
       REAL(wp),  DIMENSION(:,:,:), ALLOCATABLE :: zdct 
       !!----------------------------------------------------------------------
       !
@@ -362,9 +365,10 @@ CONTAINS
          ! particular geometry. This mask is to be build by preprocessing using its own criteria
          ! eg : used for restoring particular water mass. 
          ! The typical restoring time scale is introduced here.
-          cfile='dmp_mask.nc'
+          cfile=TRIM(cn_dir)//'/'//TRIM(sn_dmp%clname)
+          cvar = TRIM(sn_dmp%clvar)
           CALL iom_open ( cfile, imask )
-          CALL iom_get ( imask, jpdom_data, 'wdmp', zdct )  ! use zdct as temporary array
+          CALL iom_get ( imask, jpdom_data, cvar, zdct )  ! use zdct as temporary array
           CALL iom_close (imask)
           WHERE ( zdct > 1 ) zdct = 0.  !  JMM : WHY ???
           ! it seems that this where is not well accepted on brodie => replaced by a loop
@@ -528,6 +532,7 @@ CONTAINS
 
       !
    END SUBROUTINE resto_patch
+#endif  
 
    !!======================================================================
 END MODULE tradmp
