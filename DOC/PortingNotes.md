@@ -65,9 +65,96 @@ name is just the same with just `_drk` appended at the end of the block name. Fo
 for testing purposes. This is a clear improvement with respect to previous versions of DCM (NEMODRAK).
 
 ### Code
- NEMO_4.0 releases, uses a completly different directory tree for the file layout :
+ Compared with previous releases, NEMO_4.0 uses a new, completly different directory tree for the file layout. Although it 
+changes a lot the old-users habits, it is much more coherent and profesional !
 
 > imagine a simple graph to show it
+
+    arch/   --> architecture files for various computer/compilers
+    cfgs/   --> configurations directory
+        /SHARED  --> common namelist, xml files etc to all configs
+        /<supported configurations>  --> for example : ORCA2_ICE_PISCES or AGRIF_DEMO
+    doc/    --> latex sources and script for the NEMO_book
+    ext/    --> external packages used by NEMO 
+       /AGRIF    --> core of the AGRIF system ( not NEMO dependent)
+       /FCM      --> perl scripts for FCM
+       /IOIPSL   --> IOIPSL library
+    mk/    -->  shell scripts and data files using FCM command for code compilation
+    src/    -->  NEMO source code
+       /ICE      --> source code for ICE engine : SI3 ( new ice model) pronounce : Sea Ice Cube
+       /NST      --> source code for  NeSTing nemo  agrif interface 
+       /OCE      --> source code for OCEan engine
+       /OFF      --> source code for OFF-line passive tracers
+       /SAO      --> source code for StandAloneObs module
+       /SAS      --> source code for StandAloneSurface module
+       /TOP      --> source code for TOP (passive tracer engine).
+    tests/      --> configurations for tests cases ( new feature in NEMO 4)
+         /<tests cases> : CANAL  ICEDYN  ISOMIP  LOCK_EXCHANGE  OVERFLOW   VORTEX  WAD 
+    tools/        --> source code for various companion tools
+         /<tools> : BDY_TOOLS/  DOMAINcfg/  MISCELLANEOUS/  NESTING/  REBUILD_NEMO/
+                  SECTIONS_DIADCT/  WEIGHTS/ DMP_TOOLS/  GRIDGEN/    MPP_PREP/
+                  OBSTOOLS/  REBUILD/ SCOORD_GEN/  SIREN/
+         /maketools : compiling scripts (fcm based) for these tools
+
+ As of December 2018, vith regard to `src/` **DRAKKAR** only contains modifications concerning 
+ `OCE/` and `ICE/` as detailed below.
+
+#### src/OCE/ DRAKKAR content:
+
+  directory | module | reason|
+  :----------|:--------|:-------|
+  OCE/    | timing.F90 |  format for large simulation |
+  OCE/    | nemogcm.F90 | print time stamp at <br> every step in std out |  
+  OCE/DOM | domain.F90 |    |
+  |  "   | dtatsd.F90 | differentiate initial field <br> and damping fields |
+  |  "    | dommsk.F90 |  | 
+  OCE/IOM | restart.F90 | |
+  |  "    | iom.F90 |  |
+  OCE/SBC | sbcblk.F90 |  |
+  |  "    | _shapiro.F90_ |  |
+  |  "    | sbcssr.F90 |  |
+  OCE/TRA | trabbl.F90 |  |
+  | "     | tradmp.F90 |  |
+  OCE/USR | usrdef_fmask.F90 |  |
+  OCE/ZDF | zdftke.F90 |  |
+  | "     | zdfdrg.F90 |  |
+  
+
+     OCE/timing.F90
+        /nemogcm.F90
+        /ASM  
+        /BDY  
+        /C1D
+        /CRS
+        /DIA
+        /DIU
+        /DOM/domain.F90
+            /dtatsd.F90
+            /dommsk.F90
+        /DYN
+        /FLO
+        /ICB
+        /IOM/restart.F90
+            /iom.F90
+        /LBC
+        /LDF
+        /OBS
+        /SBC/sbcblk.F90
+            /shapiro.F90
+            /sbcssr.F90
+        /STO
+        /TRA/trabbl.F90
+            /tradmp.F90
+        /TRD
+        /USR/usrdef_fmask.F90
+        /ZDF/zdftke.F90
+            /zdfdrg.F90
+
+#### src/ICE/ DRAKKAR content:
+
+     ICE/icerst.F90 :
+         icestp.F90 :
+
 
 
 ### Namelists
@@ -77,4 +164,3 @@ for testing purposes. This is a clear improvement with respect to previous versi
 ### Domain_cfg concept
 
 ### xml files
-
