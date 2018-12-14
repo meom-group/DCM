@@ -77,7 +77,7 @@
 !-----------------------------------------------------------------------
 &namcfg        !   parameters of the configuration                      (default: use namusr_def in namelist_cfg)
 !-----------------------------------------------------------------------
-   ln_read_cfg = .true .   !  (=T) read the domain configuration file
+   ln_read_cfg = .true.    !  (=T) read the domain configuration file
       !                    !  (=F) user defined configuration           (F => create/check namusr_de
       cn_domcfg = "BSAS12_domain_cfg"  ! domain configuration filename
       !
@@ -111,18 +111,20 @@
 &namtsd_drk    !    Temperature & Salinity Data  (init/dmp)             (default: OFF)
 !              !   if key_drakkar, **only**  namtsd_drk is read 
 !-----------------------------------------------------------------------
-!          ! file name !                            frequency (hours)    ! variable ! time interp. ! clim  !'yearly' or ! weights           ! rotation !  land/sea mask !
-!          !           !                             (if <0  months)     !   name   !  (logical)   ! (T/F) ! 'monthly'  ! filename          ! pairing  !  filename      !
-   ! data used for initial condition (istate)
-   sn_tem_ini  = 'TS_Black_Sea_Climatology_Belokopytov-BSAS12_CLIM' , -1, 'votemper',  .false.  , .true., 'yearly'   ,  ''                  , ' '      , ' '
-   sn_sal_ini  = 'TS_Black_Sea_Climatology_Belokopytov-BSAS12_CLIM' , -1, 'vosaline',  .false.  , .true., 'yearly'   ,  ''                  , ' '      , ' '
-   ! data used for damping ( tradmp)
-   sn_tem_dmp  = 'TS_Black_Sea_Climatology_Belokopytov-BSAS12_CLIM' , -1, 'votemper',  .true.  , .true., 'yearly'   ,  ''                  , ' '      , ' '
-   sn_sal_dmp  = 'TS_Black_Sea_Climatology_Belokopytov-BSAS12_CLIM' , -1, 'vosaline',  .true.  , .true., 'yearly'   ,  ''                  , ' '      , ' '
-   !
-   cn_dir        = './'     !  root directory for the location of the temperature and salinity file
    ln_tsd_init   = .true.   !  Initialisation of ocean T & S with T &S input data (T) or not (F)
    ln_tsd_dmp = .false.     !  damping of ocean T & S toward T &S input data (T) or not (F)
+
+   cn_dir        = './'     !  root directory for the location of the temperature and salinity file
+   !___________!_____________________________________!___________________!___________!_____________!________!___________!_____________!__________!_______________!
+   !           !  file name                          ! frequency (hours) ! variable  ! time interp.!  clim  ! 'yearly'/ ! weights     ! rotation ! land/sea mask !
+   !           !                                     !  (if <0  months)  !   name    !   (logical) !  (T/F) ! 'monthly' !   filename  ! pairing  !    filename   !
+   ! data used for initial condition (istate)
+   sn_tem_ini  = 'TS_Black_Sea_Climatology_Belokopytov-BSAS12_CLIM' , -1, 'votemper',  .false.     , .true., 'yearly'   ,  ''         , ' '      , ' '
+   sn_sal_ini  = 'TS_Black_Sea_Climatology_Belokopytov-BSAS12_CLIM' , -1, 'vosaline',  .false.     , .true., 'yearly'   ,  ''         , ' '      , ' '
+   ! data used for damping ( tradmp)
+   sn_tem_dmp  = 'TS_Black_Sea_Climatology_Belokopytov-BSAS12_CLIM' , -1, 'votemper',  .true.      , .true., 'yearly'   ,  ''         , ' '      , ' '
+   sn_sal_dmp  = 'TS_Black_Sea_Climatology_Belokopytov-BSAS12_CLIM' , -1, 'vosaline',  .true.      , .true., 'yearly'   ,  ''         , ' '      , ' '
+   !
 /
 !-----------------------------------------------------------------------
 &namwad        !   Wetting and Drying (WaD)                             (default: OFF)
@@ -288,7 +290,7 @@
    sn_humi =    'drowned_q2_ERA_BSAS_interim'    ,     3 ,  'q2'     ,    .true.   , .false. , 'yearly'  , 'wght_ERAi_BSAS-BSAS12_v4_bilin.nc' , ''       ,   ''
    sn_prec =    'drowned_precip_ERA_BSAS_interim' ,   24 ,  'precip' ,    .true.   , .false. , 'yearly'  , 'wght_ERAi_BSAS-BSAS12_v4_bilin.nc' , ''       ,   ''
    sn_snow =    'drowned_snow_ERA_BSAS_interim'  ,    24 ,  'snow'   ,    .true.   , .false. , 'yearly'  , 'wght_ERAi_BSAS-BSAS12_v4_bilin.nc' , ''       ,   ''
-   sn_slp  =    'slp.15JUNE2009_fill'            ,     6 , 'SLP'     ,   .false.   , .true.  , 'yearly'  , 'weights_core_orca2_bilinear_noc'   , ''       ,   ''
+   sn_slp  =    'drowned_msl_ERAinterimc'        ,     3 , 'mls'     ,    .true.   , .false. , 'yearly'  , 'wght_ERAi-BSAS12_v4_bilin.nc'      , ''       ,   ''
    sn_tdif =    'taudif_core'                    ,    24 , 'taudif'  ,   .false.   , .true.  , 'yearly'  , 'weights_core_orca2_bilinear_noc'   , ''       ,   ''
 
 / 
