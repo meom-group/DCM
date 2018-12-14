@@ -1,4 +1,4 @@
-# Porting notes : from NEMO_3.6 to NEMO_4.0, from NEMODRAK to DCM
+# From NEMO_3.6 to NEMO_4.0,  from NEMODRAK to DCM
 
 ## Overview :
  Version 4.0 of NEMO is a major release.  It is the result of a simplification process which was decided by the NEMO consortium
@@ -37,7 +37,7 @@ NEMOREF layer is fixed at a certain NEMO revision, and is the exact checkout of 
 If necessary, the user populate this layer from NEMOREF or DRAKKAR, then proceed to the modifications she/he wants to bring
 to the system. 
 
-DCM propose a set of tools (mainly bash scripts) in order to deal with the file layout automatically. Since the first version,
+DCM proposes a set of tools (mainly bash scripts) in order to deal with the file layout automatically. Since the first version,
 we maintain almost the same syntax for these tools, maintaining a friendly user interface through the NEMO versions. See the [user manual](user_manual.md).
 
 
@@ -47,9 +47,9 @@ we maintain almost the same syntax for these tools, maintaining a friendly user 
     #if defined key_drakkar
       drakkar code ...
     #endif
- So that, it is very easy to identify the DRAKKAR modifications (using *meld* for instance). When a modification of a
+ So that, it is very easy to identify the DRAKKAR modifications (using `meld` for instance). When a modification of a
 namelist block is introduced ( *e.g*  add extra variables), we took the convention to put use a new namelist block whose
-name is just the same with just *_drk* appended at the end of the block name. For example :
+name is just the same with just `_drk` appended at the end of the block name. For example :
 
     &namtra_dmp
     ... NEMOREF std namelist
@@ -58,7 +58,7 @@ name is just the same with just *_drk* appended at the end of the block name. Fo
     ... DRAKKAR extension
     /
  Doing so, a user configuration can be run very easily switching off the DRAKKAR/CONFIG-CASE modifications, at least 
-for testing purpose. This is a clear improvement with respect to previous versions of DCM (NEMODRAK).
+for testing purposes. This is a clear improvement with respect to previous versions of DCM (NEMODRAK).
 
 ### Code
 
