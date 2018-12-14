@@ -1,21 +1,25 @@
 # From NEMO_3.6 to NEMO_4.0,  from NEMODRAK to DCM
+>  by J.-M. Molines  [MEOM/IGE](http://meom-group.github.io/) (Grenoble)
+______________________
 
-## Overview :
+## **_Overview :_**
  Version 4.0 of NEMO is a major release.  It is the result of a simplification process which was decided by the NEMO consortium
 in order to help the maintenance of the code, cleaning obsolete features, revisiting the user interface, adding/replacing
 some new numerical schemes, etc... 
 
  Not surprisingly, the porting from 3.6 to 4.0 requires some work, at different levels.  This document was written 
 while performing this porting, together with NEMO4 discovery. After a reminder on DCM concept, it holds basically 
-two parts :  (A)  corresponds to all the changes in the code itself, and the compilation procedure.  (B) is dedicated 
-to the impacts of the changes at run-time.
+two parts :     
+   *  (A)  corresponds to all the changes in the code itself, and the compilation procedure. 
+   *  (B) is dedicated to the impacts of the changes at run-time.
 
 This work is done in the frame of the development of a fully new version of the Drakkar Config Manager (DCM). 
 
-##  Reminder of the DCM concept:
+##  **_Reminder of the DCM concept:_**
  DCM is an integrated software tool allowing an easy deployment of a model configuration based on NEMO. For the model code,
 it allows an easy management and tracking of code modifications, that may arise for instance when a new feature is being 
-developped, or for a particular model configuration. 
+developped, or for a particular model configuration. It also provides (independently) usefull environnement for the production 
+of simulations on HPC centers. Therefore, DCM is divided in two parts: **DCMTOOLS** and **RUNTOOLS**. This document only refer to the DCMTOOLS part. See [user manual for RUNTOOLS](rt_user_manual.md)
 
 When building the code for a configuration, we use 3 layers, which are piled up to produce the final code:
 
@@ -38,10 +42,10 @@ If necessary, the user populate this layer from NEMOREF or DRAKKAR, then proceed
 to the system. 
 
 DCM proposes a set of tools (mainly bash scripts) in order to deal with the file layout automatically. Since the first version,
-we maintain almost the same syntax for these tools, maintaining a friendly user interface through the NEMO versions. See the [user manual](user_manual.md).
+we maintain almost the same syntax for these tools, maintaining a friendly user interface through the NEMO versions. See the [user manual](dcm_user_manual.md).
 
 
-## A: Fortran code, compilation etc
+## **_A: Fortran code, compilation etc_**
  In DCM_4.0, the DRAKKAR modifications on fortran modules are all isolated from the standard code by a sequence of
 
     #if defined key_drakkar
@@ -61,6 +65,10 @@ name is just the same with just `_drk` appended at the end of the block name. Fo
 for testing purposes. This is a clear improvement with respect to previous versions of DCM (NEMODRAK).
 
 ### Code
+ NEMO_4.0 releases, uses a completly different directory tree for the file layout :
+
+> imagine a simple graph to show it
+
 
 ### Namelists
 
