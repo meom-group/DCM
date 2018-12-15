@@ -144,3 +144,17 @@ changes a lot the old-users habits, it is much more coherent and profesional !
  In NEMO4 a driving idea was to eliminate as much as possible the CPP keys, and replace them by logical keys set in the namelist. 
 
 Another idea was to eliminate from the code all particular cases regarding some configuration (for instance tweak for orca2 etc...). This latter point means that all the tweaks are reported in the input files (domain_cfg which replace `coordinates.nc`, `bathy_meter.nc`, and also provide the vertical metrics. In NEMO4, the depths are computed from the vertical metrics read in the domain_cfg.nc file. When really not easy to put tweaks in an external file, a USR/ directory is ready for saving user modules that may perform the user-wanted modifications. In the present version only usrdef_fmask.F90 is used in this sense for changing lateral friction is particular points of the grid ( straits etc).
+
+
+## **_B: Run time changes_**
+
+### Namelists
+
+### domain_cfg.nc file
+
+### xml files
+
+#### _Comments:_
+ At the end of a segment there is a run.stat.nc file holding Smin, Smax, Tmin, Tmax and ABS(SSH)max, ABS(U)max
+
+ Test convection with npc : it works !
