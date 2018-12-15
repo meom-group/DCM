@@ -68,8 +68,6 @@ for testing purposes. This is a clear improvement with respect to previous versi
  Compared with previous releases, NEMO_4.0 uses a new, completly different directory tree for the file layout. Although it 
 changes a lot the old-users habits, it is much more coherent and profesional !
 
-> imagine a simple graph to show it
-
     arch/   --> architecture files for various computer/compilers
     cfgs/   --> configurations directory
         /SHARED  --> common namelist, xml files etc to all configs
@@ -99,68 +97,50 @@ changes a lot the old-users habits, it is much more coherent and profesional !
  As of December 2018, vith regard to `src/` **DRAKKAR** only contains modifications concerning 
  `OCE/` and `ICE/` as detailed below.
 
-#### src/OCE/ DRAKKAR content:
+#### _src/OCE/ DRAKKAR content:_
 
   directory | module | reason|
   :----------|:--------|:-------|
-  OCE/    | timing.F90 |  format for large simulation |
-  OCE/    | nemogcm.F90 | print time stamp at <br> every step in std out |  
-  OCE/DOM | domain.F90 |    |
-  |  "   | dtatsd.F90 | differentiate initial field <br> and damping fields |
-  |  "    | dommsk.F90 |  | 
-  OCE/IOM | restart.F90 | |
-  |  "    | iom.F90 |  |
-  OCE/SBC | sbcblk.F90 |  |
-  |  "    | _shapiro.F90_ |  |
-  |  "    | sbcssr.F90 |  |
-  OCE/TRA | trabbl.F90 |  |
-  | "     | tradmp.F90 |  |
-  OCE/USR | usrdef_fmask.F90 |  |
-  OCE/ZDF | zdftke.F90 |  |
-  | "     | zdfdrg.F90 |  |
+  OCE/    | timing.F90 |  use more digits in format (for large simulations). |
+  | "     | nemogcm.F90 | print time stamp at every step in std out <br> use flag BBBBBB and :( :( :( in ocean output <br> instead of AAAAAAAAA  |  
+   OCE/ASM  |    |   |
+   OCE/BDY  |    |   |
+   OCE/C1D  |    |   |
+   OCE/CRS  |    |   |
+   OCE/DIA  |    |   |
+   OCE/DIU  |    |   |
+  OCE/DOM | domain.F90 | use segment number in the restart directory in order to ease production of big simulations <br> and avoid further renaming of restart files.    |
+  |  "   | dtatsd.F90 | differentiate initial field  and damping fields |
+  |  "    | dommsk.F90 | Allow for a 2D shlat value, read in external file. Add namlbc_drk.   | 
+   OCE/DYN |     |   |
+   OCE/FLO |     |   |
+   OCE/ICB |     |   |
+  OCE/IOM | restart.F90 | implement simple restart file names using segment numbers, avoiding renaming of restart files. |
+  |  "    | iom.F90 | Implement new possible file_id in xml file ( extra iom_update_file_name ) |
+   OCE/LBC |     |   |
+   OCE/LDF |     |   |
+   OCE/OBS |     |   |
+  OCE/SBC | sbcblk.F90 | implement P. Mathiot phd katabatic winds enhancement. Use namsbc_blk_drk. |
+  |  "    | _shapiro.F90_| New code used in sbcssr for filtering model Surface fields.  |
+  |  "    | sbcssr.F90 | Add 3 new features in the sea surface restoring: <br>  1.  Permit local enhancement of the ssr strength. <br> 2. Add an option for limiting the near coast restoring.  <br> 3. Add an option for filtering SS fields before computing the mismatch with smooth observations or climatologies.  |
+   OCE/STO |     |   |
+  OCE/TRA | trabbl.F90 |  Implement H. Hervieux  K-criteria to replace (option ) the H-criteria for activation of BBL. |
+  | "     | tradmp.F90 |  Allow for code modification of the restoring coeficient. Ideally this should be coded in a usr_tra_dmp ...  <br> Use namtra_dp_drk namelist |
+   OCE/TRD |     |   |
+  OCE/USR | usrdef_fmask.F90 |  Port change of lateral friction is some straits for ORCA025. <br> not that shlat2d is also implemented in drakkar modifications in dommsk|
+  OCE/ZDF | zdftke.F90 |  Changes regarding influence of ice coverage on differents term not coded yet. Need more evalutation of pro and cons. |
+  | "     | zdfdrg.F90 |  Implement namelist definition for the boost drag files. (instead of hard coded names). |
   
 
-     OCE/timing.F90
-        /nemogcm.F90
-        /ASM  
-        /BDY  
-        /C1D
-        /CRS
-        /DIA
-        /DIU
-        /DOM/domain.F90
-            /dtatsd.F90
-            /dommsk.F90
-        /DYN
-        /FLO
-        /ICB
-        /IOM/restart.F90
-            /iom.F90
-        /LBC
-        /LDF
-        /OBS
-        /SBC/sbcblk.F90
-            /shapiro.F90
-            /sbcssr.F90
-        /STO
-        /TRA/trabbl.F90
-            /tradmp.F90
-        /TRD
-        /USR/usrdef_fmask.F90
-        /ZDF/zdftke.F90
-            /zdfdrg.F90
+#### _src/ICE/ DRAKKAR content:_
 
-#### src/ICE/ DRAKKAR content:
-
-     ICE/icerst.F90 :
-         icestp.F90 :
+  directory | module | reason|
+  :----------|:--------|:-------|
+  ICE/    | icerst.F90 |  Use drakkar restart file name allowing <br> restarting the code whithout renaming. |
+  | "     | icestp.F90 |  Differentiate input and output restart <br> by their name, using segment number <br> and also different directories. |
 
 
+#### _Comments:_
+ In NEMO4 a driving idea was to eliminate as much as possible the CPP keys, and replace them by logical keys set in the namelist. 
 
-### Namelists
-
-
-## B:  Run time modifications
-### Domain_cfg concept
-
-### xml files
+Another idea was to eliminate from the code all particular cases regarding some configuration (for instance tweak for orca2 etc...). This latter point means that all the tweaks are reported in the input files (domain_cfg which replace `coordinates.nc`, `bathy_meter.nc`, and also provide the vertical metrics. In NEMO4, the depths are computed from the vertical metrics read in the domain_cfg.nc file. When really not easy to put tweaks in an external file, a USR/ directory is ready for saving user modules that may perform the user-wanted modifications. In the present version only usrdef_fmask.F90 is used in this sense for changing lateral friction is particular points of the grid ( straits etc).
