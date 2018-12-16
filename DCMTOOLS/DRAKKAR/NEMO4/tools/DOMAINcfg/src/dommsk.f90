@@ -30,6 +30,7 @@ MODULE dommsk
    USE wrk_nemo        ! Memory allocation
    USE timing          ! Timing
 
+
    IMPLICIT NONE
    PRIVATE
 
@@ -108,7 +109,22 @@ CONTAINS
       !!                          =rn_shlat along lateral boundaries
       !!               tmask_i  : interior ocean mask
       !!----------------------------------------------------------------------
-      USE fldread ONLY : FLD_N
+      !{ Drakkar add ( fldread not in this tool, just need TYPE for declaration 
+      TYPE  ::   FLD_N      !: Namelist field informations
+         CHARACTER(len = 256) ::   clname      ! generic name of the NetCDF flux file
+         REAL(wp)             ::   nfreqh      ! frequency of each flux file
+         CHARACTER(len = 34)  ::   clvar       ! generic name of the variable in the NetCDF flux file
+         LOGICAL              ::   ln_tint     ! time interpolation or not (T/F)
+         LOGICAL              ::   ln_clim     ! climatology or not (T/F)
+         CHARACTER(len = 8)   ::   cltype      ! type of data file 'daily', 'monthly' or yearly'
+         CHARACTER(len = 256) ::   wname       ! generic name of a NetCDF weights file to be used, blank if not
+         CHARACTER(len = 34)  ::   vcomp       ! symbolic component name if a vector that needs rotation
+         !                                     ! a string starting with "U" or "V" for each component   
+         !                                     ! chars 2 onwards identify which components go together  
+         CHARACTER(len = 34)  ::   lname       ! generic name of a NetCDF land/sea mask file to be used, blank if not 
+         !                                     ! 0=sea 1=land
+      END TYPE FLD_N
+      !}
       INTEGER  ::   ji, jj, jk               ! dummy loop indices
       INTEGER  ::   iif, iil, ii0, ii1, ii   ! local integers
       INTEGER  ::   ijf, ijl, ij0, ij1       !   -       -
@@ -117,9 +133,10 @@ CONTAINS
       INTEGER , POINTER, DIMENSION(:,:) ::  imsk
       REAL(wp), POINTER, DIMENSION(:,:) ::  zwf
       LOGICAL :: ln_shlat2d
-      TYPE(FLD_N) sn_shlat2d
+      TYPE(FLD_N) :: sn_shlat2d
       !!
-      NAMELIST/namlbc/ rn_shlat, ln_vorlat, ln_shlat2d, sn_shlat2d
+      NAMELIST/namlbc/ rn_shlat, ln_vorlat    &
+          &, ln_shlat2d, sn_shlat2d   ! drakkar add
       !!---------------------------------------------------------------------
       !
       IF( nn_timing == 1 )  CALL timing_start('dom_msk')

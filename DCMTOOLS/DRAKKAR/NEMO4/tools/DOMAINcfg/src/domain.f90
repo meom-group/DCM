@@ -150,26 +150,30 @@ CONTAINS
       !!              - namnc4 namelist   ! "key_netcdf4" only
       !!----------------------------------------------------------------------
       USE ioipsl
+      !{ Drakkar modif for 3.6 compliance
       INTEGER :: nn_acc = 0
       CHARACTER(LEN=255) :: cn_dirout="./"
       LOGICAL :: ln_dimgnnn=.FALSE.
-      REAL(wp) :: rn_dtmini, rn_rdtmax, rn_rdth
+      REAL(wp) :: rn_rdtmin, rn_rdtmax, rn_rdth
+      !}
       NAMELIST/namrun/ cn_ocerst_indir, cn_ocerst_outdir, nn_stocklist, ln_rst_list,                 &
                        nn_no   , cn_exp   , cn_ocerst_in, cn_ocerst_out, ln_rstart , nn_rstctl ,     &
-         &             nn_it000, nn_itend , nn_date0    nn_time0,   , nn_leapy  , nn_istate ,     &
+         &             nn_it000, nn_itend , nn_date0    , nn_time0     , nn_leapy  , nn_istate ,     &
          &             nn_stock, nn_write , ln_mskland  , ln_clobber   , nn_chunksz, nn_euler  ,     &
-         &             ln_cfmeta, ln_iscpl,   ln_dimgnnn, cn_dirout
+         &             ln_cfmeta, ln_iscpl  &
+         &             ,  ln_dimgnnn, cn_dirout   ! Drakkar add
       NAMELIST/namdom/ nn_bathy, rn_bathy , rn_e3zps_min, rn_e3zps_rat, nn_msh, rn_hmin, rn_isfhmin, &
          &             rn_atfp , rn_rdt   , nn_closea   , ln_crs      , jphgr_msh ,                  &
          &             ppglam0, ppgphi0, ppe1_deg, ppe2_deg, ppe1_m, ppe2_m,                         &
          &             ppsur, ppa0, ppa1, ppkth, ppacr, ppdzmin, pphmax, ldbletanh,                  &
-         &             ppa2, ppkth2, ppacr2, nn_acc, rn_dtmin, rn_rdtmax, rn_rdth
+         &             ppa2, ppkth2, ppacr2    &
+         &             , nn_acc, rn_rdtmin, rn_rdtmax, rn_rdth  ! Drakkar add
 
 
 
       INTEGER  ::   ios                 ! Local integer output status for namelist read
       !!----------------------------------------------------------------------
-      nn_time0=0
+      nn_time0=0   ! Drakkar add
 
       REWIND( numnam_ref )              ! Namelist namrun in reference namelist : Parameters of the run
       READ  ( numnam_ref, namrun, IOSTAT = ios, ERR = 901)
@@ -259,7 +263,7 @@ CONTAINS
       END SELECT
 
 
-
+      rn_isfhmin=1.0 ! Drakkar add
 
       REWIND( numnam_ref )              ! Namelist namdom in reference namelist : space & time domain (bathymetry, mesh, timestep)
       READ  ( numnam_ref, namdom, IOSTAT = ios, ERR = 903)

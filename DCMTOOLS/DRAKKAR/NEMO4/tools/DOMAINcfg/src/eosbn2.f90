@@ -1179,14 +1179,17 @@ CONTAINS
       !!----------------------------------------------------------------------
       INTEGER  ::   ios   ! local integer
       INTEGER  ::   ioptio   ! local integer
+      !{ Drakkar add
       INTEGER  ::   nn_eos
       LOGICAL  ::   ln_useCT=.false.
+      !}
       !!
       NAMELIST/nameos/ ln_TEOS10, ln_EOS80, ln_SEOS, rn_a0, rn_b0, rn_lambda1, rn_mu1,   &
          &                                             rn_lambda2, rn_mu2, rn_nu,        &
-         &           nn_eos, ln_use_CT   ! 3.6 Std
+         &           nn_eos, ln_useCT   ! 3.6 Std  Drakkar Add
       !!----------------------------------------------------------------------
-      !
+      ! 
+      ln_EOS80 =.true.   ! drakkar add
       REWIND( numnam_ref )              ! Namelist nameos in reference namelist : equation of state
       READ  ( numnam_ref, nameos, IOSTAT = ios, ERR = 901 )
 901   IF( ios /= 0 ) CALL ctl_nam ( ios , 'nameos in reference namelist', lwp )
