@@ -147,10 +147,60 @@ Another idea was to eliminate from the code all particular cases regarding some 
 
 
 ## **_B: Run time changes_**
+ The major change at run time is the introduction of the domain_cfg.nc file (see below).  
+ Namelist are also changed but it is not too difficult to figure out the values from a NEMO_3.6 namelist, except for some particular
+namelist blocks that will be discussed in more details on a dedicated paragraph.  
+ Finally, the xml files used with xios are also completly revisited and restructured. More explanation are given then.
 
-### Namelists
 
 ### domain_cfg.nc file
+
+ The major change for users is the  the fact that NEMO4 uses an input file called (`domain_cfg.nc`, name set in the namelist ) which 
+hold the equivalent of mesh_hgr and mesh_zgr files. A NEMO tool is provided by the system in order to build this configuration file 
+from the classical files used up to NEMO_3.6. (DOMAIN_cfg).  It is claimed in the documentation that it takes NEMO_3.6-like namelist 
+as input, but this is not true (a hack of DOMAIN_cfg which works fine will be provided in DRAKKAR). However with some adjustments, 
+we were  able to produce the domain_cfg file.
+
+It is important to note that the vertical metrics (defining the vertical grid) is now 
+read from the domain_cfg.nc file. Thus, surprisingly, NEMO4 does not requires the bathymetry information as input, even if the bathymetry 
+is still there in the domain_cfg file ( named `bathy_metry` ? ). 
+
+When using partial steps or sigma coordinates any change in the 
+bathymetry (for tunning purpose for instance) imply a re-computation of the domain_cfg file, which can be quite a subtantial piece of work 
+for big configurations (although it can be donne in parallel on HPC). This latter point advocate for the use of HPC even when preparing a
+new configuration.
+
+> more to put on the use of DOMAIN_cfg tool.
+
+
+   | test | fofo |
+   |------|------|
+   |  1   |  2   |
+
+
+### Namelists
+ As stated in part A of this document, all DRAKKAR changes involving a namelist block, does use a new block, whose name is build from the main NEMO block name appending `_drk` at the end. The the present version of DCM the new blocks are : 
+
+   |  code module|Namelist block| Comments |
+   |:--------------|:-------------|:-------|
+   |  dommsk.F90:   |  NAMELIST/**namlbc_drk**/ ln_shlat2d, cn_dir, sn_shlat2d | Implentation of 2D shlat |
+   | dtatsd.F90:      | NAMELIST/**namtsd_drk**/  ln_tsd_init, ln_tsd_dmp, <br>  cn_dir, sn_tem_ini,sn_sal_ini, sn_tem_dmp, sn_sal_dmp | Differenciation of init and damping fields. |
+   | sbcblk.F90:      | NAMELIST/**namsbc_blk_drk**/ ln_kata, sn_kati, sn_katj | Introduction of katabatic winds parametrisations |
+   | sbcssr.F90:      | NAMELIST/**namsbc_ssr_drk**/ ln_sssr_flt, ln_sssr_msk, <br> sn_coast, rn_dist, nn_shap_iter | Introduction of coast distance, filtering |
+   | trabbl.F90:      | NAMELIST/**nambbl_drk**/ ln_kriteria | Introduction of K-criteria for BBL |
+   | tradmp.F90:      | NAMELIST/**namtra_dmp_drk**/ nn_hdmp , nn_file, ln_dmpmask,<br> rn_timsk, cn_dir, sn_dmp | DRAKKAR stype for 3D damping |
+   | zdfdrg.F90:      | NAMELIST/**namdrg_top_drk**/ cn_dir, sn_boost | Specifiy information on boost coeficient file for top drag |
+   | zdfdrg.F90:      | NAMELIST/**namdrg_bot_drk**/ cn_dir, sn_boost | Specifiy information on boost coeficient file for bottom drag |
+
+ The only new feature with respect to NEMODRAK, is the namelist specification of the files in case of ln_dmpmask, and for the enhanced 
+top/bottom friction. It used to be hard coded in NEMO.
+
+#### _Comments:_
+ For lateral mixing, diffusivity and viscosity coefficient are not more specified as values in the namelist. 
+
+> give detaisl here
+
+
 
 ### xml files
 
