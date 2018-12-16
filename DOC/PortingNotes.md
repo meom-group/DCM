@@ -157,9 +157,8 @@ namelist blocks that will be discussed in more details on a dedicated paragraph.
 
  The major change for users is the  the fact that NEMO4 uses an input file called (`domain_cfg.nc`, name set in the namelist ) which 
 hold the equivalent of mesh_hgr and mesh_zgr files. A NEMO tool is provided by the system in order to build this configuration file 
-from the classical files used up to NEMO_3.6. (DOMAIN_cfg).  It is claimed in the documentation that it takes NEMO_3.6-like namelist 
-as input, but this is not true (a hack of DOMAIN_cfg which works fine will be provided in DRAKKAR). However with some adjustments, 
-we were  able to produce the domain_cfg file.
+from the classical files used up to NEMO_3.6. (DOMAINcfg).  It is claimed in the documentation that it takes NEMO_3.6-like namelist 
+as input, but this is not true (a hack of DOMAINcfg which works fine is provided in DRAKKAR).
 
 It is important to note that the vertical metrics (defining the vertical grid) is now 
 read from the domain_cfg.nc file. Thus, surprisingly, NEMO4 does not requires the bathymetry information as input, even if the bathymetry 
@@ -170,12 +169,35 @@ bathymetry (for tunning purpose for instance) imply a re-computation of the doma
 for big configurations (although it can be donne in parallel on HPC). This latter point advocate for the use of HPC even when preparing a
 new configuration.
 
-> more to put on the use of DOMAIN_cfg tool.
+In order to compile and use the tool DOMAINcfg, follow the instructions, once in your  NEMO4 CONFIG-CASE directory:
 
+      dcm_mktools -n DOMAINcfg -m <machine> -c <CONFIG-CASE>
 
-   | test | fofo |
-   |------|------|
-   |  1   |  2   |
+ This will compile the DOMAINcfg, including the DRAKKAR modifications. At the end of the compilation you will be told where the tool is available.  
+Go there and copy in this directory all the required files from a 3.6 version of the configuration :
+
+     coordinates.nc
+     bathy_meter.nc
+     namelist_<CONFIG-CASE>  # from a 3.6 configuration
+
+As the tool requires both namelist_ref and namelist_cfg, just make the corresponding links:
+
+     ln -sf namelist_<CONFIG-CASE> namelist_ref
+     ln -sf namelist_<CONFIG-CASE> namelist_cfg
+
+Edit namelist_**CONFIG-CASE** in order to add a line in the namcfg block:
+
+     ln_e3_dep   = .true.   ! =T : e3=dk[depth] in discret sens.
+                            !      ===>>> will become the only possibility in v4.0
+                            ! =F : e3 analytical derivative of depth function
+                            !      only there for backward compatibility test with v3.6
+
+(Note that action is always the same as we want to follow the new NEMO4 standards. It is now defined as the default in the DRAKKAR version, so
+that the modification above is not mandatory if you stick to ln_e3_dep=T ! ).
+
+ Then you just have to run `make_domain_cfg.exe` (probably in parallel as the code was compiles in the same framework as CONFIG-CASE). You can adjust
+the number of subdomains in the nammpp namelist_cfg block. Of course, after a parallel run you need to recombine the pieces of domain_cfg.nc into a single file.
+(Using rebuild_nemo works fine).
 
 
 ### Namelists
