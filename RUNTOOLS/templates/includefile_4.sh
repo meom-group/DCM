@@ -34,7 +34,7 @@ QUEUE=none         # queue name (e.g. curie )
 # 
 WORKDIR=/scratch/$USER
 TMPDIR=$WORKDIR/TMPDIR_${CONFIG_CASE}
-MACHINE=$<MACHINE>
+MACHINE=<MACHINE>
 
 case  $MACHINE  in
 ( occigen) SUBMIT=sbatch  ;;
@@ -84,7 +84,7 @@ P_OBS_DIR=/ccc/work/cont003/drakkar/drakkar     # for OBS operation
   P_ENA_DIR=${P_OBS_DIR}/ENACT-ENS
   P_SLA_DIR=${P_OBS_DIR}/j2
 
-RUNTOOLS=${WORKDIR}/DEV/RUN_TOOLS                       # RUNTOOLS directory
+# RUNTOOLS environment is set together with HOMEDCM when installing DCM
 
 # Executable code
 #~~~~~~~~~~~~~~~~

@@ -8,9 +8,6 @@
 #    - CONFCASE_<machine>.ksh
 #    - includefile.ksh
 
-
-### You should have you PATH with RUNTOOLS/UTILS/ ###
-
 usage() {
             echo 'usage : dcm_mkctl [-n] [-m machine ] -c CONFIG-CASE'
             echo '  or  : dcm_mkctl [-n] [-m machine ] -a'
@@ -19,7 +16,7 @@ usage() {
             echo '  or  : mkctl -h  : print this help message and exit.'
             echo '  when -n option is used, no action is done but command are shown'
             echo '  [-m machine ] default machine is occigen '
-            echo '      Available :  ada irene occigen2 '
+            echo '      Available :  ada irene occigen '
             exit 1   
         }
 
@@ -27,12 +24,13 @@ usage() {
 CONFCASE=''
 cmd=''
 INCLUDEFILE=includefile_4.sh
-machine=occigen2
+machine=occigen
 ver=4
-while getopts :hnav:m: opt ; do
+dryrun=''
+while getopts :hnam:c: opt ; do
    case $opt in 
      (h) usage ;;
-     (n) cmd="echo " ;;
+     (n) cmd="echo " ; dryrun=1 ;;
      (a)  tmp=$(pwd)
           if [ $(basename $tmp) != 'CTL' ] ; then
             echo ' you must be in a CTL dir when using the -a option'
@@ -87,13 +85,19 @@ for f in CONFCASE_${machine}.sh $INCLUDEFILE run_nemo.sh ; do
        echo It will be renamed $g.$$
        $cmd mv $CTLDIR/$g $CTLDIR/$g.$$
    fi
-
+   target=$CTLDIR/$g
+   if [ $dryrun ] ; then
+     
+ $cmd   cat $f '|' sed -e "s/<CONFIG>/$CONFIG/g" -e "s/<CASE>/$CASE/g" -e "s/<MAILTO>/$MAILTO/g" \
+                     -e "s/<MACHINE>/$machine/"  "to "   $CTLDIR/$g
+   else
  $cmd   cat $f | sed -e "s/<CONFIG>/$CONFIG/g" -e "s/<CASE>/$CASE/g" -e "s/<MAILTO>/$MAILTO/g" \
-                     -e "s/<MACHINE>/$machine/"  > $CTLDIR/$g 
+                     -e "s/<MACHINE>/$machine/"  > $CTLDIR/$g
+   fi
 done
 cd $CTLDIR
 
-  mv includefile_4.sh includefile.sh  
+  $cmd mv includefile_4.sh includefile.sh  
 
 echo runtools script have been copied to $CTLDIR
 echo Please edit and check carefully the following scripts :
