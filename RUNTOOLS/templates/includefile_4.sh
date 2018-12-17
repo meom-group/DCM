@@ -77,7 +77,7 @@ P_WEI_DIR=${WORKDIR}/DATA_FORCING/ERAinterim/ALL        # weight files
 P_CTL_DIR=${PDIR}/RUN_${CONFIG}/${CONFIG_CASE}/CTL      # directory from which the job is  launched
 P_CDF_DIR=${PDIR}/RUN_${CONFIG}/${CONFIG_CASE}/CTL/CDF  # directory from which the diags are launched
 P_EXE_DIR=${PDIR}/RUN_${CONFIG}/${CONFIG_CASE}/EXE      # directory where to find opa
-P_UTL_DIR=${UDIR}/UTILS                                 # root directory of the build_nc programs (under bin )
+P_UTL_DIR=${WORKDIR}                                    # root directory of the build_nc programs (under bin )
 P_XIOS_DIR=${WORKDIR}/XIOS                              # root directory of the XIOS library and xios_server.exe
 
 P_OBS_DIR=/ccc/work/cont003/drakkar/drakkar     # for OBS operation

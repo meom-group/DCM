@@ -290,7 +290,7 @@
    sn_humi =    'drowned_q2_ERA_BSAS_interim'    ,     3 ,  'q2'     ,    .true.   , .false. , 'yearly'  , 'wght_ERAi_BSAS-BSAS12_v4_bilin.nc' , ''       ,   ''
    sn_prec =    'drowned_precip_ERA_BSAS_interim' ,   24 ,  'precip' ,    .true.   , .false. , 'yearly'  , 'wght_ERAi_BSAS-BSAS12_v4_bilin.nc' , ''       ,   ''
    sn_snow =    'drowned_snow_ERA_BSAS_interim'  ,    24 ,  'snow'   ,    .true.   , .false. , 'yearly'  , 'wght_ERAi_BSAS-BSAS12_v4_bilin.nc' , ''       ,   ''
-   sn_slp  =    'drowned_msl_ERAinterimc'        ,     3 , 'mls'     ,    .true.   , .false. , 'yearly'  , 'wght_ERAi-BSAS12_v4_bilin.nc'      , ''       ,   ''
+   sn_slp  =    'drowned_msl_ERAinterim'         ,     3 , 'mls'     ,    .true.   , .false. , 'yearly'  , 'wght_ERAi-BSAS12_v4_bilin.nc'      , ''       ,   ''
    sn_tdif =    'taudif_core'                    ,    24 , 'taudif'  ,   .false.   , .true.  , 'yearly'  , 'weights_core_orca2_bilinear_noc'   , ''       ,   ''
 
 / 
@@ -627,7 +627,7 @@
 !-----------------------------------------------------------------------
 &nambdy        !  unstructured open boundaries                          (default: OFF)
 !-----------------------------------------------------------------------
-   ln_bdy         = .false.   !  Use unstructured open boundaries
+   ln_bdy         = .true.    !  Use unstructured open boundaries
    nb_bdy         = 1         !  number of open boundary sets
    ln_coords_file = .false.   !  =T : read bdy coordinates from file
       cn_coords_file = 'coordinates.bdy.nc' !  bdy coordinates files

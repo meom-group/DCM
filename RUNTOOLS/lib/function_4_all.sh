@@ -87,7 +87,7 @@ getinitdmp()        {
      if [ $tmp = T ] ; then 
        filter='| grep -v sn_tem_dmp | grep -v sn_sal_dmp'  # at this level always filter dmp files
        blk=namtsd_drk ;  getfiles $blk $P_DTA_DIR $F_DTA_DIR   
-                      ;  getweight $blk $P_WEI_DIR $F_WEI_DIR
+                         getweight $blk $P_WEI_DIR $F_WEI_DIR
      fi
      # damping files (TRADMP is set in nemo4.sh)
      if [ $TRADMP = 1 ] ; then
@@ -95,7 +95,7 @@ getinitdmp()        {
         if [ $tmp = T ] ; then 
           filter='| grep -v sn_tem_ini | grep -v sn_sal_ini'  # at this level always filter ini files
           blk=namtsd_drk ;  getfiles  $blk $P_DTA_DIR $F_DTA_DIR 
-                         ;  getweight $blk $P_WEI_DIR $F_WEI_DIR
+                            getweight $blk $P_WEI_DIR $F_WEI_DIR
           # get also resto file ( in case of std NEMO stuff since 3.6 )
           nn_hdmp=$(LookInNamelist nn_hdmp namelist namtra_dmp_drk) 
           if [ $nn_hdmp != -2 ] ; then
@@ -167,32 +167,28 @@ getforcing()        {
      
      # Look for type of forcing
      forcing=none
-     tmp=$( LookInNamelist ln_ana      ) ; tmp=$( normalize $tmp ) ; if [ $tmp = T ] ; then forcing=ANA  ; blk=namsbc_ana  ; fi
+     tmp=$( LookInNamelist ln_usr      ) ; tmp=$( normalize $tmp ) ; if [ $tmp = T ] ; then forcing=ANA  ; blk=namsbc_ana  ; fi
+### @@@@@@@@@  WIP for ANA : need to figura out usrdef_fbc
      tmp=$( LookInNamelist ln_flx      ) ; tmp=$( normalize $tmp ) ; if [ $tmp = T ] ; then forcing=FLX  ; blk=namsbc_flx  ; fi
-     tmp=$( LookInNamelist ln_blk_clio ) ; tmp=$( normalize $tmp ) ; if [ $tmp = T ] ; then forcing=CLIO ; blk=namsbc_clio ; fi
-     tmp=$( LookInNamelist ln_blk_core ) ; tmp=$( normalize $tmp ) ; if [ $tmp = T ] ; then forcing=CORE ; blk=namsbc_core ; fi
-     tmp=$( LookInNamelist ln_blk_mfs  ) ; tmp=$( normalize $tmp ) ; if [ $tmp = T ] ; then forcing=MFS  ; blk=namsbc_mfs  ; fi
+     tmp=$( LookInNamelist ln_blk      ) ; tmp=$( normalize $tmp ) ; if [ $tmp = T ] ; then forcing=BLK  ; blk=namsbc_blk  ; fi
      tmp=$( LookInNamelist ln_cpl      ) ; tmp=$( normalize $tmp ) ; if [ $tmp = T ] ; then forcing=CPL  ; blk=namsbc_cpl  ; fi
 
      # get files corresponding the type of forcing
      case $forcing in 
-     CORE ) 
-         getweight $blk $P_WEI_DIR $F_WEI_DIR
+     BLK ) 
+#         getweight $blk $P_WEI_DIR $F_WEI_DIR
 
          echo  required forcing files :
          echo  =======================
          # check for optional files and set filter
-         filter='| grep -v sn_kat | grep -v sn_mslp'  # at this level always filter katabatic stuff (and mslp ...)
+         filter=''  
          tmp=$( LookInNamelist ln_taudif );  tmp=$(normalize $tmp )
          if [ $tmp = F ] ; then filter="$filter | grep -v sn_tdif " ; fi
 
-         getfiles $blk  $P_FOR_DIR $F_FOR_DIR ;;
-
-     CLIO | FLX )  
          getweight $blk $P_WEI_DIR $F_WEI_DIR
          getfiles $blk  $P_FOR_DIR $F_FOR_DIR ;;
 
-     MFS )  
+      FLX )  
          getweight $blk $P_WEI_DIR $F_WEI_DIR
          getfiles $blk  $P_FOR_DIR $F_FOR_DIR ;;
 
@@ -201,27 +197,27 @@ getforcing()        {
      ANA ) ;;
 
      none )
-         echo function getforcing only available for CORE CLIO FLX CPL or ANA  forcing
+         echo function getforcing only available for BLK FLX CPL or ANA  forcing
          exit 1 ;;
      esac
 
      # Extra forcing files 
-     if [ $forcing = CORE ] ; then
+     if [ $forcing = BLK ] ; then
         # KATABATIC mask
         filter=''
-        tmp=$( LookInNamelist ln_kata namelist)  ;  tmp=$(normalize $tmp )
+        tmp=$( LookInNamelist ln_kata namelist namsbc_blk_drk)  ;  tmp=$(normalize $tmp )
         if [ $tmp = T ] ; then 
-          filter="$filter | grep sn_kat "      # choose only sn_kat
-          getfiles $blk  $P_DTA_DIR $F_DTA_DIR 
+          filter=""
+          getfiles namsbc_blk_drk  $P_DTA_DIR $F_DTA_DIR 
         fi
      fi
    
-     # Atmospheric pressure ( 3.4)
+     # Atmospheric pressure  # in BLK sea level pressure is  now required. So why 2 entries for atm pressure ?
      filter=''
      tmp=$(LookInNamelist ln_apr_dyn namelist) ; tmp=$(normalize $tmp )
      if [ $tmp = T ] ; then blk=namsbc_apr ;  getfiles $blk $P_DTA_DIR $F_DTA_DIR ;  fi
 
-     # Drag coefficient from wave model (3.4)
+     # Drag coefficient from wave model 
      filter=''
      tmp=$(LookInNamelist ln_cdgw namelist) ; tmp=$(normalize $tmp )
      if [ $tmp = T ] ; then blk=namsbc_wave ;  getfiles $blk $P_DTA_DIR $F_DTA_DIR ;  fi
@@ -231,7 +227,7 @@ getforcing()        {
      tmp=$(LookInNamelist ln_rnf namelist) ; tmp=$(normalize $tmp )
      if [ $tmp = T ] ; then blk=namsbc_rnf ;  getfiles $blk $P_DTA_DIR $F_DTA_DIR ;  fi
 
-     # extra files ( from nemo_3.4 )
+     # extra files 
      filter='| grep -v sn_rnf | grep -v sn_cnf '
      extra=0
      #   rnf depth file
@@ -282,10 +278,14 @@ getforcing()        {
         if [ $tmp = 0 ] ; then filter="$filter | grep -v sn_sst " ; fi
         tmp=$(LookInNamelist nn_sssr namelist )       # use SSS damping ?
         if [ $tmp = 0 ] ; then filter="$filter | grep -v sn_sss " ; fi
-        tmp=$(LookInNamelist ln_sssr_msk namelist) ; tmp=$(normalize $tmp )   # use distance to coast file
-        if [ $tmp = F ] ; then  filter="$filter | grep -v sn_coast " ; fi
         blk=namsbc_ssr ;  getfiles $blk  $P_DTA_DIR $F_DTA_DIR
                           getweight $blk $P_WEI_DIR $F_WEI_DIR
+        filter=''
+        tmp=$(LookInNamelist ln_sssr_msk namelist namsbc_ssr_drk ) ; tmp=$(normalize $tmp )   # use distance to coast file
+        if [ $tmp = T ] ; then  
+          blk=namsbc_ssr_drk ;  getfiles $blk  $P_DTA_DIR $F_DTA_DIR
+                                getweight $blk $P_WEI_DIR $F_WEI_DIR
+        fi
 
      fi
           }
@@ -513,7 +513,9 @@ getweight() {
          ZFDIR=$3
          # if a 4th argument is passed, it is a namelist name. Default to 'namelist'
          if [ $4 ] ; then namelist=$4 ; else namelist=namelist ; fi
-         lstw=$(getblock $1  $namelist | grep sn_  |  awk -F, '{ print $7 }' | tr -d "'" | sort -u )
+          cmd="getblock $1 $namelist |  grep sn_  $filter   |  awk -F, '{ print \$7}'  "
+          lstw=$(eval $cmd | tr -d "'" | tr -d "," | sort -u )
+
          echo required weight files :
          echo =======================
          for f in $lstw ; do
@@ -552,6 +554,7 @@ getfiles()  {
          fi
          ZPDIR=$2
          ZFDIR=$3
+
          cmd="getblock $1 $namelist |  awk '{if ( index(\$1,\"$zstr\") != 0 ) print \$0}'   $filter |  awk '{ print \$3 }'"
          lst=$(eval $cmd | tr -d "'" | tr -d ",")
          # check for eventual weight in the namelist block ( WARNING : problem if mixed ... )

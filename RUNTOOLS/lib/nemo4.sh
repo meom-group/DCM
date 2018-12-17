@@ -118,16 +118,13 @@ FLOAT=0   ;  if [ $(keychk key_floats)   ] ; then FLOAT=1   ; fi
 CYCL=0    ;  if [ $(keychk key_cyclone)  ] ; then CYCL=1    ; fi
 DIAHARM=0 ;  if [ $(keychk key_diaharm)  ] ; then DIAHARM=1 ; fi
 
-# @@@@@@@@@@@ COORD=0   ;  if [ $(keychk need_coord )  ] ; then COORD=1   ; fi
+# JMM fix for the time being
+CFC=0 ; C14=0 ; MYTRC=0
+
 #@@@@@@@@ XIOS2=0   ;  if [ $(keychk key_xios2  )  ] ; then XIOS2=1   ; fi
-#@@@@@@@@ BDY=0     ;  if [ $(keychk key_bdy    )  ] ; then BDY=1     ; fi      ===> ln_bdy
-#@@@@@@@@ ZDFTMX=0  ;  if [ $(keychk key_zdftmx )  ] ; then ZDFTMX=1  ; fi     ===> obsolete replaced by ln_zdfiwm or ln_zdfswm
-#  for ln_zdfiwm open 5 files : mixing_power_bot mixing_power_pyc mixing_power_cri decay_scale_bot decay_scale_cri all var = field !!!!
-#   ===> to be drakkar customized 
 #@@@@@@@@ TRDMLD=0  ;  if [ $(keychk key_trdmld )  ] ; then TRDMLD=1  ; fi
 #@@@@@@@@ CFC=0     ;  if [ $(keychk key_cfc )     ] ; then CFC=1     ; fi
 #@@@@@@@@ FLXISH=0  ;  if [ $(keychk key_iceshelf) ] ; then FLXISH=1  ; fi   ===> ln_isf
-#@@@@@@@@ COEF2D=0  ;  if [ $(keychk key_orca_r2)  ] ; then COEF2D=1  ; fi
 #@@@@@@@@ DIAOBS=0  ;  if [ $(keychk key_diaobs )  ] ; then DIAOBS=1  ; fi
 
 # 
@@ -333,10 +330,14 @@ echo " ========================================"
 
 # Domain cfg file
 DOMAINcfg=0
-  tmp=$( LookInNamelist namelist ln_read_cfg namcfg ) ; tmp=$( normalize $tmp )
+  tmp=$( LookInNamelist ln_read_cfg namelist namcfg ) ; tmp=$( normalize $tmp )
   if [ $tmp = T ] ; then DOMAINcfg=1 ; fi
 
 echo "   ***  DOMAINcfg = $DOMAINcfg"
+
+BDY=0
+  tmp=$(LookInNamelist ln_bdy namelist nambdy  ) ; tmp=$(normalize $tmp)
+  if [ $tmp = T ] ; then BDY=1 ; fi
 
 # Ice model
 ICE_INI=0 ; ICE_DMP=0
@@ -627,18 +628,18 @@ echo ' [3.1] : configuration files'
 echo ' =========================='
 ## DOMAINcfg
 if [ $DOMAINcfg = 1 ] ; then  
-    CN_DOMCFG=$(LookInNamelist cn_domcfg )
+    CN_DOMCFG=$(LookInNamelist cn_domcfg ).nc
     rapatrie $CN_DOMCFG $P_I_DIR $F_DTA_DIR $CN_DOMCFG ; fi
 
 ## bottom friction file
 if [ $BOOST_DRG_BOT = 1 ] ; then             # enhance bottom friction used
-    CN_BOOST=$(LookInNamelist sn_boost namelist namdrg_bot_drk )
+    CN_BOOST=$(LookInNamelist sn_boost namelist namdrg_bot_drk ).nc
     rapatrie $CN_BOOST $P_I_DIR $F_DTA_DIR $CN_BOOST
 fi
 
-## bottom friction file
+## top friction file
 if [ $BOOST_DRG_TOP = 1 ] ; then             # enhance top friction used
-    CN_BOOST=$(LookInNamelist sn_boost namelist namdrg_top_drk )
+    CN_BOOST=$(LookInNamelist sn_boost namelist namdrg_top_drk ).nc
     rapatrie $CN_BOOST $P_I_DIR $F_DTA_DIR $CN_BOOST
 fi
 
@@ -1048,9 +1049,9 @@ cp layout.dat $P_S_DIR/ANNEX/
 
   # check flags in namelist for further processing (before changing namelist)
   tmp=$(LookInNamelist ln_timing ) ; tmp=$( normalize $tmp )
-  if [ $tmp = 'T' ] ; ntiming=1 ; fi  
+  if [ $tmp = 'T' ] ; then ntiming=1 ; fi  
   tmp=$(LookInNamelist ln_meshmask ) ; tmp=$( normalize $tmp )
-  if [ $tmp = 'T' ] ; nmsh=1 ; fi  
+  if [ $tmp = 'T' ] ; then nmsh=1 ; fi  
 
 echo ' [5.1] check the status of the run'
 echo ' ================================'
