@@ -87,26 +87,28 @@ getinitdmp()        {
      if [ $tmp = T ] ; then 
        filter='| grep -v sn_tem_dmp | grep -v sn_sal_dmp'  # at this level always filter dmp files
        blk=namtsd_drk ;  getfiles $blk $P_DTA_DIR $F_DTA_DIR   
-       getweight $blk $P_WEI_DIR $F_WEI_DIR
+                      ;  getweight $blk $P_WEI_DIR $F_WEI_DIR
      fi
-     # damping files
-     tmp=$(LookInNamelist ln_tsd_tradmp namelist namtsd_drk) ; tmp=$(normalize $tmp )
-     if [ $tmp = T ] ; then 
-       filter='| grep -v sn_tem_ini | grep -v sn_sal_ini'  # at this level always filter ini files
-       blk=namtsd_drk ;  getfiles $blk $P_DTA_DIR $F_DTA_DIR 
-                     getweight $blk $P_WEI_DIR $F_WEI_DIR
-       # get also resto file ( in case of std NEMO stuff since 3.6 )
-       nn_hdmp=$(LookInNamelist nn_hdmp namelist namtra_dmp_drk) 
-       if [ $nn_hdmp != -2 ] ; then
-          cn_resto=$(LookInNamelist cn_resto namelist namtra_dmp )
-          rapatrie $cn_resto  $P_DTA_DIR $F_DTA_DIR $cn_resto
-       else
-          # look for ln_dmpmask
-          tmp=$(LookInNamelist ln_dmpmask namelist namtra_dmp_drk) ; tmp=$(normalize $tmp )
-          if [ $tmp = T ] ; then
-             blk=namtra_dmp_drk ; getfiles  $blk $P_DTA_DIR $F_DTA_DIR   
+     # damping files (TRADMP is set in nemo4.sh)
+     if [ $TRADMP = 1 ] ; then
+        tmp=$(LookInNamelist ln_tsd_tradmp namelist namtsd_drk) ; tmp=$(normalize $tmp )
+        if [ $tmp = T ] ; then 
+          filter='| grep -v sn_tem_ini | grep -v sn_sal_ini'  # at this level always filter ini files
+          blk=namtsd_drk ;  getfiles  $blk $P_DTA_DIR $F_DTA_DIR 
+                         ;  getweight $blk $P_WEI_DIR $F_WEI_DIR
+          # get also resto file ( in case of std NEMO stuff since 3.6 )
+          nn_hdmp=$(LookInNamelist nn_hdmp namelist namtra_dmp_drk) 
+          if [ $nn_hdmp != -2 ] ; then
+             cn_resto=$(LookInNamelist cn_resto namelist namtra_dmp )
+             rapatrie $cn_resto  $P_DTA_DIR $F_DTA_DIR $cn_resto
+          else
+             # look for ln_dmpmask
+             tmp=$(LookInNamelist ln_dmpmask namelist namtra_dmp_drk) ; tmp=$(normalize $tmp )
+             if [ $tmp = T ] ; then
+                blk=namtra_dmp_drk ; getfiles  $blk $P_DTA_DIR $F_DTA_DIR   
+             fi
           fi
-       fi
+        fi
      fi
                     }
 # ---
@@ -126,7 +128,7 @@ geticedmp()        {
 # Get shlat2d file if required in namlbc namelist block
 getshlat2d()        {
      filter=''
-     tmp=$(LookInNamelist ln_shlat2d namelist) ; tmp=$(normalize $tmp )
+     tmp=$(LookInNamelist ln_shlat2d namelist namlbc_drk) ; tmp=$(normalize $tmp )
      if [ $tmp = T ] ; then
        blk=namlbc ;  getfiles $blk $P_DTA_DIR $F_DTA_DIR
      fi
@@ -288,7 +290,7 @@ getforcing()        {
      fi
           }
 # ---
-# get tidal mixing files
+# get tidal mixing files (osolete now)
 gettmx()  {
         filter=''
         tmp=$(LookInNamelist ln_tmx_itf namelist ) ; tmp=$(normalize $tmp )
@@ -296,6 +298,16 @@ gettmx()  {
         blk=namzdf_tmx ; getfiles $blk  $P_DTA_DIR $F_DTA_DIR
           }
 # ---
+#  mixing_power_bot mixing_power_pyc mixing_power_cri decay_scale_bot decay_scale_cri
+getzdfiwm() { 
+    rapatrie $MXP_BOT $P_I_DIR $F_DTA_DIR $NEMO_MXP_BOT
+    rapatrie $MXP_PYC $P_I_DIR $F_DTA_DIR $NEMO_MXP_PYC
+    rapatrie $MXP_CRI $P_I_DIR $F_DTA_DIR $NEMO_MXP_CRI
+    rapatrie $DSC_BOT $P_I_DIR $F_DTA_DIR $NEMO_DSC_BOT
+    rapatrie $DSC_CRI $P_I_DIR $F_DTA_DIR $NEMO_DSC_CRI
+            }
+# ---
+
 # get BDY files 
 getbdy()  {
         nb_bdy=$(LookInNamelist nb_bdy namelist)

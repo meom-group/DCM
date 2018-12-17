@@ -644,13 +644,7 @@ fi
 
 ## Tidal mixing (Delavergne)
 if [ $ZDFIWM = 1 ] ; then
-#  mixing_power_bot mixing_power_pyc mixing_power_cri decay_scale_bot decay_scale_cri
-    rapatrie $MXP_BOT $P_I_DIR $F_DTA_DIR $NEMO_MXP_BOT
-    rapatrie $MXP_PYC $P_I_DIR $F_DTA_DIR $NEMO_MXP_PYC
-    rapatrie $MXP_CRI $P_I_DIR $F_DTA_DIR $NEMO_MXP_CRI
-    rapatrie $DSC_BOT $P_I_DIR $F_DTA_DIR $NEMO_DSC_BOT
-    rapatrie $DSC_CRI $P_I_DIR $F_DTA_DIR $NEMO_DSC_CRI
-#    gettmx
+    getzdfiwm
 fi
 
 ## TIDAL FRICTION ( use a 2D tide velocity in the quadratic friction law)
@@ -722,13 +716,13 @@ fi
 echo ' [3.3] : Forcing fields'
 echo ' ======================'
 getforcing  # this function read the namelist and look for the name of the
-              # forcing files to be fetched. 
-              # It also get the weight files and/or katabatic mask (if any)
-              # the runoff files and SSS/SST restoring files (as appropriate)
+            # forcing files to be fetched. 
+            # It also get the weight files and/or katabatic mask (if any)
+            # the runoff files and SSS/SST restoring files (as appropriate)
 
 ## SHLAT2D file
 getshlat2d  # check namelist for ln_shlat2d. If true, get the file specified
-              # in the namelist block namlbc, sn_shlat2s%clname 
+            # in the namelist block namlbc, sn_shlat2s%clname 
 
 ## Use a climatology of SSS damping in order to correct E-P
 if [ $WAFDMP = 1 ] ; then
@@ -1044,6 +1038,8 @@ else
 fi
 date
 #--------------------------------------------------------
+#########################################################
+#--------------------------------------------------------
 echo '(5) Post processing of the run'
 echo '------------------------------'
  # gives the rights r to go
@@ -1051,8 +1047,10 @@ chmod -R go+r  $TMPDIR
 cp layout.dat $P_S_DIR/ANNEX/
 
   # check flags in namelist for further processing (before changing namelist)
-ntiming=$(LookInNamelist nn_timing)
-nmsh=$(LookInNamelist nn_msh)
+  tmp=$(LookInNamelist ln_timing ) ; tmp=$( normalize $tmp )
+  if [ $tmp = 'T' ] ; ntiming=1 ; fi  
+  tmp=$(LookInNamelist ln_meshmask ) ; tmp=$( normalize $tmp )
+  if [ $tmp = 'T' ] ; nmsh=1 ; fi  
 
 echo ' [5.1] check the status of the run'
 echo ' ================================'
