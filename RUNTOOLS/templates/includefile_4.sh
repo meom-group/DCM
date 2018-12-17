@@ -100,56 +100,46 @@ MERGE_EXEC=$P_UTL_DIR/bin/mergefile_mpp2.exe           # rebuild program (REBUIL
 # For the following files, if not relevant set the 'world' name to ''
 # set specific file names (data )(world name )                 ;   and their name in NEMO
 #--------------------------------------------------------------------------------------------------------
-# Bathymetry
-BATFILE_LEVEL=                                                              ; OPA_BATFILE_LEVEL=bathy_level.nc
-BATFILE_METER=ORCA025_bathy_etopo1_gebco1_smoothed_coast_corrected_mar10.nc ; OPA_BATFILE_METER=bathy_meter.nc
-
-# Coordinates
-COORDINATES=coordinates_ORCA_R025_lombok+ombai_v2.nc                        ; OPA_COORDINATES=coordinates.nc
-
 # Ice initialiazation/damping
-ICEINI=Init_Ice_GLORYS1V1_NSIDC_BOOTSTRAP_y1989m01_new.nc                   ; OPA_ICEINI=Ice_initialization.nc
-ICEDMP=                                                                     ; OPA_ICEDMP=ice_damping.nc
+ICEINI=Init_Ice_GLORYS1V1_NSIDC_BOOTSTRAP_y1989m01_new.nc      ; NEMO_ICEINI=Ice_initialization.nc
+ICEDMP=                                                        ; NEMO_ICEDMP=ice_damping.nc
 
-# Bottom friction enhancement
-BFR=orca025_bfr_coef_G45.nc                                                 ; OPA_BFR=bfr_coef.nc  # enhanced bottom coef for Torres
+# Sub-basin mask for diaptr diags ( mask should include  atlmsk pacmsk indmsk variables
+SUBBAS=                                                        ; NEMO_SUBBAS=subbasins.nc
 
-# 3D damping mask (aka AABW stuff)
-WDMP=ORCA025.L75_dmp_mask.nc                                                ; OPA_WDMP=dmp_mask.nc
+# AHM coef file LDF (dyn)
+AHM2D=                                                         ; NEMO_AHM2D=eddy_viscosity_2D.nc
+AHM3D=                                                         ; NEMO_AHM3D=eddy_viscosity_3D.nc
 
+# AHT coef file LDF (dyn)
+AHT2D=                                                         ; NEMO_AHT2D=eddy_diffusivity_2D.nc
+AHT3D=                                                         ; NEMO_AHT3D=eddy_diffusivity_3D.nc
 
-# AHM coef file LDF ( orca2 basically)
-AHM2D=                                                                      ; OPA_AHM2D=ahmcoef
+# Tidal mixing (Delavergne)
+MXP_BOT=                                                       ; NEMO_MXP_BOT=mixing_power_bot.nc
+MXP_PYC=                                                       ; NEMO_MXP_PYC=mixing_power_pyc.nc
+MXP_CRI=                                                       ; NEMO_MXP_CRI=mixing_power_cri.nc
+
+DSC_BOT=                                                       ; NEMO_DSC_BOT=decay_scale_bot.nc
+DSC_CRI=                                                       ; NEMO_DSC_CRI=decay_scale_cri.nc
 
 # Geothermal flux
-GEO=                                                           ; OPA_GEO=geothermal_heating.nc
+GEO=                                                           ; NEMO_GEO=geothermal_heating.nc
 
 # TRACER new CFC file ends in 2005  ( probably obsolete or not up to date )
-CFC=                                                           ; OPA_CFC=cfc1112.atm
-CO2=                                                           ; OPA_CO2=splco2.dat
-C14=                                                           ; OPA_C14=c14.dat
+CFC=                                                           ; NEMO_CFC=cfc1112.atm
+CO2=                                                           ; NEMO_CO2=splco2.dat
+C14=                                                           ; NEMO_C14=c14.dat
 
 # --- not standard but already used in some config --
 # Water flux damping 
-WAFDMP_CLIM=ORCA025_wdmp_from_MJM95.nc                         ; OPA_WAFDMP_CLIM=wdmp_from_MJM95.nc
+WAFDMP_CLIM=ORCA025_wdmp_from_MJM95.nc                         ; NEMO_WAFDMP_CLIM=wdmp_from_MJM95.nc
 
 # ------------------------------------------------------
 
-
-#OBC
-OBCFILE=obc_ORCA025.L75-G70           # root name for OBC file (eg obc_SOSMOD12.L46-MAL95_north_TS_y1999m00.nc )
-  # west open boundary file for T  S U    ( typically ${OBCFILE}_west . If set to 'xxx' this boundary is not open  )
-  WESTOBC=xxx
-  # east open boundary file for T  S U    ( typically ${OBCFILE}_east . If set to 'xxx' this boundary is not open  )
-  EASTOBC=xxx
-  # north open boundary file for T  S U   ( typically ${OBCFILE}_north . If set to 'xxx' this boundary is not open  )
-  NORTHOBC=${OBCFILE}_north
-  # south open boundary file for T  S U   ( typically ${OBCFILE}_south . If set to 'xxx' this boundary is not open  )
-  SOUTHOBC=xxx
-
 # Agrif 
 # ======
-AGRIF_FIXED_GRID=AGRIF_FixedGrids.in                  ; OPA_AGRIF_FIXED_GRID=AGRIF_FixedGrids.in
+AGRIF_FIXED_GRID=AGRIF_FixedGrids.in                  ; NEMO_AGRIF_FIXED_GRID=AGRIF_FixedGrids.in
 
 # Control parameters
 # -----------------

@@ -36,9 +36,17 @@
 #        examples: aht0=$(LookInNamelist aht0 )  <=> aht0=$(LookInNamelist aht0 namelist )
 #                  ln_limdmp=$(LookInNamelist ln_limdmp namelist_ice )
 #                  nit000=$(LookInNamelist nn_it000 namelist_oce.10 ) 
+#        If there is a third argument it is used as a namelist block and the search is
+#        limited to this block :
+#                  ln_tsd_init=$(LookInNamelist ln_tsd_init namelist_cfg namtsd_drk )
 LookInNamelist()    {
-         if [ $# = 2 ] ; then znamelist=$2 ; else znamelist=namelist ; fi
-         eval grep -e $1 $znamelist      | tr -d \' | tr -d \"  | sed -e 's/=/  = /' | awk ' {if ( $1 == str ) print $3 }' str=$1 
+         if [ $# -ge 2 ] ; then znamelist=$2 ; else znamelist=namelist ; fi
+         if [ $# = 3   ] ; then zblk=$3      ; else zblk=''            ; fi
+         if [ ! $zblk ] ; then
+           eval grep -e $1 $znamelist      | tr -d \' | tr -d \"  | sed -e 's/=/  = /' | awk ' {if ( $1 == str ) print $3 }' str=$1
+         else
+          getblock $zblk $znamelist | eval grep -e $1  | tr -d \' | tr -d \"  | sed -e 's/=/  = /' | awk ' {if ( $1 == str ) print $3 }' str=$1
+         fi
                     }
 # --- 
 
@@ -75,26 +83,29 @@ getblock()          {
 getinitdmp()        {
      # initial condition
      SetYears
-     tmp=$(LookInNamelist ln_tsd_init namelist) ; tmp=$(normalize $tmp )
+     tmp=$(LookInNamelist ln_tsd_init namelist namtsd_drk) ; tmp=$(normalize $tmp )
      if [ $tmp = T ] ; then 
        filter='| grep -v sn_tem_dmp | grep -v sn_sal_dmp'  # at this level always filter dmp files
-       blk=namtsd ;  getfiles $blk $P_DTA_DIR $F_DTA_DIR   
+       blk=namtsd_drk ;  getfiles $blk $P_DTA_DIR $F_DTA_DIR   
        getweight $blk $P_WEI_DIR $F_WEI_DIR
      fi
      # damping files
-     tmp=$(LookInNamelist ln_tsd_tradmp namelist) ; tmp=$(normalize $tmp )
+     tmp=$(LookInNamelist ln_tsd_tradmp namelist namtsd_drk) ; tmp=$(normalize $tmp )
      if [ $tmp = T ] ; then 
        filter='| grep -v sn_tem_ini | grep -v sn_sal_ini'  # at this level always filter ini files
-       blk=namtsd ;  getfiles $blk $P_DTA_DIR $F_DTA_DIR 
+       blk=namtsd_drk ;  getfiles $blk $P_DTA_DIR $F_DTA_DIR 
                      getweight $blk $P_WEI_DIR $F_WEI_DIR
        # get also resto file ( in case of std NEMO stuff since 3.6 )
-       cn_resto=$(LookInNamelist cn_resto)
-       if [ $cn_resto ] ; then
-           nn_hdmp=$(LookInNamelist nn_hdmp) 
-           nn_hdmp=${nn_hdmp:=0}
-           if [ ${nn_hdmp} -gt 0 ] ; then   # not using DRAKKAR options, then works as for nemo std.
-             rapatrie $cn_resto  $P_DTA_DIR $F_DTA_DIR $cn_resto
-           fi
+       nn_hdmp=$(LookInNamelist nn_hdmp namelist namtra_dmp_drk) 
+       if [ $nn_hdmp != -2 ] ; then
+          cn_resto=$(LookInNamelist cn_resto namelist namtra_dmp )
+          rapatrie $cn_resto  $P_DTA_DIR $F_DTA_DIR $cn_resto
+       else
+          # look for ln_dmpmask
+          tmp=$(LookInNamelist ln_dmpmask namelist namtra_dmp_drk) ; tmp=$(normalize $tmp )
+          if [ $tmp = T ] ; then
+             blk=namtra_dmp_drk ; getfiles  $blk $P_DTA_DIR $F_DTA_DIR   
+          fi
        fi
      fi
                     }
@@ -403,10 +414,10 @@ getisf () {
        fi
           }
 # ---
-# get diaptr subbasins mask
+# get diaptr subbasins mask obsolete in Nemo4 so far ... (harcoded names)
 getdiaptr()  {
         filter=''
-        blk=namptr  ; getfiles $blk $P_DTA_DIR $F_DTA_DIR
+        blk=namptr_drk  ; getfiles $blk $P_DTA_DIR $F_DTA_DIR
              }
 # ---
 # get obs data file

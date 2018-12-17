@@ -56,7 +56,7 @@ echo " ======================================================"
 rcopy $P_UTL_DIR/bin/datfinyyyy ./
 rcopy $P_CTL_DIR/includefile.sh includefile.sh 
 
-## copy the executable OPA
+## copy the executable NEMO
 set -x
 chkfile $EXEC  
 
@@ -99,7 +99,9 @@ echo " ======================================"
 # key_oasis3
 # key_si3
 # key_top
-# key_trdmxl_trc
+#   key_sed_off
+#   key_trdmxl_trc
+#   key_trdtrc
 # key_vectopt_loop
 
 #  DRAKKAR CPP key
@@ -107,25 +109,31 @@ echo " ======================================"
 
 
 IOIPSL=0  # probably never used except with test cases ( if no XIOS ? )
-COORD=0   ;  if [ $(keychk need_coord )  ] ; then COORD=1   ; fi
+
 AGRIF=0   ;  if [ $(keychk key_agrif  )  ] ; then AGRIF=1   ; fi
 XIOS=0    ;  if [ $(keychk key_iomput )  ] ; then XIOS=1    ; DIROUText='XIOS'    ; fi
-XIOS2=0   ;  if [ $(keychk key_xios2  )  ] ; then XIOS2=1   ; fi
-OBC=0     ;  if [ $(keychk key_obc    )  ] ; then OBC=1     ; fi
-BDY=0     ;  if [ $(keychk key_bdy    )  ] ; then BDY=1     ; fi
 ICE=0     ;  if [ $(keychk key_si3    )  ] ; then ICE=1     ; fi
-ZDFTMX=0  ;  if [ $(keychk key_zdftmx )  ] ; then ZDFTMX=1  ; fi
-TRDMLD=0  ;  if [ $(keychk key_trdmld )  ] ; then TRDMLD=1  ; fi
 TOP=0     ;  if [ $(keychk key_top )     ] ; then TOP=1     ; fi
-CFC=0     ;  if [ $(keychk key_cfc )     ] ; then CFC=1     ; fi
 FLOAT=0   ;  if [ $(keychk key_floats)   ] ; then FLOAT=1   ; fi
-FLXISH=0  ;  if [ $(keychk key_iceshelf) ] ; then FLXISH=1  ; fi
-COEF2D=0  ;  if [ $(keychk key_orca_r2)  ] ; then COEF2D=1  ; fi
-             if [ $(keychk key_orca_r1)  ] ; then COEF2D=1  ; fi
-DIAOBS=0  ;  if [ $(keychk key_diaobs )  ] ; then DIAOBS=1  ; fi
+CYCL=0    ;  if [ $(keychk key_cyclone)  ] ; then CYCL=1    ; fi
+DIAHARM=0 ;  if [ $(keychk key_diaharm)  ] ; then DIAHARM=1 ; fi
 
-if [ $( echo $CONFIG_CASE | grep -q -i orca1- ; echo $? ) = 0 ]  ; then COEF2D=1 ; fi
-if [ $( echo $CONFIG_CASE | grep -q -i orca2- ; echo $? ) = 0 ]  ; then COEF2D=1 ; fi
+# @@@@@@@@@@@ COORD=0   ;  if [ $(keychk need_coord )  ] ; then COORD=1   ; fi
+#@@@@@@@@ XIOS2=0   ;  if [ $(keychk key_xios2  )  ] ; then XIOS2=1   ; fi
+#@@@@@@@@ BDY=0     ;  if [ $(keychk key_bdy    )  ] ; then BDY=1     ; fi      ===> ln_bdy
+#@@@@@@@@ ZDFTMX=0  ;  if [ $(keychk key_zdftmx )  ] ; then ZDFTMX=1  ; fi     ===> obsolete replaced by ln_zdfiwm or ln_zdfswm
+#  for ln_zdfiwm open 5 files : mixing_power_bot mixing_power_pyc mixing_power_cri decay_scale_bot decay_scale_cri all var = field !!!!
+#   ===> to be drakkar customized 
+#@@@@@@@@ TRDMLD=0  ;  if [ $(keychk key_trdmld )  ] ; then TRDMLD=1  ; fi
+#@@@@@@@@ CFC=0     ;  if [ $(keychk key_cfc )     ] ; then CFC=1     ; fi
+#@@@@@@@@ FLXISH=0  ;  if [ $(keychk key_iceshelf) ] ; then FLXISH=1  ; fi   ===> ln_isf
+#@@@@@@@@ COEF2D=0  ;  if [ $(keychk key_orca_r2)  ] ; then COEF2D=1  ; fi
+#@@@@@@@@ DIAOBS=0  ;  if [ $(keychk key_diaobs )  ] ; then DIAOBS=1  ; fi
+
+# 
+DIAOBS=0
+ tmp=$(LookInNamelist ln_diaobs namelist_cfg namobs ) ; tmp=$(normalize $tmp)
+ if [ $tmp = T ] ; then DIAOBS=1 ; fi
 
 if [ $DIAOBS = 1 ] ; then
     missing_err=0
@@ -190,16 +198,13 @@ else
     restart_flag=false
 fi
 
-sed -e "s/NUMERO_DE_RUN/$no/" \
-    -e "s/NIT000/$nit000/" \
-    -e "s/NITEND/$nitend/" \
-    -e "s/RESTART/$restart_flag/" \
-    -e "s@CN_DIROUT@$DDIR/${CONFIG_CASE}-${DIROUText}.$no@" \
-    -e "s@CN_DIROUT2@$DDIR/${CONFIG_CASE}-${DIROUText}.$no/SSF@" \
-    -e "s@CN_DIROUT3@$DDIR/${CONFIG_CASE}-${DIROUText}.$no/5D@" \
-    -e "s@CN_DIAOBS@$DDIR/${CN_DIAOBS}.$no@"   \
-    -e "s@CN_DIRICB@$DDIR/${CN_DIRICB}.$no@"   \
-    -e "s@CN_DIRRST@$DDIR/${CN_DIRRST}@"   namelist > znamelist1
+sed -e "s/<NN_NO>/$no/" \
+    -e "s/<NIT000>/$nit000/" \
+    -e "s/<NITEND>/$nitend/" \
+    -e "s/<RESTART>/$restart_flag/" \
+    -e "s@<CN_DIAOBS>@$DDIR/${CN_DIAOBS}.$no@"   \
+    -e "s@<CN_DIRICB>@$DDIR/${CN_DIRICB}.$no@"   \
+    -e "s@<CN_DIRRST>@$DDIR/${CN_DIRRST}@"   namelist > znamelist1
 \cp znamelist1 namelist
 
 if [ $DIAOBS = 1 ] ; then  # modify namelist block namobs (and get data files)
@@ -232,11 +237,11 @@ if [ $AGRIF = 1 ] ; then
         nit0[idx]=$(( (${nit0[idx-1]} -1)*${timeref[idx]} + 1 ))
         nite[idx]=$((  ${nit0[idx]} - 1 + ( ${nite[idx-1]} - ${nit0[idx-1]} +1 ) *${timeref[idx]} ))
 
-        sed -e "s/NUMERO_DE_RUN/$no/"   \
-            -e "s/NIT000/${nit0[idx]}/" \
-            -e "s/NITEND/${nite[idx]}/" \
-            -e "s/RESTART/$restart_flag/" \
-            -e "s@CN_DIROUT@$DDIR/${CONFIG_CASE}-${DIROUText}.$no@" ${idx}_namelist > z${idx}_namelist1
+        sed -e "s/<NN_NO>/$no/"   \
+            -e "s/<NIT000>/${nit0[idx]}/" \
+            -e "s/<NITEND>/${nite[idx]}/" \
+            -e "s@<CN_DIRRST>@$DDIR/${CN_DIRRST}@" \
+            -e "s/<RESTART>/$restart_flag/" ${idx}_namelist > z${idx}_namelist1
 
         \cp z${idx}_namelist1 ${idx}_namelist
         \cp ${idx}_namelist  ${idx}_namelist_ref
@@ -250,7 +255,7 @@ mkdir -p  $DDIR/${CONFIG_CASE}-${DIROUText}.$no
 echo "   ***  Check/Create directory : ${CONFIG_CASE}-${MOOROUText}.$no"
 MOOROUText=MOORINGS
 #JMM : eliminate creation of this dir ... dirty
-mkdir -p  $DDIR/${CONFIG_CASE}-${MOOROUText}.$no
+#mkdir -p  $DDIR/${CONFIG_CASE}-${MOOROUText}.$no
 
 if [ $DIAOBS = 1 ] ; then 
     echo "   ***  Check/Create directory : ${CN_DIAOBS}.$no"
@@ -292,13 +297,13 @@ if [ $TOP = 1 ] ; then
     echo ' [2.2]  Tracer namelist(s)'
     echo " ========================="
     rcopy $P_CTL_DIR/namelist_top ./
-    sed -e "s@CN_DIRRST@$DDIR/${CN_DIRRST}@"   namelist_top > ztmp
+    sed -e "s@<CN_DIRRST>@$DDIR/${CN_DIRRST}@"   namelist_top > ztmp
     mv ztmp namelist_top
     cp namelist_top namelist_top_ref
     cp namelist_top namelist_top_cfg
-    if [ $CFC = 1    ] ; then rapatrie $CFCATM $P_I_DIR $F_DTA_DIR $OPA_CFCATM ; fi
-  # if [ $C14 = 1    ] ; then rapatrie $CO2 $P_I_DIR $F_DTA_DIR $OPA_CO2 ; fi
-  # if [ $C14 = 1    ] ; then rapatrie $C14 $P_I_DIR $F_DTA_DIR $OPA_C14 ; fi
+    if [ $CFC = 1    ] ; then rapatrie $CFCATM $P_I_DIR $F_DTA_DIR $NEMO_CFCATM ; fi
+  # if [ $C14 = 1    ] ; then rapatrie $CO2 $P_I_DIR $F_DTA_DIR $NEMO_CO2 ; fi
+  # if [ $C14 = 1    ] ; then rapatrie $C14 $P_I_DIR $F_DTA_DIR $NEMO_C14 ; fi
     if [ $CFC = 1    ] ; then rcopy $P_CTL_DIR/namelist_cfc ./ ; fi
   # if [ $C14 = 1    ] ; then rcopy $P_CTL_DIR/namelist_c14 ./ ; fi
   # if [ $MYTRC = 1  ] ; then rcopy $P_CTL_DIR/namelist_mytrc ./ ; fi
@@ -308,7 +313,7 @@ if [ $ICE != 0 ] ; then
     echo ' [2.3]  Ice namelist'
     echo " ========================="
     rcopy $P_CTL_DIR/namelist_ice namelist_ice
-    sed -e "s@CN_DIRRST@$DDIR/${CN_DIRRST}@"   namelist_ice > ztmp
+    sed -e "s@<CN_DIRRST>@$DDIR/${CN_DIRRST}@"   namelist_ice > ztmp
     mv ztmp namelist_ice
     cp namelist_ice namelist_ice_ref
     cp namelist_ice namelist_ice_cfg
@@ -326,50 +331,43 @@ fi
 echo ' [2.5]   Set flags according to namelists'
 echo " ========================================"
 
-# Bathymetry
-BATL=0 ; BAT=0
-nn_bathy=$(LookInNamelist nn_bathy)
-if [ $nn_bathy = 1 ] ; then 
-    tmp=$(LookInNamelist ln_zco) ; tmp=$(normalize $tmp )
-    if [ $tmp = T ] ; then 
-        BATL=1 
-    else
-        BAT=1
-    fi
-fi
-echo "   ***  BATL = $BATL   BAT = $BAT "
+# Domain cfg file
+DOMAINcfg=0
+  tmp=$( LookInNamelist namelist ln_read_cfg namcfg ) ; tmp=$( normalize $tmp )
+  if [ $tmp = T ] ; then DOMAINcfg=1 ; fi
 
-  # Daily output (DRAKKAR CUSTOM)
-DAILY=0
-tmp=$( LookInNamelist ln_daily ) ; tmp=$( normalize $tmp ) 
-if [ $tmp = T ] ; then DAILY=1 ; fi
-echo "   ***  DAILY = $DAILY"
+echo "   ***  DOMAINcfg = $DOMAINcfg"
 
 # Ice model
 ICE_INI=0 ; ICE_DMP=0
-if [ $ICE = 1 ] ; then   # LIM2
-    tmp=$(LookInNamelist ln_limini namelist_ice) ; tmp=$(normalize $tmp)
+if [ $ICE = 1 ] ; then   # SI3
+    tmp=$(LookInNamelist ln_ice namelist_ice namini ) ; tmp=$(normalize $tmp)
     if [ $tmp = T ] ; then ICE_INI=1 ; fi
-    tmp=$(LookInNamelist ln_limdmp namelist_ice) ; tmp=$(normalize $tmp)
-    if [ $tmp = T ] ; then ICE_DMP=1 ; fi
-fi
 
-if [ $ICE = 3 ] ; then   # LIM3  WIP
-    tmp=$(LookInNamelist ln_limini namelist_ice) ; tmp=$(normalize $tmp)
-    if [ $tmp = T ] ; then ICE_INI=1 ; fi
-    tmp=$(LookInNamelist ln_limdmp namelist_ice) ; tmp=$(normalize $tmp)
-    if [ $tmp = T ] ; then ICE_DMP=1 ; fi
+#   No ice damping so far in SI3/NEMO4 ....
+#    tmp=$(LookInNamelist ln_limdmp namelist_ice) ; tmp=$(normalize $tmp)
+#    if [ $tmp = T ] ; then ICE_DMP=1 ; fi
 fi
-
 echo "   ***  ICE = $ICE"
 echo "   ***  ICE_INI = $ICE_INI"
 echo "   ***  ICE_DMP = $ICE_DMP"
 
+# Tidal mixing ( Delavergne )
+ZDFIWM=0
+tmp=$( LookInNamelist ln_zdfiwm  ) ; tmp=$( normalize $tmp ) 
+if [ $tmp = T ] ; then ZDFIWM=1  ; fi
+
 # Enhanced bottom friction 
-BFREN=0
-tmp=$( LookInNamelist ln_bfr2d ) ; tmp=$( normalize $tmp ) 
-if [ $tmp = T ] ; then BFREN=1  ; fi
-echo "   ***  BFREN = $BFREN"
+BOOST_DRG_BOT=0
+tmp=$( LookInNamelist ln_boost namelist  namdrg_bot ) ; tmp=$( normalize $tmp ) 
+if [ $tmp = T ] ; then BOOST_DRG_BOT=1  ; fi
+echo "   ***  BOOST_DRG_BOT = $BOOST_DRG_BOT"
+
+# Enhanced top friction 
+BOOST_DRG_TOP=0
+tmp=$( LookInNamelist ln_boost namelist namdrg_top ) ; tmp=$( normalize $tmp ) 
+if [ $tmp = T ] ; then BOOST_DRG_TOP=1  ; fi
+echo "   ***  BOOST_DRG_TOP = $BOOST_DRG_TOP"
 
 # tracer damping 
 TRADMP=0 
@@ -380,7 +378,7 @@ echo "   ***  TRADMP = $TRADMP"
 # damping mask (e.g. AABW )
 AABW_DMP=0  
 if [ $TRADMP = 1 ] ; then
-    tmp=$(LookInNamelist ln_dmpmask) ; tmp=$(normalize $tmp)
+    tmp=$(LookInNamelist ln_dmpmask namelist namtra_dmp_drk ) ; tmp=$(normalize $tmp)
     if [ $tmp = T ] ; then AABW_DMP=1 ; fi
 fi
 echo "   ***  AABW_DMP = $AABW_DMP"
@@ -399,8 +397,9 @@ echo "   ***  RFLOAT = $RFLOAT"
 GEOTH=0
 tmp=$(LookInNamelist ln_trabbc) ; tmp=$(normalize $tmp)
 if [ $tmp = T ] ; then 
+    GEOTH=1
     nn_geoflx=$(LookInNamelist nn_geoflx)
-    if [ $nn_geoflx = 2 ] ; then GEOTH=1 ; fi
+    if [ $nn_geoflx = 2 ] ; then GEOTH=2 ; fi
 fi
 echo "   ***  GEOTH  = $GEOTH"
 
@@ -416,25 +415,41 @@ echo "   ***  ICB  = $ICB"
 
 # Ice Shelves 
 ISF=0
-tmp=$(LookInNamelist ln_isf) ; tmp=$(normalize $tmp)
-if [ $tmp = T ] ; then
-    ISF=1
-fi
+tmp=$(LookInNamelist ln_isf namelist namsbc) ; tmp=$(normalize $tmp)
+if [ $tmp = T ] ; then ISF=1   ; fi
 echo "   ***  ISF  = $ISF"
 
 # Poleward Transport diagnostics
 DIAPTR=0
 SUBBAS=0
-tmp=$(LookInNamelist ln_diaptr) ; tmp=$(normalize $tmp)
+tmp=$(LookInNamelist ln_diaptr namelist namptr ) ; tmp=$(normalize $tmp)
 if [ $tmp = T ] ; then
     DIAPTR=1
-    tmp2=$(LookInNamelist ln_subbas) ; tmp2=$(normalize $tmp2)
+    tmp2=$(LookInNamelist ln_subbas namelist namptr) ; tmp2=$(normalize $tmp2)
     if [ $tmp2 = T ] ; then
         SUBBAS=1
     fi
 fi
 echo "   ***  DIAPTR  = $DIAPTR"
 echo "   ***  SUBBAS  = $SUBBAS"
+
+# Diffusion/viscosity read in file 
+TRACOEF2D=0 ; TRACOEF3D=0
+   tmp=$(LookInNamelist ln_traldf_OFF ) ; tmp=$(normalize $tmp)
+   if [ $tmp = F ] ; then   #  Diffusion is ON !
+     nn_aht_ijk_t=$(LookInNamelist nn_aht_ijk_t )
+     if [ $nn_aht_ijk_t = -20 ] ; then TRACOEF2D=1 ; fi
+     if [ $nn_aht_ijk_t = -30 ] ; then TRACOEF3D=1 ; fi
+   fi
+
+DYNCOEF2D=0  ; DYNCOEF3D=0
+   tmp=$(LookInNamelist ln_dynldf_OFF ) ; tmp=$(normalize $tmp)
+   if [ $tmp = F ] ; then   #  Diffusion is ON !
+     nn_ahm_ijk_t=$(LookInNamelist nn_ahm_ijk_t )
+     if [ $nn_ahm_ijk_t = -20 ] ; then DYNCOEF2D=1 ; fi
+     if [ $nn_ahm_ijk_t = -30 ] ; then DYNCOEF3D=1 ; fi
+   fi
+
 
 # Ensemble run [ if not an ensemble run it is mandatory to have both ENSEMBLE_START and ENSEMBLE_END set to -1 ]
 ENSEMBLE=0 ; ENSEMBLE_SIZE=1 ; ENSEMBLE_START=-1 ; ENSEMBLE_END=-1 ; ENSEMBLE_RST_IN=0
@@ -610,39 +625,42 @@ echo '---------------------------------------------'
 
 echo ' [3.1] : configuration files'
 echo ' =========================='
-## bathymetry
-if [ $BATL = 1 ] ; then  rapatrie $BATFILE_LEVEL $P_I_DIR $F_DTA_DIR $OPA_BATFILE_LEVEL ; fi
-if [ $BAT  = 1 ] ; then  rapatrie $BATFILE_METER $P_I_DIR $F_DTA_DIR $OPA_BATFILE_METER ; fi
+## DOMAINcfg
+if [ $DOMAINcfg = 1 ] ; then  
+    CN_DOMCFG=$(LookInNamelist cn_domcfg )
+    rapatrie $CN_DOMCFG $P_I_DIR $F_DTA_DIR $CN_DOMCFG ; fi
 
-## coordinates
-if [ $COORD = 0 ] ; then # for 3.6, the information is in namelist. If not set in CPP.keys, try with namelist here
-    jphgr_msh=$(LookInNamelist jphgr_msh) 
-    if [ $jphgr_msh = 0 ] ; then COORD=1 ; fi
-fi
-
-if [ $COORD = 1 ] ; then
-    rapatrie $COORDINATES $P_I_DIR $F_DTA_DIR $OPA_COORDINATES
+## bottom friction file
+if [ $BOOST_DRG_BOT = 1 ] ; then             # enhance bottom friction used
+    CN_BOOST=$(LookInNamelist sn_boost namelist namdrg_bot_drk )
+    rapatrie $CN_BOOST $P_I_DIR $F_DTA_DIR $CN_BOOST
 fi
 
 ## bottom friction file
-if [ $BFREN = 1 ] ; then             # enhance bottom friction used
-    rapatrie $BFR $P_I_DIR $F_DTA_DIR $OPA_BFR
+if [ $BOOST_DRG_TOP = 1 ] ; then             # enhance top friction used
+    CN_BOOST=$(LookInNamelist sn_boost namelist namdrg_top_drk )
+    rapatrie $CN_BOOST $P_I_DIR $F_DTA_DIR $CN_BOOST
 fi
 
-## KZ tides
-if [ $ZDFTMX = 1 ] ; then
-    gettmx
+## Tidal mixing (Delavergne)
+if [ $ZDFIWM = 1 ] ; then
+#  mixing_power_bot mixing_power_pyc mixing_power_cri decay_scale_bot decay_scale_cri
+    rapatrie $MXP_BOT $P_I_DIR $F_DTA_DIR $NEMO_MXP_BOT
+    rapatrie $MXP_PYC $P_I_DIR $F_DTA_DIR $NEMO_MXP_PYC
+    rapatrie $MXP_CRI $P_I_DIR $F_DTA_DIR $NEMO_MXP_CRI
+    rapatrie $DSC_BOT $P_I_DIR $F_DTA_DIR $NEMO_DSC_BOT
+    rapatrie $DSC_CRI $P_I_DIR $F_DTA_DIR $NEMO_DSC_CRI
+#    gettmx
 fi
 
 ## TIDAL FRICTION ( use a 2D tide velocity in the quadratic friction law)
 if [ $UBAR_TIDE  = 1 ] ; then
-    rapatrie $BFR_TIDE  $P_I_DIR $F_DTA_DIR $OPA_BFR_TIDE
+    rapatrie $BFR_TIDE  $P_I_DIR $F_DTA_DIR $NEMO_BFR_TIDE
 fi
 
 ## geothermal heating
-if [ $GEOTH = 1 ] ; then
+if [ $GEOTH = 2 ] ; then
     getgeo
-#    rapatrie $GEO $P_I_DIR $F_DTA_DIR $OPA_GEO
 fi
 
 ## iceberg calving
@@ -659,13 +677,27 @@ fi
 
 ## diaptr subbasins mask
 if [ $SUBBAS = 1 ] ; then
-    getdiaptr
+    rapatrie $SUBBAS  $P_I_DIR $F_INI_DIR $NEMO_SUBBAS
 fi
 
-## coeff 2d for ldfdyn
-if [ $COEF2D  = 1 ] ; then
-    rapatrie $AHM2D  $P_I_DIR $F_DTA_DIR $OPA_AHM2D
+##  Diffusivity/viscosity  prescribed on either 2D or 3D files
+if [ $TRACOEF2D = 1 ] ; then
+    rapatrie $AHT2D  $P_I_DIR $F_DTA_DIR $NEMO_AHT2D
 fi
+
+if [ $TRACOEF3D = 1 ] ; then
+    rapatrie $AHT3D  $P_I_DIR $F_DTA_DIR $NEMO_AHT3D
+fi
+
+if [ $DYNCOEF2D = 1 ] ; then
+    rapatrie $AHM2D  $P_I_DIR $F_DTA_DIR $NEMO_AHM2D
+fi
+
+if [ $DYNCOEF3D = 1 ] ; then
+    rapatrie $AHM3D  $P_I_DIR $F_DTA_DIR $NEMO_AHM3D
+fi
+
+
 
 echo ' [3.2] : Initial conditions, damping files'
 echo ' =========================================='
@@ -679,17 +711,12 @@ fi
 
 ## Ice initial condition only if no = 1
 if [ $ICE_INI = 1 -a $no -eq 1 ] ; then
-    rapatrie $ICEINI  $P_I_DIR $F_INI_DIR $OPA_ICEINI
+    rapatrie $ICEINI  $P_I_DIR $F_INI_DIR $NEMO_ICEINI
 fi
 
 ## Ice damping file 
 if [ $ICE_DMP = 1  ] ; then
     geticedmp
-fi
-
-## AABW damping mask
-if [ $AABW_DMP = 1 ] ; then
-    rapatrie $WDMP  $P_I_DIR $F_MASK_DIR $OPA_WDMP
 fi
 
 echo ' [3.3] : Forcing fields'
@@ -705,7 +732,7 @@ getshlat2d  # check namelist for ln_shlat2d. If true, get the file specified
 
 ## Use a climatology of SSS damping in order to correct E-P
 if [ $WAFDMP = 1 ] ; then
-    rapatrie $WAFDMP_CLIM $P_I_DIR $F_DTA_DIR $OPA_WAFDMP_CLIM
+    rapatrie $WAFDMP_CLIM $P_I_DIR $F_DTA_DIR $NEMO_WAFDMP_CLIM
 fi
 
 ## Open boundaries files : there are no files for agrif nest -> core_rapatrie
@@ -1049,7 +1076,7 @@ fi
 for member in $(seq $ENSEMBLE_START $ENSEMBLE_END) ; do
     mmm=$(getmember_extension $member)
     if [ ! -f time.step$mmm ] ; then
-        echo "   ---  WARNING: No time-step are made by OPA, for member  $member  Earlier crash."   
+        echo "   ---  WARNING: No time-step are made by NEMO, for member  $member  Earlier crash."   
         touch STOP$mmm
         STOP_FLAG=2
     fi 
