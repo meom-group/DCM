@@ -1,0 +1,102 @@
+#!/bin/bash
+#
+#  mkclt script :
+#  This script is used to create populate the CTL dir on production machine
+#
+#  It retrieves CONFIG and CASE from the actual directory (CTL) and copy/edit script in RUNTOOLS/TEMPLATE/
+#    - run_nemo_<machine>.ksh
+#    - CONFCASE_<machine>.ksh
+#    - includefile.ksh
+
+
+### You should have you PATH with RUNTOOLS/UTILS/ ###
+
+usage() {
+            echo 'usage : dcm_mkctl [-n] [-m machine ] -c CONFIG-CASE'
+            echo '  or  : dcm_mkctl [-n] [-m machine ] -a'
+            echo '        with -a CONFIG and CASE are taken from the actual directory'
+            echo '        in this latter case, the command must be issued from CTL dir'
+            echo '  or  : mkctl -h  : print this help message and exit.'
+            echo '  when -n option is used, no action is done but command are shown'
+            echo '  [-m machine ] default machine is occigen '
+            echo '      Available :  ada irene occigen2 '
+            exit 1   
+        }
+
+     
+CONFCASE=''
+cmd=''
+INCLUDEFILE=includefile_4.sh
+machine=occigen2
+ver=4
+while getopts :hnav:m: opt ; do
+   case $opt in 
+     (h) usage ;;
+     (n) cmd="echo " ;;
+     (a)  tmp=$(pwd)
+          if [ $(basename $tmp) != 'CTL' ] ; then
+            echo ' you must be in a CTL dir when using the -a option'
+            usage
+          else
+            CONFCASE=$( basename  $(dirname $tmp) )
+          fi ;;
+     (c) CONFCASE=${OPTARG} ;;
+     (m) machine=${OPTARG} ;;
+     (*) ;;
+    esac
+done
+shift $(($OPTIND-1))
+
+if [ ! $CONFCASE ] ; then usage ; fi 
+
+CONFIG=${CONFCASE%-*}
+CASE=${CONFCASE#*-}
+
+echo CONFIG = $CONFIG
+echo CASE   = $CASE
+
+INCLUDEFILE=includefile_4.sh
+
+if [ ! $MAILTO ] ; then 
+  echo MAILTO environement not set. Please set it either in your starting file or
+  echo 'n the command line [ example : export MAILTO=myself@mydomain]'
+  exit
+fi
+
+if [ ! $PDIR ] ; then
+  echo PDIR environement not set. 
+  exit
+fi
+
+if [ ! $RUNTOOLS ] ; then
+  echo RUNTOOLS environement not set. 
+  echo "    It is normaly done when you load the DCM module"
+  exit
+fi
+
+
+CTLDIR=$PDIR/RUN_${CONFIG}/$CONFCASE/CTL
+mkdir -p $CTLDIR
+
+cd $RUNTOOLS/templates
+
+for f in CONFCASE_${machine}.sh $INCLUDEFILE run_nemo.sh ; do
+   g=$(  echo $f | sed -e "s/CONFCASE/${CONFIG}-${CASE}/" )
+   if [ -f $CTLDIR/$g ] ; then 
+       echo $g already exist in $CTLDIR
+       echo It will be renamed $g.$$
+       $cmd mv $CTLDIR/$g $CTLDIR/$g.$$
+   fi
+
+ $cmd   cat $f | sed -e "s/<CONFIG>/$CONFIG/g" -e "s/<CASE>/$CASE/g" -e "s/<MAILTO>/$MAILTO/g" \
+                     -e "s/<MACHINE>/$machine/"  > $CTLDIR/$g 
+done
+cd $CTLDIR
+
+  mv includefile_4.sh includefile.sh  
+
+echo runtools script have been copied to $CTLDIR
+echo Please edit and check carefully the following scripts :
+echo "        - ${CONFIG}-${CASE}_${machine}.sh"
+echo "        - includefile.sh"
+echo "        - run_nemo.sh"
