@@ -7,20 +7,21 @@ echo NB_NPROC = $NB_NPROC
 echo NB_NODES = $NB_NODES
 ## check existence of directories. Create them if they do'nt exist
  # TMPDIR can be set (if necessary in includefile.sh)
-chkdir $TMPDIR
+mkdir -p $TMPDIR
 
 ## Since curie machine, there might be different kind of WORKING directory:
 #    traditional WORKDIR with relatively small quota, but no automatic cleaning : CDIR
 #    scratchdir with large  quota, but eventually  cleaned automatically : DDIR
 # CDIR is always set in DCM setup, DDIR is set to CDIR if not previously set
+
 DDIR=${DDIR:-$CDIR}
 RST_DIR=${RST_DIR:-0}
 RST_READY=${RST_READY:-0}
 
-chkdir $P_I_DIR
-chkdir $P_R_DIR
-chkdir $P_S_DIR
-chkdir $P_S_DIR/ANNEX
+mkdir -p  $P_I_DIR
+mkdir -p  $P_R_DIR
+mkdir -p  $P_S_DIR
+mkdir -p  $P_S_DIR/ANNEX
 
 ## Generic name for some directories
 CN_DIAOBS=${CONFIG_CASE}-DIAOBS     # receive files from diaobs functionality, if used
@@ -32,8 +33,9 @@ echo '(1) get all the working tools on the TMPDIR directory'
 echo '-----------------------------------------------------'
 cd $TMPDIR
 
+#  This file is still in use in NEMO4. (in sbcfwd)
 cat << eof > EMPave_old.dat
-0
+0 0 0
 eof
 
 ## clean eventual (?) old files
@@ -43,6 +45,7 @@ eof
 \rm -f znitend.txt
 \rm -f damping*
 
+# usefull when TMPDIR is set dynamically by the system
 pwd > waytmp
 copy waytmp $P_CTL_DIR/
 
@@ -58,9 +61,9 @@ set -x
 chkfile $EXEC  
 
 if [ $? = 0 ] ; then
-    rcopy $EXEC ./opa
+    rcopy $EXEC ./nemo4.exe
 else
-    echo "   ===  ERROR: OPA must me recompiled. Deleted from workdir"
+    echo "   ===  ERROR: NEMO4 must me recompiled. Deleted from workdir"
     exit 1
 fi
 
@@ -75,16 +78,42 @@ fi
 
 echo " [1.2]  set flags according to CPP_keys"
 echo " ======================================"
+# Reminder : NEMO4 CPP keys are :
+# key_agrif
+# key_asminc
+# key_c1d
+# key_cice
+# key_cice4
+# key_cyclone
+# key_diadct
+# key_diaharm
+# key_diahth
+# key_diainstant
+# key_floats
+# key_iomput
+# key_mpp_mpi
+# key_nemocice_decomp
+# key_netcdf4
+# key_nosignedzero
+# key_oa3mct_v3
+# key_oasis3
+# key_si3
+# key_top
+# key_trdmxl_trc
+# key_vectopt_loop
 
+#  DRAKKAR CPP key
+# key_drakkar
+
+
+IOIPSL=0  # probably never used except with test cases ( if no XIOS ? )
 COORD=0   ;  if [ $(keychk need_coord )  ] ; then COORD=1   ; fi
 AGRIF=0   ;  if [ $(keychk key_agrif  )  ] ; then AGRIF=1   ; fi
-DIMGOUT=0 ;  if [ $(keychk key_dimgout ) ] ; then DIMGOUT=1 ; DIROUText='DIMGPROC'; fi
 XIOS=0    ;  if [ $(keychk key_iomput )  ] ; then XIOS=1    ; DIROUText='XIOS'    ; fi
-XIOS2=0   ;  if [ $(keychk key_xios2 )   ] ; then XIOS2=1   ; fi
+XIOS2=0   ;  if [ $(keychk key_xios2  )  ] ; then XIOS2=1   ; fi
 OBC=0     ;  if [ $(keychk key_obc    )  ] ; then OBC=1     ; fi
 BDY=0     ;  if [ $(keychk key_bdy    )  ] ; then BDY=1     ; fi
-ICE=0     ;  if [ $(keychk key_lim2   )  ] ; then ICE=1     ; fi
-             if [ $(keychk key_lim3   )  ] ; then ICE=2     ; fi
+ICE=0     ;  if [ $(keychk key_si3    )  ] ; then ICE=1     ; fi
 ZDFTMX=0  ;  if [ $(keychk key_zdftmx )  ] ; then ZDFTMX=1  ; fi
 TRDMLD=0  ;  if [ $(keychk key_trdmld )  ] ; then TRDMLD=1  ; fi
 TOP=0     ;  if [ $(keychk key_top )     ] ; then TOP=1     ; fi
@@ -121,12 +150,6 @@ if [ $DIAOBS = 1 ] ; then
 
     if [ $missing_err != 0 ] ; then exit 1 ; fi
 
-fi
-
-if [ $XIOS = 1 -a $DIMGOUT = 1 ] ; then
-    echo '   ===  ERROR: key_dimgout and key_iomput cannot be defined at the same time'
-    echo '               Running script does not know what to do .... so it stops !'
-    exit 1
 fi
 
 ## check if we are using new xml layout (ie with files like 04-files.xml
@@ -222,50 +245,25 @@ if [ $AGRIF = 1 ] ; then
 fi
 
 echo "   ***  Check/Create directory : ${CONFIG_CASE}-${DIROUText}.$no"
-chkdir  $DDIR/${CONFIG_CASE}-${DIROUText}.$no
+mkdir -p  $DDIR/${CONFIG_CASE}-${DIROUText}.$no
 
 echo "   ***  Check/Create directory : ${CONFIG_CASE}-${MOOROUText}.$no"
 MOOROUText=MOORINGS
 #JMM : eliminate creation of this dir ... dirty
-chkdir  $DDIR/${CONFIG_CASE}-${MOOROUText}.$no
+mkdir -p  $DDIR/${CONFIG_CASE}-${MOOROUText}.$no
 
 if [ $DIAOBS = 1 ] ; then 
     echo "   ***  Check/Create directory : ${CN_DIAOBS}.$no"
-    chkdir $DDIR/${CN_DIAOBS}.$no 
+    mkdir -p $DDIR/${CN_DIAOBS}.$no 
 fi
 
 
 if [ $RST_DIRS = 1 ] ; then 
     echo "   ***  Check/Create directory : ${CN_DIRRST}.$no"
-    chkdir $DDIR/${CN_DIRRST}.$no
+    mkdir -p $DDIR/${CN_DIRRST}.$no
 fi
 
 rdt=$(LookInNamelist rn_rdt)
-if [ $DIMGOUT = 1 ] ; then
-    echo "   ***  Check the length of the run vs the dump period"
-    ## check that the run period is a multiple of the dump period 
-    nwri=$(LookInNamelist nn_write)
-    nwri2=$(LookInNamelist nn_write2) ; nwri2=${nwri2:=0}
-    nwri3=$(LookInNamelist nn_write3) ; nwri3=${nwri3:=0}
-
-    var=` echo 1 | awk "{ a=$nitend ; b=$nit000 ; c=$nwri ; nenr=(a-b+1)/c ; print nenr}"`
-    vernenr=` echo 1 | awk "{ a=$var; c=int(a); print c}"`
-
-    if [ $vernenr -ne  $var ] ; then
-        echo '   ---  WARNING: the run length is not a multiple of the dump period '
-        #  exit 
-    fi
-    
-    # extra dimgout output if any
-    if [ $nwri2 != 0 ] ; then 
-        echo "   ***  Check/Create directory : ${CONFIG_CASE}-${DIROUText}.$no/SSF"
-        chkdir  $DDIR/${CONFIG_CASE}-${DIROUText}.$no/SSF
-    fi
-    if [ $nwri3 != 0 ] ; then 
-        echo "   ***  Check/Create directory : ${CONFIG_CASE}-${DIROUText}.$no/5D"
-        chkdir  $DDIR/${CONFIG_CASE}-${DIROUText}.$no/5D
-    fi
-fi
 
 ## place holder for time manager (eventually)
 if [ $no != 1 ] ; then
@@ -323,18 +321,6 @@ if [ $ICE != 0 ] ; then
     fi
 fi
 
-if [ $DIMGOUT = 1 ] ; then
-    echo ' [2.4]  namelistio'
-    echo " ================="
-    rcopy $P_CTL_DIR/namelistio namelistio
-    tmp=$(LookInNamelist ln_daily) ; tmp=$( normalize $tmp )
-    if [ $tmp = T ] ; then rcopy $P_CTL_DIR/namelistio_daily namelistio_daily ; fi
-    if [ $AGRIF = 1 ] ; then
-        for idx in ${agrif_pref[@]} ; do
-            rcopy $P_CTL_DIR/${idx}_namelistio ${idx}_namelistio
-        done
-    fi
-fi
 # XIOS stuff migrated after ensemble run check !
 
 echo ' [2.5]   Set flags according to namelists'
@@ -424,7 +410,7 @@ tmp=$(LookInNamelist ln_icebergs) ; tmp=$(normalize $tmp)
 if [ $tmp = T ] ; then
     ICB=1
     echo "   ***  Check/Create directory : ${CN_DIRICB}.$no"
-    chkdir $DDIR/${CN_DIRICB}.$no 
+    mkdir -p $DDIR/${CN_DIRICB}.$no 
 fi
 echo "   ***  ICB  = $ICB"
 
@@ -500,9 +486,9 @@ if [ $ENSEMBLE = 1 ] ; then
     fi
     for member in $(seq $ENSEMBLE_START $ENSEMBLE_END) ; do
         nnn=$(getmember_extension $member  nodot )  # number of the member without .
-        chkdir  $DDIR/${CONFIG_CASE}-${DIROUText}.${no}/$nnn
+        mkdir -p  $DDIR/${CONFIG_CASE}-${DIROUText}.${no}/$nnn
         if [ $RST_DIRS = 1 ] ; then
-            chkdir  $DDIR/${CN_DIRRST}.${no}/$nnn
+            mkdir -p  $DDIR/${CN_DIRRST}.${no}/$nnn
         fi
     done
 fi
@@ -723,72 +709,6 @@ if [ $WAFDMP = 1 ] ; then
 fi
 
 ## Open boundaries files : there are no files for agrif nest -> core_rapatrie
-if [ $OBC = 1 ] ;  then
-    echo ' [3.4] : OBC files '
-    echo ' =================='
-    tmp=$( LookInNamelist ln_obc_clim ) ; tmp=$( normalize $tmp ) 
-    if [ $tmp = T ] ; then  # case of climatological OBC
-        if [ $NORTHOBC != xxx ]; then
-            core_rapatrie ${NORTHOBC}_TS.nc  $P_OBC_DIR  $F_OBC_DIR obcnorth_TS.nc
-            core_rapatrie ${NORTHOBC}_U.nc   $P_OBC_DIR  $F_OBC_DIR obcnorth_U.nc
-            core_rapatrie ${NORTHOBC}_V.nc   $P_OBC_DIR  $F_OBC_DIR obcnorth_V.nc
-        fi
-        if [ $SOUTHOBC != xxx ]; then
-            core_rapatrie ${SOUTHOBC}_TS.nc  $P_OBC_DIR  $F_OBC_DIR obcsouth_TS.nc
-            core_rapatrie ${SOUTHOBC}_U.nc   $P_OBC_DIR  $F_OBC_DIR obcsouth_U.nc
-            core_rapatrie ${SOUTHOBC}_V.nc   $P_OBC_DIR  $F_OBC_DIR obcsouth_V.nc
-        fi
-        if [ $WESTOBC != xxx ]; then
-            core_rapatrie ${WESTOBC}_TS.nc  $P_OBC_DIR  $F_OBC_DIR obcwest_TS.nc
-            core_rapatrie ${WESTOBC}_U.nc   $P_OBC_DIR  $F_OBC_DIR obcwest_U.nc
-            core_rapatrie ${WESTOBC}_V.nc   $P_OBC_DIR  $F_OBC_DIR obcwest_V.nc
-        fi
-        if [ $EASTOBC != xxx ]; then
-            core_rapatrie ${EASTOBC}_TS.nc  $P_OBC_DIR  $F_OBC_DIR obceast_TS.nc
-            core_rapatrie ${EASTOBC}_U.nc   $P_OBC_DIR  $F_OBC_DIR obceast_U.nc
-            core_rapatrie ${EASTOBC}_V.nc   $P_OBC_DIR  $F_OBC_DIR obceast_V.nc
-        fi
-    else
-       # determine the number of years to get according to the length of the run
-        zn1=$(LookInNamelist nn_it000)
-        zn2=$(LookInNamelist nn_itend)
-        zrdt=$(LookInNamelist rn_rdt)
-        zstpday=$( echo $zrdt | awk '{print 86400./$1 }' )
-        znyear=$( echo $zn1 $zn2 $zstpday | awk '{ print int(( $2 - $1 +1)/$3/365+0.5 )}')
-        if [ $znyear = 0 ] ; then znyear=1 ; fi
-        zyy=$( echo $year | awk '{printf "%d" , $1}' )  # trick to get red of leading 00 when using
-                                                        # climatological run 
-#        zyearf=$(( zyy + znyear - 1 ))
-        zyearf=$(( zyy + znyear  ))
-
-        for zy in $(seq -f "%04g" $year $zyearf) ; do
-         # NORTH
-            if [ $NORTHOBC != xxx ]; then
-                core_rapatrie ${NORTHOBC}_TS_y${zy}m00.nc  $P_OBC_DIR  $F_OBC_DIR obc_north_TS_y${zy}m00.nc
-                core_rapatrie ${NORTHOBC}_U_y${zy}m00.nc   $P_OBC_DIR  $F_OBC_DIR obc_north_U_y${zy}m00.nc
-                core_rapatrie ${NORTHOBC}_V_y${zy}m00.nc   $P_OBC_DIR  $F_OBC_DIR obc_north_V_y${zy}m00.nc
-            fi
-         # SOUTH
-            if [ $SOUTHOBC != xxx ]; then
-                core_rapatrie ${SOUTHOBC}_TS_y${zy}m00.nc  $P_OBC_DIR  $F_OBC_DIR obc_south_TS_y${zy}m00.nc
-                core_rapatrie ${SOUTHOBC}_U_y${zy}m00.nc   $P_OBC_DIR  $F_OBC_DIR obc_south_U_y${zy}m00.nc
-                core_rapatrie ${SOUTHOBC}_V_y${zy}m00.nc   $P_OBC_DIR  $F_OBC_DIR obc_south_V_y${zy}m00.nc
-            fi
-         # WEST
-            if [ $WESTOBC != xxx ]; then
-                core_rapatrie ${WESTOBC}_TS_y${zy}m00.nc  $P_OBC_DIR  $F_OBC_DIR obc_west_TS_y${zy}m00.nc
-                core_rapatrie ${WESTOBC}_U_y${zy}m00.nc   $P_OBC_DIR  $F_OBC_DIR obc_west_U_y${zy}m00.nc
-                core_rapatrie ${WESTOBC}_V_y${zy}m00.nc   $P_OBC_DIR  $F_OBC_DIR obc_west_V_y${zy}m00.nc
-            fi
-         # EAST
-            if [ $EASTOBC != xxx ]; then
-                core_rapatrie ${EASTOBC}_TS_y${zy}m00.nc  $P_OBC_DIR  $F_OBC_DIR obc_east_TS_y${zy}m00.nc
-                core_rapatrie ${EASTOBC}_U_y${zy}m00.nc   $P_OBC_DIR  $F_OBC_DIR obc_east_U_y${zy}m00.nc
-                core_rapatrie ${EASTOBC}_V_y${zy}m00.nc   $P_OBC_DIR  $F_OBC_DIR obc_east_V_y${zy}m00.nc
-            fi
-        done
-    fi
-fi
 
 echo ' [3.4] : BDY files '
 echo '  ===================='
@@ -806,15 +726,9 @@ prev_ext=$(( $no - 1 ))      # file extension of previous run
 if [ $no -eq  1 ] ; then
     echo '   ***  Cold start, no restart to fetch.'
 else
-    if [ $DIMGOUT = 1 ] ; then
-        proc0=1
-        procn=$(( NB_NPROC / ENSEMBLE_SIZE ))
-        filext='dimg'
-    else    # not dimg then nc ( XIOS or standard output ) 
-        proc0=0
-        procn=$(( (NB_NPROC / ENSEMBLE_SIZE) - 1  ))
-        filext='nc'
-    fi
+    proc0=0
+    procn=$(( (NB_NPROC / ENSEMBLE_SIZE) - 1  ))
+    filext='nc'
     echo "   ***  $filext restart files from $proc0 to $procn"
     format='%04d'
     if [ $procn -ge 10000  ] ; then format='%05d'  ; fi
@@ -1077,23 +991,6 @@ else
 
             fi  # RST_READY
 
-##### O B C 
-###########
-            if [ $OBC = 1 ] ; then    # no agrif OBC files, use core_rapatrie
-         # check for fixed conditions : look in namobc in namelist for the rn_dpxxx coef.
-         # If sum is 0 then, obc is fixed and no need for restart.
-                tmp=$(getblock namobc namelist | \
-                    grep -v -e '^!' | grep rn_dp  | \
-                    awk -F= '{print $2}' | awk -F! '{print $1}' | sed -e 's/\.//' )
-                zsum=0
-                for v in $tmp ; do zsum=$(( zsum + v )) ; done
-                if [ $zsum = 0 ] ; then
-                    echo no need of OBC restart file for ${CONFIG_CASE} : fixed OBC
-                else
-                    core_rapatrie restart${mmm}.obc.$prev_ext $P_R_DIR $F_R_DIR  restart.obc${mmm}.$prev_ext
-                    cp -f restart.obc${mmm}.$prev_ext restart.obc${mmm}
-                fi
-            fi
         done   # loop on member
 fi       # test on restart
 
@@ -1111,12 +1008,12 @@ date
 if [ $XIOS = 1 -a $NB_NPROC_IOS != 0 ] ; then
    NB_NCORE_DP=${NB_NCORE_DP:=0}
    if [ $NB_NCORE_DP != 0 ] ; then
-      runcode_mpmd_dp  -dp $NB_NCORE_DP $NB_NPROC ./opa $NB_NPROC_IOS ./xios_server.exe
+      runcode_mpmd_dp  -dp $NB_NCORE_DP $NB_NPROC ./nemo4.exe $NB_NPROC_IOS ./xios_server.exe
    else
-      runcode_mpmd  $NB_NPROC ./opa $NB_NPROC_IOS ./xios_server.exe
+      runcode_mpmd  $NB_NPROC ./nemo4.exe $NB_NPROC_IOS ./xios_server.exe
    fi
 else
-    runcode  $NB_NPROC ./opa
+    runcode  $NB_NPROC ./nemo4.exe
 fi
 date
 #--------------------------------------------------------
@@ -1230,12 +1127,6 @@ case $STOP_FLAG in
             done
         fi
 
-       # O P E N   B O U N D A R Y  C O N D I T I O N
-       # ********************************************
-        if [ $OBC = 1 ] ; then
-            mv restart.obc.output$mmm restart.obc$mmm.$ext
-            expatrie_res  restart.obc$mmm.$ext $F_R_DIR restart.obc$mmm.$ext  $P_R_DIR
-        fi
     done      # loop on members
 
     date
@@ -1304,64 +1195,6 @@ case $STOP_FLAG in
     if [ $STOP_FLAG = 0 ] ; then ext=$no     ; fi
     if [ $STOP_FLAG = 1 ] ; then ext=$$.'ABORT' ; fi
 
-    if [ $DIMGOUT = 1 ] ; then
-
-        date
-        echo ' [6.1] Process the rebuild of nc file from dimgproc files '
-        echo ' ========================================================='
-      # process daily output first if any ( not yet  support for agrif )
-        if [ $DAILY = 1 ] ; then 
-            chkdir  $DDIR/${CONFIG_CASE}-${DIROUText}.$ext/DAILY
-            echo '   ***   Move the daily dimgproc to another directory '
-            for f in $(ls | grep daily ) ; do  # to avoid the use of * with too long lines
-                mv $f $DDIR/${CONFIG_CASE}-${DIROUText}.$ext/DAILY
-            done
-            
-            echo '   ***   process rebuild of daily output'
-            cp coordinates.nc $DDIR/${CONFIG_CASE}-${DIROUText}.$ext/DAILY
-            cp namelistio_daily $DDIR/${CONFIG_CASE}-${DIROUText}.$ext/DAILY
-            
-            mkbuildnc_daily zrebuild_daily.$ext.sh
-            submit ${P_CTL_DIR}/zrebuild_daily.$ext.sh
-        fi
-
-        echo '   ***  process the rebuild of dimgproc files (standard)'
-        cp coordinates.nc $DDIR/${CONFIG_CASE}-${DIROUText}.$ext/
-        cp namelistio $DDIR/${CONFIG_CASE}-${DIROUText}.$ext/
-
-        if [ $ENSEMBLE = 1 ] ; then 
-            mkbuildncens zrebui.$ext.sh
-        else
-            mkbuildnc zrebui.$ext.sh
-        fi
-
-        submit ${P_CTL_DIR}/zrebui.$ext.sh
-        cd $TMPDIR
-        
-      # extra non standard output  {
-        if [ $nwri2 != 0 ] ; then
-            echo '   ***  process the rebuild of dimgproc files (SSF)'
-            mkbuild_ssf zrebssf.$ext.sh
-            submit ${P_CTL_DIR}/zrebssf.$ext.sh
-        fi
-
-        if [ $nwri3 != 0 ] ; then
-            echo '   ***  process the rebuild of dimgproc files (5D)'
-            mkbuild_5d  zreb5d.$ext.sh
-            submit ${P_CTL_DIR}/zreb5d.$ext.sh
-        fi
-      #                           }
-
-        if [ $AGRIF = 1 ] ; then
-            for idx in ${agrif_pref[@]} ; do
-                echo "   ***  process the rebuild of AGRIF dimgproc files for G$idx "
-                cp ${idx}_coordinates.nc $DDIR/${CONFIG_CASE}-${DIROUText}.$ext/
-                cp ${idx}_namelistio $DDIR/${CONFIG_CASE}-${DIROUText}.$ext/
-                mkbuildnc zrebag${idx}.$ext.sh $idx
-                submit ${P_CTL_DIR}/zrebag${idx}.$ext.sh
-            done
-        fi
-    fi   #  
 
     if [ $XIOS = 1 ] ; then
         echo ' [6.1] Process the rebuild of nc file from XIOS files '
@@ -1475,38 +1308,9 @@ case $STOP_FLAG in
         date
         echo ' [6.2] Process the rebuild of mesh_mask files'
         echo ' ============================================'
-        if [ $DIMGOUT = 1 ] ; then
-            echo '  ***  dimg meshmask files'
-            case $nmsh in 
-                ( 1 )   # obsolescence
-                ./build_nc_iom mesh_mask
-                expatrie mesh_mask.nc   $F_I_DIR  ${CONFIG}-${CASE}_mesh_mask.nc ;;
-                ( 2 )  # obsolescence
-                ./build_nc_iom mesh
-                ./build_nc_mask 
-                expatrie mesh.nc  $F_I_DIR ${CONFIG}-${CASE}_mesh.nc
-                expatrie mask.nc  $F_I_DIR ${CONFIG}-${CASE}_mask.nc ;;
-                ( 6 )  # what is used in DRAKKAR
-                mkbuild_mesh_mask zmkmeshmask.sh  # avoid _ in name as PBS does not like !
-                submit ${P_CTL_DIR}/zmkmeshmask.sh
-              # 
-                if [ $AGRIF = 1 ] ; then
-                    for idx in ${agrif_pref[@]} ; do
-                        nmshag=$(LookInNamelist nn_msh ${idx}_namelist_oce.$ext )
-                        if [ $nmshag = 6 ] ; then
-                            mkbuild_mesh_mask zmkmeshmask${idx}.sh $idx  # avoid _ in name as PBS does not like !
-                            submit ${P_CTL_DIR}/zmkmeshmask${idx}.sh 
-                        fi
-                    done
-                fi  ;;
-                ( * )
-                echo "  --- WARNING: nn_msh=$nmsh is not supported"  ;;
-            esac
-        else  #  not DIMGOUT hence netcdf output ...(XIOS for instance)
             echo '  ***  netcdf meshmask files'
           # To be done
             echo "  ---  WARNING: Missing script for this case ..."
-        fi
     fi 
 
     if [ $STOP_FLAG = 0 -a $DIAOBS = 1 ] ; then
