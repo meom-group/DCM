@@ -218,15 +218,172 @@ the number of subdomains in the nammpp namelist_cfg block. Of course, after a pa
 top/bottom friction. It used to be hard coded in NEMO.
 
 #### _Comments:_
- For lateral mixing, diffusivity and viscosity coefficient are not more specified as values in the namelist. 
+ For lateral mixing, diffusivity and viscosity coefficient are **no more** specified as values in the namelist. Instead, these coefficients are computed in the code as:
 
-> give detaisl here
+  aht =  fac * U<sub>d</sub> * L<sub>d</sub><sup>n</sup>, where U<sub>d</sub> is a typical diffusion velocity and 
+ L<sub>d</sub> is a diffusion lenght scale, n is 1 for laplacian operator, 3 for bi-laplacian operator, fac is a coefficient
+ (1/2 for laplacian operator, 1/12 for bilaplacian operator).
+
+ In the namelist many choices are now possible through the `nn_aht_ijk_t` namelist parameter. According to its value we have the following possibilities :
+
+  | nn_aht_ijk_t |  Formula for aht  | Use rn_Ud, rn_Ld |
+  |:------------:|-----------|:------------------------:|
+  |   -30        | read in eddy_diffusivity_3D.nc in file | no |
+  |   -20        | read in eddy_diffusivity_2D.nc in file | no |
+  |    0         | constant value = fac * U<sub>d</sub> * L<sub>d</sub><sup>n</sup> <br>  U<sub>d</sub>  and L<sub>d</sub> from the namelist | rn_Ud  rn_Ld |
+  |   10         | aht=F(k) as specified in ldf_c1d |  rn_Ud  rn_Ld |
+  |   20         | aht=F(i,j) as specified in ldf_c2d | rn_Ud  |
+  |   21         | aht=F(i,j,t)  Treguier et al. JPO 1997 formulation | ? |
+  |   30         | aht=F(i,j,k)  ldf_c2d * ldf_c1d | rn_Ud |
+  |   31         | aht=F(i,j,k,t) F(local velocity and grid-spacing) | ? | 
+
+
+ In most of the DRAKKAR run we used a 2D spatial variation of the eddy diffusivity, according to the local gridsize. This is what is 
+achieved with `nn_aht_ijk_t = 20 `. In this case, only rn_Ud (U<sub>d</sub>) needs to be specified. In order to use the 
+same diffusivity than in previous 3.6 run ( aht_0 in the 3.6 namelist), we may consider the following :
+
+     aht[uv](:,:) = fac*Ud * max(e1,e2)(:,:) ^ n    [ fac=1/2, n=1 ; fac=1/12, n=3]  (4.0)
+     aht[uv](:,:) = rn_aht_0 * [ max(e1,e2)(:,:)/ Max(e1,e2) ] ^ n    (3.6)
+
+     ==>  rn_Ud = rn_aht_0/fac/MAX(e1,e2)^n
+
+ In the above formulae, max(e1,e2)(:,:) stands for the local maximum between e1(i,j) and e2(i,j), while Max(e1,e2) stand for the
+domain wide maximum for (e1,e2).
+
+    Example for BSAS12 configuration :
+       rn_aht_0= 67.52 m2/s (laplacian)
+       MAX(e1,e2) = 7012 m 
+       ==> rn_Ud = 67.52 * 2 / (7012)^1 = 0.0193  m/s
+
+The advantage of this rigorous way of setting the diffusivity is that we see a link in the coefficents used with laplacian 
+and bi-laplacian operators (for a given  U<sub>d</sub>).
+
+       rn_aht0 = rn_Ud * fac * MAX(e1,e2)^n 
+
+### XIOS and xml files
+ NEMO4 requires the use of a recent XIOS library (2.5). Although it compiles fine with the 
+[trunk](http://forge.ipsl.jussieu.fr/ioserver/svn/XIOS/branchs/xios-2.5) of xios_2.5, some problems have been encountered at run-time
+with regard to domain NEMO domain decomposition and land processor elimination. This problem should be solve soon, but in the
+mean time, using this particular [branch](http://forge.ipsl.jussieu.fr/ioserver/svn/XIOS/dev/dev_olga) (called 2.5_dev_olga) 
+ of XIOS works very well. 
+
+ xml files have been completly reorganized when using NEMO4. At the end, the file  which is used by nemo/xios is still `iodef.xml`,
+but it is now a very short file where all the 'ingredients' are sourced:
+
+    <?xml version="1.0"?>
+    <simulation>
+
+    <!-- ============================================================================================ -->
+    <!-- XIOS context                                                                                 -->
+    <!-- ============================================================================================ -->
+
+    <context id="xios" >
+
+      <variable_definition>
+
+          <variable id="info_level"                type="int">10</variable>
+          <variable id="using_server"              type="bool">true</variable>
+          <variable id="using_oasis"               type="bool">false</variable>
+          <variable id="oasis_codes_id"            type="string" >oceanx</variable>
+
+      </variable_definition>
+    </context>
+
+    <!-- ============================================================================================ -->
+    <!-- NEMO  CONTEXT add and suppress the components you need                                       -->
+    <!-- ============================================================================================ -->
+
+    <context id="nemo" src="./context_nemo.xml"/>       <!--  NEMO       -->
+
+    </simulation>
+
+
+So, all the nemo dependent information is within the `context_nemo.xml` file, which in turn is also very short :
+
+
+     <!--
+      ============================================================================================== 
+           NEMO context
+     ============================================================================================== 
+     -->
+     <context id="nemo">
+     <!-- $id$ -->
+     <!-- Fields definition -->
+         <field_definition src="./field_def_nemo-oce.xml"/>    <!--  NEMO ocean dynamics     -->
+         <field_definition src="./field_def_nemo-ice.xml"/>    <!--  NEMO sea-ice model      -->
+         <field_definition src="./field_def_nemo-pisces.xml"/> --> <!--  NEMO ocean biology      -->
+     
+     <!-- Files definition -->
+         <file_definition src="./file_def_nemo-oce.xml"/>     <!--  NEMO ocean dynamics      -->
+         <file_definition src="./file_def_nemo-ice.xml"/>     <!--  NEMO sea-ice model       -->
+         <file_definition src="./file_def_nemo-pisces.xml"/>  <!--  NEMO ocean biology       -->
+         <!-- 
+     ============================================================================================================
+     = grid definition = = DO NOT CHANGE =
+     ============================================================================================================
+         -->
+     
+         <axis_definition>
+           <axis id="deptht" long_name="Vertical T levels" unit="m" positive="down" />
+           <axis id="depthu" long_name="Vertical U levels" unit="m" positive="down" />
+           <axis id="depthv" long_name="Vertical V levels" unit="m" positive="down" />
+           <axis id="depthw" long_name="Vertical W levels" unit="m" positive="down" />
+           <axis id="profsed" long_name="Vertical S levels" unit="cm" positive="down" />
+           <axis id="nfloat" long_name="Float number"      unit="-"                 />
+           <axis id="icbcla"  long_name="Iceberg class"      unit="1"               />
+           <axis id="ncatice" long_name="Ice category"       unit="1"               />
+           <axis id="iax_20C" long_name="20 degC isotherm"   unit="degC"            />
+           <axis id="iax_28C" long_name="28 degC isotherm"   unit="degC"            />
+         </axis_definition>
+     
+         <domain_definition src="./domain_def_nemo.xml"/>
+     
+         <grid_definition src="./grid_def_nemo.xml"/>
+     
+     </context> 
+
+
+In this context file, all the field definitions are sourced, as well as the file definitions for different NEMO
+components : oce, ice, pisces.  In most of the cases, the end-user only have to change file_def_*_xml, to fit his
+proper willings. 
+
+When using DCM, we recommend to direct the output in a specific directory `$WORKDIR/<CONFIG>-<CASE>-XIOS.<seg>`. To do so,
+we change  the `<file_definition>` line to 
+
+         <file_definition type="multiple_file" name="<OUTDIR>/@expname@_@freq@" sync_freq="1d" min_digits="4">
+
+The `<OUTDIR>` word is a keyword that the running script (`nemo4.sh`) will automatically update to the correct value.   
+Also, in order to be fully compliant with  DCM specifications regarding the output files, each file may have some specific
+global attributes. Example :
+
+     // global attributes:
+                ......
+		:start_date = 19920101 ;
+		:output_frequency = "1d" ;
+		:CONFIG = "BSAS12" ;
+		:CASE = "MJM151" ;
+                .....
+
+This is achieved by adding global attribute specification at the end of each file defined in the file_...xml, as chown
+on the example ( it corresponds to the `<variable>` settings ):
+
+     <!-- T FILES -->
+        <file id="file6" name_suffix="_gridT_" description="ocean T grid variables" >
+            <field field_ref="toce"         name="votemper"   />
+            <field field_ref="soce"         name="vosaline"   />
+            <field field_ref="ssh"          name="sossheig"   />
+
+           <variable name="start_date"       type="int"><NDATE0>    </variable>
+           <variable name="output_frequency" type="string">1d       </variable>
+           <variable name="CONFIG"           type="string"><CONFIG> </variable>
+           <variable name="CASE"             type="string"><CASE>   </variable>
+        </file>
+
+Here also `<NDATE0>`, `<CONFIG>` and `<CASE>` are keywords that the  running script (`nemo4.sh`) will automatically update.
 
 
 
-### xml files
 
-#### _Comments:_
  At the end of a segment there is a run.stat.nc file holding Smin, Smax, Tmin, Tmax and ABS(SSH)max, ABS(U)max
 
  Test convection with npc : it works !

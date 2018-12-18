@@ -23,6 +23,7 @@ proc ModulesHelp { } {
 
 ################################################################################
 conflict DCM
+conflict NEMODRAK
 
 # for Tcl script use only
 set             version         4.0beta
