@@ -533,12 +533,13 @@ echo "   ***  RSTO = $RSTO"
 if [ $XIOS = 1 ] ; then
     echo ' [2.6]  XML files for XIOS'
     echo " ========================="
-    rcopy $P_CTL_DIR/field_def.xml field_def.xml
-    rcopy $P_CTL_DIR/domain_def.xml domain_def.xml
-    if [ $XIOS2 = 1 ] ; then
-       rcopy $P_CTL_DIR/file_def.xml file_def.xml
-       rcopy $P_CTL_DIR/grid_def.xml grid_def.xml
-    fi
+    cp $P_CTL_DIR/*xml ./
+#   rcopy $P_CTL_DIR/field_def.xml field_def.xml
+#   rcopy $P_CTL_DIR/domain_def.xml domain_def.xml
+#   if [ $XIOS2 = 1 ] ; then
+#      rcopy $P_CTL_DIR/file_def.xml file_def.xml
+#      rcopy $P_CTL_DIR/grid_def.xml grid_def.xml
+#   fi
     rcopy $XIOS_EXEC xios_server.exe
 
     if [ $NEWXML = 1 ] ; then
@@ -600,24 +601,25 @@ eof
 
 </simulation>
 eof
-    else
         rcopy $P_CTL_DIR/iodef.xml iodef.xml
     fi
     echo "  ***   Customize iodef.xml from template"
     # set <OUTDIR> in iodef.xml
     ndate0=$(LookInNamelist nn_date0)
-    cat iodef.xml | sed -e "s@<OUTDIR>@$DDIR/${CONFIG_CASE}-XIOS.$no@"  \
+   for  xml_fil in *.xml ; do
+    cat $xml_fil | sed -e "s@<OUTDIR>@$DDIR/${CONFIG_CASE}-XIOS.$no@"  \
         -e "s@<MOORDIR>@$DDIR/${CONFIG_CASE}-MOORINGS.$no@" \
         -e "s/<CONFIG>/$CONFIG/" -e "s/<CASE>/$CASE/" \
         -e "s/<NDATE0>/$ndate0/" > ztmp
-    mv ztmp iodef.xml
-    if [ $XIOS2 = 1 ] ; then
-       cat file_def.xml | sed -e "s@<OUTDIR>@$DDIR/${CONFIG_CASE}-XIOS.$no@"  \
-        -e "s@<MOORDIR>@$DDIR/${CONFIG_CASE}-MOORINGS.$no@" \
-        -e "s/<CONFIG>/$CONFIG/" -e "s/<CASE>/$CASE/" \
-        -e "s/<NDATE0>/$ndate0/" > ztmp
-       mv ztmp file_def.xml
-    fi
+    mv ztmp $xml_fil
+   done
+#    if [ $XIOS2 = 1 ] ; then
+#       cat file_def.xml | sed -e "s@<OUTDIR>@$DDIR/${CONFIG_CASE}-XIOS.$no@"  \
+#        -e "s@<MOORDIR>@$DDIR/${CONFIG_CASE}-MOORINGS.$no@" \
+#        -e "s/<CONFIG>/$CONFIG/" -e "s/<CASE>/$CASE/" \
+#        -e "s/<NDATE0>/$ndate0/" > ztmp
+#       mv ztmp file_def.xml
+#    fi
 
 fi
 #--------------------------------------
