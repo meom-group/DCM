@@ -9,9 +9,10 @@ some new numerical schemes, etc...
 
  Not surprisingly, the porting from 3.6 to 4.0 requires some work, at different levels.  This document was written 
 while performing this porting, together with NEMO4 discovery. After a reminder on DCM concept, it holds basically 
-two parts :     
+three parts :     
    *  (A)  corresponds to all the changes in the code itself, and the compilation procedure. 
    *  (B) is dedicated to the impacts of the changes at run-time.
+   *  (C) Real tests : evaluation of NEMO4
 
 This work is done in the frame of the development of a fully new version of the Drakkar Config Manager (DCM). 
 
@@ -381,8 +382,40 @@ on the example ( it corresponds to the `<variable>` settings ):
 
 Here also `<NDATE0>`, `<CONFIG>` and `<CASE>` are keywords that the  running script (`nemo4.sh`) will automatically update.
 
+## **_(C) Real tests, evaluation of NEMO4_**
+### About the test configuration
+ With the purpose of testing and evaluating NEMO4, we choose a small configuration (Black Sea and Azov Sea, aka BSAS12) at 1/12 deg. This configuration
+was recently developped and ran in the frame of NEMO_3.6.  
+ For the testing purpose the code is compiled with debug options on occigen:
+
+     -i4 -r8 -O  -CB -fpe0 -ftrapuv -traceback -g  -fp-model precise -xAVX -fno-alias
+
+### About creating BSAS12_domain_cfg.nc file : use of DOMAINcfg tool
+ With DCM version of DOMAINcfg, I  took the files `bathy_meter.nc`, `coordinates.nc` and nemo namelist used with 3.6 version. I just adapt nammpp namelist
+block in order to run the tool on a single node. I submit a job on 28 cores (occigen BDW28) and obtained domain_cfg file splitted on 28 domains. 
+I recombine the pieces to a full domain file with `nemo_rebuild` tool, and finally get `domain_cfg.nc`, which was renamed `BSAS12_domain_cfg.nc`. 
+
+> Although all was OK with DCM version of DOMAINcfg, there are some harmless error messages appearing in the ocean.output file after the job. They can be
+disregarded.
+>
+> I think that in domain_cfg.nc file, there is a lack of information for tracability. I recommend to add some global attributes to describe the input files used when creating the file.  
+>
+> NEMO by itself is looking to `cn_cfg` and `nn_cfg` global attribute. If not found they are respectively replaced by `UNKNOWN` and `-999999`.  
+>       
+>         ncatted -h -a cn_cfg,global,c,c,bsas  -a nn_cfg,global,c,l,12 BSAS12_domain_cfg.nc
+>
+>  will add those two attributes to the domain_cfg.nc file.
+> For the tracability, I also think that at least information regarding the full names of the bathymetry and coordinates file (not just bathy_meter and 
+coordinates) should be indicated as a global attribute. 
+>
+> But this is not enough to rebuild correctly the domain_cfg.nc file : We also need the namelist, or at least some key values used in the setting of the partial steps vertical grid (and for sigma coordinates as well). However, giving just the name of the namelist in a global attribute is probably not sufficient
+but will be better than nothing (namelist are too easy to erase or change ! ).
+ 
 
 
+
+
+#### _Comments_ 
 
  At the end of a segment there is a run.stat.nc file holding Smin, Smax, Tmin, Tmax and ABS(SSH)max, ABS(U)max
 
