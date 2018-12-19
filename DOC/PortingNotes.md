@@ -410,9 +410,44 @@ coordinates) should be indicated as a global attribute.
 >
 > But this is not enough to rebuild correctly the domain_cfg.nc file : We also need the namelist, or at least some key values used in the setting of the partial steps vertical grid (and for sigma coordinates as well). However, giving just the name of the namelist in a global attribute is probably not sufficient
 but will be better than nothing (namelist are too easy to erase or change ! ).
+> I have coded a small fortran program that write the namelist in the netcdf variables. It might be an option.
+
+### About running a simulation : use of RUNTOOLS
+#### _Fixes for out-of-bound error_
+ After some adjustment, the RUNTOOLS part of DCM is working enough to launch a job from the CTL directory. However, with the debug options of the compiler, 
+I found an out-of-bound error in `traadv_fct.F90`.  It happens in these loops :
+
+       DO jj = 2, jpjm1                 ! 2nd order centered at top & bottom
+         DO ji = fs_2, fs_jpim1
+            ikt = mikt(ji,jj) + 1            ! w-point below the 1st  wet point
+            ikb = mbkt(ji,jj)                !     -   above the last wet point
+            !
+            zwd (ji,jj,ikt) = 1._wp          ! top
+            zwi (ji,jj,ikt) = 0._wp
+            zws (ji,jj,ikt) = 0._wp
+            zwrm(ji,jj,ikt) = 0.5_wp * ( pt_in(ji,jj,ikt-1) + pt_in(ji,jj,ikt) )
+            !
+            zwd (ji,jj,ikb) = 1._wp          ! bottom
+            zwi (ji,jj,ikb) = 0._wp
+            zws (ji,jj,ikb) = 0._wp
+            zwrm(ji,jj,ikb) = 0.5_wp * ( pt_in(ji,jj,ikb-1) + pt_in(ji,jj,ikb) )  ! <=========== HERE
+         END DO
+      END DO
  
+The index ikb-1 turns to be 0 on land, because mkbt(:,:) is set to 1 on land. I think that this is probably harmless as the results on land will be masked.
+(It might be a bug if there are places in the model domain where there are only 1 wet vertical cell).
+But, as it is very practical to be able to check the out-of-bound errors, I decided to make a small modification setting `ikb = MAX(mbkt(ji,jj),2)`.
+And with this fix/tweak, there no more out-of-bound error at run-time.
 
+#### _Problems when using `ln_bdy=.true.`_ 
 
+A run with no-bdy, 55 cores for nemo, 1 xios (2 occigen nodes) ends up normally.   
+The same configuration, now with bdy, just freezes (seems to be in dynspg_ts::mpp_lnk_bdy, according to pstack on compute node). 
+
+The very same one with only 27 nemo and 1 xios (1 occigen node) ends up normally !
+> **Investigations under progress !**
+
+#### _Introducing the ice model (SI3)_
 
 
 #### _Comments_ 
