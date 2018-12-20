@@ -530,8 +530,15 @@ CONTAINS
       !                              ! allocate trabbl arrays
       IF( tra_bbl_alloc() /= 0 )   CALL ctl_stop( 'STOP', 'tra_bbl_init : unable to allocate arrays' )
       !
+#if defined key_drakkar
+      IF (lwp) THEN
+         IF( nn_bbl_adv == 1 )    WRITE(numout,*) '       * Advective BBL using upper velocity'
+         IF( nn_bbl_adv == 2 )    WRITE(numout,*) '       * Advective BBL using velocity = F( delta rho)'
+      ENDIF
+#else
       IF( nn_bbl_adv == 1 )    WRITE(numout,*) '       * Advective BBL using upper velocity'
       IF( nn_bbl_adv == 2 )    WRITE(numout,*) '       * Advective BBL using velocity = F( delta rho)'
+#endif
       !
       !                             !* vertical index of  "deep" bottom u- and v-points
       DO jj = 1, jpjm1                    ! (the "shelf" bottom k-indices are mbku and mbkv)
