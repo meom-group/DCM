@@ -447,6 +447,19 @@ The same configuration, now with bdy, just freezes (seems to be in dynspg_ts::mp
 The very same one with only 27 nemo and 1 xios (1 occigen node) ends up normally !
 > **Investigations under progress !**
 
+   | ln_bdy  |   cores  | land elim  |  run   |  Compil | Comment |
+   |:-------:|:--------:|:----------:|:------:|:-------:|---------|
+   |  Y      |  1 x 27  |    N       |   OK   |  Debug  |         |
+   |  Y      |  1 x 55  |    N       | **KO** |  Debug  |  Freeze in dynspg_ts : in mpp_max |
+   |  Y      |  1 x 55  |    N       | **KO** |   O3    |  Frezze in dynspg_ts : in mpp_ma |
+   |  Y      |  11 x 5  |    N       |   OK   |   O3    |         |
+   |  Y      |  8 x 9   |    Y       | **KO** |  Debug  |  Freeze in dynspg_ts : in lbc_lnk_bdy |
+   |  N      |  8 x 9   |    Y       |   OK   |  Debug  |       |
+
+ Case domain decomp 1x55 seems to have too small jpj ? With land proc elim, (8x9) it freezes differently.  
+ With the NEMO4 version of lib_mpp, the readilility of the mpp_link routines is degraded :(. 
+
+
 #### _Introducing the ice model (SI3)_
 
 
