@@ -459,6 +459,17 @@ The very same one with only 27 nemo and 1 xios (1 occigen node) ends up normally
  Case domain decomp 1x55 seems to have too small jpj ? With land proc elim, (8x9) it freezes differently.  
  With the NEMO4 version of lib_mpp, the readilility of the mpp_link routines is degraded :(. 
 
+ After a long search ( 2 days ! ) I found that the problems araised from the fact that the BDY location is just besides a limit 
+betwee two domains.  Changing the domain decomposition (not optimal ) makes it work... 
+
+Back to the problem for finding a fix, I found a problem with the values of nbondi_bdy between 2 adjacent processor : In my case
+proc 0 has nbondi_bdy = -1 ( meaning exchange with the east proc, but the eastern proc ( proc 1 ) has a nbondi_bdy= 2 meaning no exchange.
+This form a deadlock because proc 0 is waiting on a mpprcv from proc 1 that never comes.  Setting manually (!!!) nbondi_bdy=1 for proc 1 fix
+the problem ( in bdyinit.F90) 
+
+The idea is to debug this busy routine in order to end up with correct values for nbondi_bdy ...
+
+
 
 #### _Introducing the ice model (SI3)_
 
