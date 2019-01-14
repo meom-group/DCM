@@ -290,7 +290,7 @@
    sn_humi =    'drowned_q2_ERA_BSAS_interim'    ,     3 ,  'q2'     ,    .true.   , .false. , 'yearly'  , 'wght_ERAi_BSAS-BSAS12_v4_bilin.nc' , ''       ,   ''
    sn_prec =    'drowned_precip_ERA_BSAS_interim' ,   24 ,  'precip' ,    .true.   , .false. , 'yearly'  , 'wght_ERAi_BSAS-BSAS12_v4_bilin.nc' , ''       ,   ''
    sn_snow =    'drowned_snow_ERA_BSAS_interim'  ,    24 ,  'snow'   ,    .true.   , .false. , 'yearly'  , 'wght_ERAi_BSAS-BSAS12_v4_bilin.nc' , ''       ,   ''
-   sn_slp  =    'drowned_msl_ERAinterim'         ,     3 , 'mls'     ,    .true.   , .false. , 'yearly'  , 'wght_ERAi-BSAS12_v4_bilin.nc'      , ''       ,   ''
+   sn_slp  =    'drowned_msl_ERAinterim'         ,     3 , 'msl'     ,    .true.   , .false. , 'yearly'  , 'wght_ERAi-BSAS12_v4_bilin.nc'      , ''       ,   ''
    sn_tdif =    'taudif_core'                    ,    24 , 'taudif'  ,   .false.   , .true.  , 'yearly'  , 'weights_core_orca2_bilinear_noc'   , ''       ,   ''
 
 / 

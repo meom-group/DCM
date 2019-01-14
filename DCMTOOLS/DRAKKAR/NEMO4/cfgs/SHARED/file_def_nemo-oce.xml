@@ -106,36 +106,6 @@
            <variable name="CASE"             type="string"><CASE>   </variable>
         </file>
 
-<!-- ICE FILES -->
-        <file id="file12" name_suffix="_icemod_" enabled=".FALSE." description="ocean Ice variables" >
-          <field field_ref="ice_cover"    name="ileadfra"   />
-          <field field_ref="snowthic_cea" name="isnowthi"  />
-          <field field_ref="icethic_cea"  name="iicethic"  />
-          <field field_ref="iceprod_cea"  name="iiceprod"  />
-          <field field_ref="ist_ipa"      name="iicetemp"  />  <!-- checking ice ...temperature  ipa vs cea ??? -->
-          <field field_ref="uice_ipa"     name="iicevelu"  />
-          <field field_ref="vice_ipa"     name="iicevelv"  />
-          <field field_ref="utau_ice"     name="iicestru"  />
-          <field field_ref="vtau_ice"     name="iicestrv"  />
-          <field field_ref="qsr_io_cea"   name="iicesflx"  />
-          <field field_ref="qns_io_cea"   name="iicenflx"  />
-          <field field_ref="snowpre"      name="isnowpre"  />
-<!--          <field field_ref="iocesafl"     name="iocesafl"  />
-          <field field_ref="isursenf"     name="isursenf"  />
-          <field field_ref="isurlatf"     name="isurlatf"  />
-          <field field_ref="isurlowf"     name="isurlowf"  />
-          <field field_ref="isurshwf"     name="isurshwf"  />
-          <field field_ref="iicesenf"     name="iicesenf"  />
-          <field field_ref="iicelatf"     name="iicelatf"  />
-          <field field_ref="iicelowf"     name="iicelowf"  />
-          <field field_ref="iiceshwf"     name="iiceshwf"  />    -->
-
-           <variable name="start_date"       type="int"><NDATE0>    </variable>
-           <variable name="output_frequency" type="string">1d       </variable>
-           <variable name="CONFIG"           type="string"><CONFIG> </variable>
-           <variable name="CASE"             type="string"><CASE>   </variable>
-        </file>
-
 <!-- FLXT FILES -->
         <file id="file8" name_suffix="_flxT_" description="ocean T grid variables" >
            <field field_ref="mldr10_1"     name="somxl010"  />

@@ -309,7 +309,7 @@ fi
 if [ $ICE != 0 ] ; then
     echo ' [2.3]  Ice namelist'
     echo " ========================="
-    rcopy $P_CTL_DIR/namelist_ice namelist_ice
+    rcopy $P_CTL_DIR/namelist_ice.${CONFIG_CASE} namelist_ice
     sed -e "s@<CN_DIRRST>@$DDIR/${CN_DIRRST}@"   namelist_ice > ztmp
     mv ztmp namelist_ice
     cp namelist_ice namelist_ice_ref
