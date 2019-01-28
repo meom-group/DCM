@@ -215,8 +215,8 @@ MODULE dom_oce
 
    !!----------------------------------------------------------------------
    !! NEMO/OCE 4.0 , NEMO Consortium (2018)
-   !! $Id: dom_oce.F90 9667 2018-05-28 15:47:05Z smasson $ 
-   !! Software governed by the CeCILL licence     (./LICENSE)
+   !! $Id: dom_oce.F90 10068 2018-08-28 14:09:04Z nicolasmartin $ 
+   !! Software governed by the CeCILL license (see ./LICENSE)
    !!----------------------------------------------------------------------
 CONTAINS
 

@@ -73,7 +73,7 @@ MODULE trabbl
 #  include "vectopt_loop_substitute.h90"
    !!----------------------------------------------------------------------
    !! NEMO/OCE 4.0 , NEMO Consortium (2018)
-   !! $Id: trabbl.F90 10068 2018-08-28 14:09:04Z nicolasmartin $
+   !! $Id: trabbl.F90 10425 2018-12-19 21:54:16Z smasson $
    !! Software governed by the CeCILL license (see ./LICENSE)
    !!----------------------------------------------------------------------
 CONTAINS
@@ -87,7 +87,7 @@ CONTAINS
          &      ahu_bbl_0(jpi,jpj) , ahv_bbl_0(jpi,jpj) ,                                        &
          &      e3u_bbl_0(jpi,jpj) , e3v_bbl_0(jpi,jpj) ,                                    STAT=tra_bbl_alloc )
          !
-      IF( lk_mpp            )   CALL mpp_sum ( tra_bbl_alloc )
+      CALL mpp_sum ( 'trabbl', tra_bbl_alloc )
       IF( tra_bbl_alloc > 0 )   CALL ctl_warn('tra_bbl_alloc: allocation of arrays failed.')
    END FUNCTION tra_bbl_alloc
 
@@ -126,7 +126,7 @@ CONTAINS
          CALL prt_ctl( tab3d_1=tsa(:,:,:,jp_tem), clinfo1=' bbl_ldf  - Ta: ', mask1=tmask, &
             &          tab3d_2=tsa(:,:,:,jp_sal), clinfo2=           ' Sa: ', mask2=tmask, clinfo3='tra' )
          ! lateral boundary conditions ; just need for outputs
-         CALL lbc_lnk_multi( ahu_bbl, 'U', 1. , ahv_bbl, 'V', 1. )
+         CALL lbc_lnk_multi( 'trabbl', ahu_bbl, 'U', 1. , ahv_bbl, 'V', 1. )
          CALL iom_put( "ahu_bbl", ahu_bbl )   ! bbl diffusive flux i-coef
          CALL iom_put( "ahv_bbl", ahv_bbl )   ! bbl diffusive flux j-coef
          !
@@ -139,7 +139,7 @@ CONTAINS
          CALL prt_ctl( tab3d_1=tsa(:,:,:,jp_tem), clinfo1=' bbl_adv  - Ta: ', mask1=tmask,   &
             &          tab3d_2=tsa(:,:,:,jp_sal), clinfo2=           ' Sa: ', mask2=tmask, clinfo3='tra' )
          ! lateral boundary conditions ; just need for outputs
-         CALL lbc_lnk_multi( utr_bbl, 'U', 1. , vtr_bbl, 'V', 1. )
+         CALL lbc_lnk_multi( 'trabbl', utr_bbl, 'U', 1. , vtr_bbl, 'V', 1. )
          CALL iom_put( "uoce_bbl", utr_bbl )  ! bbl i-transport
          CALL iom_put( "voce_bbl", vtr_bbl )  ! bbl j-transport
          !
@@ -549,7 +549,7 @@ CONTAINS
       END DO
       ! converte into REAL to use lbc_lnk ; impose a min value of 1 as a zero can be set in lbclnk
       zmbku(:,:) = REAL( mbku_d(:,:), wp )   ;     zmbkv(:,:) = REAL( mbkv_d(:,:), wp )  
-      CALL lbc_lnk_multi( zmbku,'U',1., zmbkv,'V',1.) 
+      CALL lbc_lnk_multi( 'trabbl', zmbku,'U',1., zmbkv,'V',1.) 
       mbku_d(:,:) = MAX( INT( zmbku(:,:) ), 1 ) ;  mbkv_d(:,:) = MAX( NINT( zmbkv(:,:) ), 1 )
       !
       !                             !* sign of grad(H) at u- and v-points; zero if grad(H) = 0
@@ -587,7 +587,7 @@ CONTAINS
             e3v_bbl_0(ji,jj) = MIN( e3v_0(ji,jj,mbkt(ji  ,jj+1)), e3v_0(ji,jj,mbkt(ji,jj)) )
          END DO
       END DO
-      CALL lbc_lnk_multi( e3u_bbl_0, 'U', 1. , e3v_bbl_0, 'V', 1. )      ! lateral boundary conditions
+      CALL lbc_lnk_multi( 'trabbl', e3u_bbl_0, 'U', 1. , e3v_bbl_0, 'V', 1. )      ! lateral boundary conditions
       !
       !                             !* masked diffusive flux coefficients
       ahu_bbl_0(:,:) = rn_ahtbbl * e2_e1u(:,:) * e3u_bbl_0(:,:) * umask(:,:,1)

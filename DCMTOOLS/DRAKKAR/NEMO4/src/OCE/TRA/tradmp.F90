@@ -66,7 +66,7 @@ MODULE tradmp
 #  include "vectopt_loop_substitute.h90"
    !!----------------------------------------------------------------------
    !! NEMO/OCE 4.0 , NEMO Consortium (2018)
-   !! $Id: tradmp.F90 10351 2018-11-21 14:19:04Z mathiot $ 
+   !! $Id: tradmp.F90 10425 2018-12-19 21:54:16Z smasson $ 
    !! Software governed by the CeCILL license (see ./LICENSE)
    !!----------------------------------------------------------------------
 CONTAINS
@@ -77,7 +77,7 @@ CONTAINS
       !!----------------------------------------------------------------------
       ALLOCATE( resto(jpi,jpj,jpk), STAT= tra_dmp_alloc )
       !
-      IF( lk_mpp            )   CALL mpp_sum ( tra_dmp_alloc )
+      CALL mpp_sum ( 'tradmp', tra_dmp_alloc )
       IF( tra_dmp_alloc > 0 )   CALL ctl_warn('tra_dmp_alloc: allocation of arrays failed')
       !
    END FUNCTION tra_dmp_alloc

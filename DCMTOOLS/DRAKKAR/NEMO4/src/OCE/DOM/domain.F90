@@ -52,7 +52,7 @@ MODULE domain
 
    !!-------------------------------------------------------------------------
    !! NEMO/OCE 4.0 , NEMO Consortium (2018)
-   !! $Id: domain.F90 10068 2018-08-28 14:09:04Z nicolasmartin $
+   !! $Id: domain.F90 10425 2018-12-19 21:54:16Z smasson $
    !! Software governed by the CeCILL license (see ./LICENSE)
    !!-------------------------------------------------------------------------
 CONTAINS
@@ -483,16 +483,16 @@ CONTAINS
       !!
       !! ** Method  :   compute and print extrema of masked scale factors
       !!----------------------------------------------------------------------
-      INTEGER ::   iimi1, ijmi1, iimi2, ijmi2, iima1, ijma1, iima2, ijma2
+      INTEGER, DIMENSION(2) ::   imi1, imi2, ima1, ima2
       INTEGER, DIMENSION(2) ::   iloc   ! 
       REAL(wp) ::   ze1min, ze1max, ze2min, ze2max
       !!----------------------------------------------------------------------
       !
       IF(lk_mpp) THEN
-         CALL mpp_minloc( e1t(:,:), tmask_i(:,:), ze1min, iimi1,ijmi1 )
-         CALL mpp_minloc( e2t(:,:), tmask_i(:,:), ze2min, iimi2,ijmi2 )
-         CALL mpp_maxloc( e1t(:,:), tmask_i(:,:), ze1max, iima1,ijma1 )
-         CALL mpp_maxloc( e2t(:,:), tmask_i(:,:), ze2max, iima2,ijma2 )
+         CALL mpp_minloc( 'domain', e1t(:,:), tmask_i(:,:), ze1min, imi1 )
+         CALL mpp_minloc( 'domain', e2t(:,:), tmask_i(:,:), ze2min, imi2 )
+         CALL mpp_maxloc( 'domain', e1t(:,:), tmask_i(:,:), ze1max, ima1 )
+         CALL mpp_maxloc( 'domain', e2t(:,:), tmask_i(:,:), ze2max, ima2 )
       ELSE
          ze1min = MINVAL( e1t(:,:), mask = tmask_i(:,:) == 1._wp )    
          ze2min = MINVAL( e2t(:,:), mask = tmask_i(:,:) == 1._wp )    
@@ -500,26 +500,26 @@ CONTAINS
          ze2max = MAXVAL( e2t(:,:), mask = tmask_i(:,:) == 1._wp )    
          !
          iloc  = MINLOC( e1t(:,:), mask = tmask_i(:,:) == 1._wp )
-         iimi1 = iloc(1) + nimpp - 1
-         ijmi1 = iloc(2) + njmpp - 1
+         imi1(1) = iloc(1) + nimpp - 1
+         imi1(2) = iloc(2) + njmpp - 1
          iloc  = MINLOC( e2t(:,:), mask = tmask_i(:,:) == 1._wp )
-         iimi2 = iloc(1) + nimpp - 1
-         ijmi2 = iloc(2) + njmpp - 1
+         imi2(1) = iloc(1) + nimpp - 1
+         imi2(2) = iloc(2) + njmpp - 1
          iloc  = MAXLOC( e1t(:,:), mask = tmask_i(:,:) == 1._wp )
-         iima1 = iloc(1) + nimpp - 1
-         ijma1 = iloc(2) + njmpp - 1
+         ima1(1) = iloc(1) + nimpp - 1
+         ima1(2) = iloc(2) + njmpp - 1
          iloc  = MAXLOC( e2t(:,:), mask = tmask_i(:,:) == 1._wp )
-         iima2 = iloc(1) + nimpp - 1
-         ijma2 = iloc(2) + njmpp - 1
+         ima2(1) = iloc(1) + nimpp - 1
+         ima2(2) = iloc(2) + njmpp - 1
       ENDIF
       IF(lwp) THEN
          WRITE(numout,*)
          WRITE(numout,*) 'dom_ctl : extrema of the masked scale factors'
          WRITE(numout,*) '~~~~~~~'
-         WRITE(numout,"(14x,'e1t maxi: ',1f10.2,' at i = ',i5,' j= ',i5)") ze1max, iima1, ijma1
-         WRITE(numout,"(14x,'e1t mini: ',1f10.2,' at i = ',i5,' j= ',i5)") ze1min, iimi1, ijmi1
-         WRITE(numout,"(14x,'e2t maxi: ',1f10.2,' at i = ',i5,' j= ',i5)") ze2max, iima2, ijma2
-         WRITE(numout,"(14x,'e2t mini: ',1f10.2,' at i = ',i5,' j= ',i5)") ze2min, iimi2, ijmi2
+         WRITE(numout,"(14x,'e1t maxi: ',1f10.2,' at i = ',i5,' j= ',i5)") ze1max, ima1(1), ima1(2)
+         WRITE(numout,"(14x,'e1t mini: ',1f10.2,' at i = ',i5,' j= ',i5)") ze1min, imi1(1), imi1(2)
+         WRITE(numout,"(14x,'e2t maxi: ',1f10.2,' at i = ',i5,' j= ',i5)") ze2max, ima2(1), ima2(2)
+         WRITE(numout,"(14x,'e2t mini: ',1f10.2,' at i = ',i5,' j= ',i5)") ze2min, imi2(1), imi2(2)
       ENDIF
       !
    END SUBROUTINE dom_ctl
@@ -567,12 +567,10 @@ CONTAINS
          kk_cfg = -9999999
                                           !- or they may be present as global attributes 
                                           !- (netcdf only)  
-         IF( iom_file(inum)%iolib == jpnf90 ) THEN
-            CALL iom_getatt( inum, 'cn_cfg', cd_cfg )  ! returns   !  if not found
-            CALL iom_getatt( inum, 'nn_cfg', kk_cfg )  ! returns -999 if not found
-            IF( TRIM(cd_cfg) == '!') cd_cfg = 'UNKNOWN'
-            IF( kk_cfg == -999     ) kk_cfg = -9999999
-         ENDIF
+         CALL iom_getatt( inum, 'cn_cfg', cd_cfg )  ! returns   !  if not found
+         CALL iom_getatt( inum, 'nn_cfg', kk_cfg )  ! returns -999 if not found
+         IF( TRIM(cd_cfg) == '!') cd_cfg = 'UNKNOWN'
+         IF( kk_cfg == -999     ) kk_cfg = -9999999
          !
       ENDIF
       !
@@ -622,7 +620,7 @@ CONTAINS
       !                       ! ============================= !
       !         
       clnam = cn_domcfg_out  ! filename (configuration information)
-      CALL iom_open( TRIM(clnam), inum, ldwrt = .TRUE., kiolib = jprstlib )
+      CALL iom_open( TRIM(clnam), inum, ldwrt = .TRUE. )
       
       !
       !                             !==  ORCA family specificities  ==!
@@ -707,10 +705,8 @@ CONTAINS
       ENDIF
       !
       ! Add some global attributes ( netcdf only )
-      IF( iom_file(inum)%iolib == jpnf90 ) THEN
-         CALL iom_putatt( inum, 'nn_cfg', nn_cfg )
-         CALL iom_putatt( inum, 'cn_cfg', TRIM(cn_cfg) )
-      ENDIF
+      CALL iom_putatt( inum, 'nn_cfg', nn_cfg )
+      CALL iom_putatt( inum, 'cn_cfg', TRIM(cn_cfg) )
       !
       !                                ! ============================
       !                                !        close the files 

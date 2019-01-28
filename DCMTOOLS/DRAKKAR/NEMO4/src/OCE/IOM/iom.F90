@@ -16,7 +16,6 @@ MODULE iom
    !!   iom_open       : open a file read only
    !!   iom_close      : close a file or all files opened by iom
    !!   iom_get        : read a field (interfaced to several routines)
-   !!   iom_gettime    : read the time axis cdvar in the file
    !!   iom_varid      : get the id of a variable in a file
    !!   iom_rstput     : write a field in a restart file (interfaced to several routines)
    !!----------------------------------------------------------------------
@@ -57,7 +56,7 @@ MODULE iom
    LOGICAL, PUBLIC, PARAMETER ::   lk_iomput = .FALSE.       !: iom_put flag
 #endif
    PUBLIC iom_init, iom_swap, iom_open, iom_close, iom_setkt, iom_varid, iom_get
-   PUBLIC iom_getatt, iom_putatt, iom_gettime, iom_rstput, iom_put
+   PUBLIC iom_chkatt, iom_getatt, iom_putatt, iom_getszuld, iom_rstput, iom_delay_rst, iom_put
    PUBLIC iom_use, iom_context_finalize
 
    PRIVATE iom_rp0d, iom_rp1d, iom_rp2d, iom_rp3d
@@ -74,10 +73,10 @@ MODULE iom
       MODULE PROCEDURE iom_g0d, iom_g1d, iom_g2d, iom_g3d
    END INTERFACE
    INTERFACE iom_getatt
-      MODULE PROCEDURE iom_g0d_iatt, iom_g0d_ratt, iom_g0d_catt
+      MODULE PROCEDURE iom_g0d_iatt, iom_g1d_iatt, iom_g0d_ratt, iom_g1d_ratt, iom_g0d_catt
    END INTERFACE
    INTERFACE iom_putatt
-      MODULE PROCEDURE iom_p0d_iatt, iom_p0d_ratt, iom_p0d_catt
+      MODULE PROCEDURE iom_p0d_iatt, iom_p1d_iatt, iom_p0d_ratt, iom_p1d_ratt, iom_p0d_catt
    END INTERFACE
    INTERFACE iom_rstput
       MODULE PROCEDURE iom_rp0d, iom_rp1d, iom_rp2d, iom_rp3d
@@ -88,7 +87,7 @@ MODULE iom
   
    !!----------------------------------------------------------------------
    !! NEMO/OCE 4.0 , NEMO Consortium (2018)
-   !! $Id: iom.F90 10361 2018-11-30 08:33:05Z davestorkey $
+   !! $Id: iom.F90 10523 2019-01-16 09:36:03Z smasson $
    !! Software governed by the CeCILL license (see ./LICENSE)
    !!----------------------------------------------------------------------
 CONTAINS
@@ -285,11 +284,8 @@ CONTAINS
    ENDDO
 !Warn if variable is not in defined in rst_wfields
    IF(.NOT.llis_set) THEN
-      IF(lwp) THEN
-         write(numout,cform_err)
-         write(numout,*) 'iom_set_rstw_var_active: variable ', field ,' is available for writing but not defined' 
-      ENDIF
-        nstop = nstop + 1
+      WRITE(ctmp1,*) 'iom_set_rstw_var_active: variable ', field ,' is available for writing but not defined' 
+      CALL ctl_stop( 'iom_set_rstw_var_active:', ctmp1 )
    ENDIF
 #else
         clinfo = 'iom_set_rstw_var_active: key_iomput is needed to use XIOS restart read/write functionality'
@@ -517,8 +513,8 @@ CONTAINS
         i = i + 1; fields(i)%vname="wn";             fields(i)%grid="grid_N_3D"
 
         IF( i-1 > max_rst_fields) THEN
-        IF(lwp) write(numout,*) 'E R R O R : iom_set_rst_vars SIZE of RST_FIELD array is too small'
-        nstop = nstop + 1
+           WRITE(ctmp1,*) 'E R R O R : iom_set_rst_vars SIZE of RST_FIELD array is too small'
+           CALL ctl_stop( 'iom_set_rst_vars:', ctmp1 )
         ENDIF
    END SUBROUTINE iom_set_rst_vars
 
@@ -633,7 +629,7 @@ CONTAINS
    END SUBROUTINE iom_swap
 
 
-   SUBROUTINE iom_open( cdname, kiomid, ldwrt, kdom, kiolib, ldstop, ldiof, kdlev )
+   SUBROUTINE iom_open( cdname, kiomid, ldwrt, kdom, ldstop, ldiof, kdlev )
       !!---------------------------------------------------------------------
       !!                   ***  SUBROUTINE  iom_open  ***
       !!
@@ -643,7 +639,6 @@ CONTAINS
       INTEGER         , INTENT(  out)           ::   kiomid   ! iom identifier of the opened file
       LOGICAL         , INTENT(in   ), OPTIONAL ::   ldwrt    ! open in write modeb          (default = .FALSE.)
       INTEGER         , INTENT(in   ), OPTIONAL ::   kdom     ! Type of domain to be written (default = jpdom_local_noovlap)
-      INTEGER         , INTENT(in   ), OPTIONAL ::   kiolib   ! library used to open the file (default = jpnf90) 
       LOGICAL         , INTENT(in   ), OPTIONAL ::   ldstop   ! stop if open to read a non-existing file (default = .TRUE.)
       LOGICAL         , INTENT(in   ), OPTIONAL ::   ldiof    ! Interp On the Fly, needed for AGRIF (default = .FALSE.)
       INTEGER         , INTENT(in   ), OPTIONAL ::   kdlev    ! number of vertical levels
@@ -658,7 +653,6 @@ CONTAINS
       LOGICAL               ::   llnoov    ! local definition to read overlap
       LOGICAL               ::   llstop    ! local definition of ldstop
       LOGICAL               ::   lliof     ! local definition of ldiof
-      INTEGER               ::   iolib     ! library do we use to open the file
       INTEGER               ::   icnt      ! counter for digits in clcpu (max = jpmax_digits)
       INTEGER               ::   iln, ils  ! lengths of character
       INTEGER               ::   idom      ! type of domain
@@ -691,10 +685,6 @@ CONTAINS
       IF( PRESENT(ldstop) ) THEN   ;   llstop = ldstop
       ELSE                         ;   llstop = .TRUE.
       ENDIF
-      ! what library do we use to open the file?
-      IF( PRESENT(kiolib) ) THEN   ;   iolib = kiolib
-      ELSE                         ;   iolib = jpnf90
-      ENDIF
       ! are we using interpolation on the fly?
       IF( PRESENT(ldiof) ) THEN   ;   lliof = ldiof
       ELSE                        ;   lliof = .FALSE.
@@ -712,11 +702,7 @@ CONTAINS
          clname=TRIM(cltmpn)//TRIM(Agrif_CFixed())//'_'//TRIM(clname)
       ENDIF
       ! which suffix should we use?
-      SELECT CASE (iolib)
-      CASE (jpnf90   ) ;   clsuffix = '.nc'
-      CASE DEFAULT     ;   clsuffix = ''
-         CALL ctl_stop( TRIM(clinfo), 'accepted IO library is only jpnf90 (jpioipsl option has been removed) ' )
-      END SELECT
+      clsuffix = '.nc'
       ! Add the suffix if needed
       iln = LEN_TRIM(clname)
       ils = LEN_TRIM(clsuffix)
@@ -801,11 +787,7 @@ CONTAINS
          ENDIF
       ENDIF
       IF( istop == nstop ) THEN   ! no error within this routine
-         SELECT CASE (iolib)
-         CASE (jpnf90   )   ;   CALL iom_nf90_open(    clname, kiomid, llwrt, llok, idompar, kdlev = kdlev )
-         CASE DEFAULT
-            CALL ctl_stop( TRIM(clinfo)//' accepted IO library is only jpnf90 (jpioipsl option has been removed) ' )
-         END SELECT
+         CALL iom_nf90_open( clname, kiomid, llwrt, llok, idompar, kdlev = kdlev )
       ENDIF
       !
    END SUBROUTINE iom_open
@@ -838,11 +820,7 @@ CONTAINS
       IF( i_s > 0 ) THEN
          DO jf = i_s, i_e
             IF( iom_file(jf)%nfid > 0 ) THEN
-               SELECT CASE (iom_file(jf)%iolib)
-               CASE (jpnf90   )   ;   CALL iom_nf90_close(    jf )
-               CASE DEFAULT
-                  CALL ctl_stop( TRIM(clinfo)//' accepted IO library is only jpnf90 (jpioipsl option has been removed)' )
-               END SELECT
+               CALL iom_nf90_close( jf )
                iom_file(jf)%nfid       = 0          ! free the id 
                IF( PRESENT(kiomid) )   kiomid = 0   ! return 0 as id to specify that the file was closed
                IF(lwp) WRITE(numout,*) TRIM(clinfo)//' close file: '//TRIM(iom_file(jf)%name)//' ok'
@@ -895,14 +873,10 @@ CONTAINS
             IF( .NOT.ll_fnd ) THEN
                iiv = iiv + 1
                IF( iiv <= jpmax_vars ) THEN
-                  SELECT CASE (iom_file(kiomid)%iolib)
-                  CASE (jpnf90   )   ;   iom_varid = iom_nf90_varid  ( kiomid, cdvar, iiv, kdimsz, kndims )
-                  CASE DEFAULT
-                     CALL ctl_stop( TRIM(clinfo)//' accepted IO library is only jpnf90 (jpioipsl option has been removed)' )
-                  END SELECT
+                  iom_varid = iom_nf90_varid( kiomid, cdvar, iiv, kdimsz, kndims )
                ELSE
                   CALL ctl_stop( trim(clinfo), 'Too many variables in the file '//iom_file(kiomid)%name,   &
-                        &                         'increase the parameter jpmax_vars')
+                        &                      'increase the parameter jpmax_vars')
                ENDIF
                IF( llstop .AND. iom_varid == -1 )   CALL ctl_stop( TRIM(clinfo)//' not found' ) 
             ELSE
@@ -961,11 +935,7 @@ CONTAINS
                IF( idmspc > 0 )  CALL ctl_stop( TRIM(clinfo), 'When reading to a 0D array, we do not accept data', &
                                     &                         'with 1 or more spatial dimensions: '//cldmspc//' were found.' , &
                                     &                         'Use ncwa -a to suppress the unnecessary dimensions' )
-               SELECT CASE (iom_file(kiomid)%iolib)
-               CASE (jpnf90   )   ;   CALL iom_nf90_get(    kiomid, idvar, pvar, itime )
-               CASE DEFAULT
-                  CALL ctl_stop( 'iom_g0d: accepted IO library is only jpnf90 (jpioipsl option has been removed)' )
-               END SELECT
+               CALL iom_nf90_get( kiomid, idvar, pvar, itime )
             ENDIF
          ENDIF
       ELSE
@@ -975,8 +945,8 @@ CONTAINS
          CALL xios_recv_field( trim(cdvar), pvar)
          CALL iom_swap( TRIM(cxios_context) )
 #else
-         nstop = nstop + 1 
-         clinfo = 'Can not use XIOS in iom_g0d, file: '//trim(clname)//', var:'//trim(cdvar)
+         WRITE(ctmp1,*) 'Can not use XIOS in iom_g0d, file: '//trim(clname)//', var:'//trim(cdvar)
+         CALL ctl_stop( 'iom_g0d', ctmp1 )
 #endif
       ENDIF
    END SUBROUTINE iom_g0d
@@ -1121,14 +1091,6 @@ CONTAINS
          IF( PRESENT(lrowattr) ) THEN
             IF( lrowattr .AND. idom /= jpdom_data   ) CALL ctl_stop(trim(clinfo), 'lrowattr present and true needs kdom = jpdom_data')
             IF( lrowattr .AND. idom == jpdom_data   ) luse_jattr = .true.
-         ENDIF
-         IF( luse_jattr ) THEN
-            SELECT CASE (iom_file(kiomid)%iolib)
-            CASE (jpnf90   )   
-                ! Ok
-            CASE DEFAULT    
-               CALL ctl_stop( TRIM(clinfo)//' accepted IO library is only jpnf90 (jpioipsl option has been removed)' )
-            END SELECT
          ENDIF
 
          ! Search for the variable in the data base (eventually actualize data)
@@ -1300,23 +1262,18 @@ CONTAINS
                ENDIF
             ENDIF
       
-            SELECT CASE (iom_file(kiomid)%iolib)
-            CASE (jpnf90   )   ;   CALL iom_nf90_get(    kiomid, idvar, inbdim, istart, icnt, ix1, ix2, iy1, iy2,   &
-               &                                         pv_r1d, pv_r2d, pv_r3d )
-            CASE DEFAULT
-               CALL ctl_stop( TRIM(clinfo)//' accepted IO library is only jpnf90 (jpioipsl option has been removed)' )
-            END SELECT
+            CALL iom_nf90_get( kiomid, idvar, inbdim, istart, icnt, ix1, ix2, iy1, iy2, pv_r1d, pv_r2d, pv_r3d )
 
             IF( istop == nstop ) THEN   ! no additional errors until this point...
                IF(lwp) WRITE(numout,"(10x,' read ',a,' (rec: ',i6,') in ',a,' ok')") TRIM(cdvar), itime, TRIM(iom_file(kiomid)%name)
              
                !--- overlap areas and extra hallows (mpp)
                IF(     PRESENT(pv_r2d) .AND. idom /= jpdom_unknown ) THEN
-                  CALL lbc_lnk( pv_r2d,'Z',-999.,'no0' )
+                  CALL lbc_lnk( 'iom', pv_r2d,'Z',-999.,'no0' )
                ELSEIF( PRESENT(pv_r3d) .AND. idom /= jpdom_unknown ) THEN
                   ! this if could be simplified with the new lbc_lnk that works with any size of the 3rd dimension
                   IF( icnt(3) == inlev ) THEN
-                     CALL lbc_lnk( pv_r3d,'Z',-999.,'no0' )
+                     CALL lbc_lnk( 'iom', pv_r3d,'Z',-999.,'no0' )
                   ELSE   ! put some arbitrary value (a call to lbc_lnk will be done later...)
                      DO jj = nlcj+1, jpj   ;   pv_r3d(1:nlci, jj, :) = pv_r3d(1:nlci, nlej, :)   ;   END DO
                      DO ji = nlci+1, jpi   ;   pv_r3d(ji    , : , :) = pv_r3d(nlei  , :   , :)   ;   END DO
@@ -1341,14 +1298,14 @@ CONTAINS
             if(lwp) write(numout,*) 'XIOS RST READ (3D): ',trim(cdvar)
             CALL xios_recv_field( trim(cdvar), pv_r3d)
             IF(idom /= jpdom_unknown ) then
-                CALL lbc_lnk( pv_r3d,'Z',-999.,'no0' )
+                CALL lbc_lnk( 'iom', pv_r3d,'Z',-999.,'no0' )
             ENDIF
          ELSEIF( PRESENT(pv_r2d) ) THEN
             pv_r2d(:, :) = 0.
             if(lwp) write(numout,*) 'XIOS RST READ (2D): ', trim(cdvar)
             CALL xios_recv_field( trim(cdvar), pv_r2d)
             IF(idom /= jpdom_unknown ) THEN
-                CALL lbc_lnk(pv_r2d,'Z',-999.,'no0')
+                CALL lbc_lnk('iom', pv_r2d,'Z',-999.,'no0')
             ENDIF
          ELSEIF( PRESENT(pv_r1d) ) THEN
             pv_r1d(:) = 0.
@@ -1383,198 +1340,157 @@ CONTAINS
    END SUBROUTINE iom_get_123d
 
 
-   SUBROUTINE iom_gettime( kiomid, ptime, cdvar, kntime, cdunits, cdcalendar )
-      !!--------------------------------------------------------------------
-      !!                   ***  SUBROUTINE iom_gettime  ***
+   FUNCTION iom_getszuld ( kiomid )  
+      !!-----------------------------------------------------------------------
+      !!                  ***  FUNCTION  iom_getszuld  ***
       !!
-      !! ** Purpose : read the time axis cdvar in the file 
-      !!--------------------------------------------------------------------
-      INTEGER                    , INTENT(in   ) ::   kiomid     ! file Identifier
-      REAL(wp), DIMENSION(:)     , INTENT(  out) ::   ptime      ! the time axis
-      CHARACTER(len=*), OPTIONAL , INTENT(in   ) ::   cdvar      ! time axis name
-      INTEGER         , OPTIONAL , INTENT(  out) ::   kntime     ! number of times in file
-      CHARACTER(len=*), OPTIONAL , INTENT(  out) ::   cdunits    ! units attribute of time coordinate
-      CHARACTER(len=*), OPTIONAL , INTENT(  out) ::   cdcalendar ! calendar attribute of 
+      !! ** Purpose : get the size of the unlimited dimension in a file
+      !!              (return -1 if not found)
+      !!-----------------------------------------------------------------------
+      INTEGER, INTENT(in   ) ::   kiomid   ! file Identifier
       !
-      INTEGER, DIMENSION(1) :: kdimsz
-      INTEGER            ::   idvar    ! id of the variable
-      CHARACTER(LEN=32)  ::   tname    ! local name of time coordinate
-      CHARACTER(LEN=100) ::   clinfo   ! info character
-      !---------------------------------------------------------------------
-      !
-      IF ( PRESENT(cdvar) ) THEN
-         tname = cdvar
-      ELSE
-         tname = iom_file(kiomid)%uldname
-      ENDIF
+      INTEGER                ::   iom_getszuld
+      !!-----------------------------------------------------------------------
+      iom_getszuld = -1
       IF( kiomid > 0 ) THEN
-         clinfo = 'iom_gettime, file: '//trim(iom_file(kiomid)%name)//', var: '//trim(tname)
-         IF ( PRESENT(kntime) ) THEN
-            idvar  = iom_varid( kiomid, tname, kdimsz = kdimsz )
-            kntime = kdimsz(1)
-         ELSE
-            idvar = iom_varid( kiomid, tname )
-         ENDIF
-         !
-         ptime(:) = 0. ! default definition
-         IF( idvar > 0 ) THEN
-            IF( iom_file(kiomid)%ndims(idvar) == 1 ) THEN
-               IF( iom_file(kiomid)%luld(idvar) ) THEN
-                  IF( iom_file(kiomid)%dimsz(1,idvar) <= size(ptime) ) THEN
-                     SELECT CASE (iom_file(kiomid)%iolib)
-                     CASE (jpnf90   )   ;   CALL iom_nf90_gettime(   kiomid, idvar, ptime, cdunits, cdcalendar )
-                     CASE DEFAULT
-                        CALL ctl_stop( TRIM(clinfo)//' accepted IO library is only jpnf90 (jpioipsl option has been removed)' )
-                     END SELECT
-                  ELSE
-                     WRITE(ctmp1,*) 'error with the size of ptime ',size(ptime),iom_file(kiomid)%dimsz(1,idvar)
-                     CALL ctl_stop( trim(clinfo), trim(ctmp1) )
-                  ENDIF
-               ELSE
-                  CALL ctl_stop( trim(clinfo), 'variable dimension is not unlimited... use iom_get' )
-               ENDIF
-            ELSE
-               CALL ctl_stop( trim(clinfo), 'the variable has more than 1 dimension' )
-            ENDIF
-         ELSE
-            CALL ctl_stop( trim(clinfo), 'variable not found in '//iom_file(kiomid)%name )
-         ENDIF
+         IF( iom_file(kiomid)%iduld > 0 )   iom_getszuld = iom_file(kiomid)%lenuld
+      ENDIF
+   END FUNCTION iom_getszuld
+   
+
+   !!----------------------------------------------------------------------
+   !!                   INTERFACE iom_chkatt
+   !!----------------------------------------------------------------------
+   SUBROUTINE iom_chkatt( kiomid, cdatt, llok, ksize, cdvar )
+      INTEGER         , INTENT(in   )                 ::   kiomid    ! Identifier of the file
+      CHARACTER(len=*), INTENT(in   )                 ::   cdatt     ! Name of the attribute
+      LOGICAL         , INTENT(  out)                 ::   llok      ! Error code
+      INTEGER         , INTENT(  out), OPTIONAL       ::   ksize     ! Size of the attribute array
+      CHARACTER(len=*), INTENT(in   ), OPTIONAL       ::   cdvar     ! Name of the variable
+      !
+      IF( kiomid > 0 ) THEN
+         IF( iom_file(kiomid)%nfid > 0 )   CALL iom_nf90_chkatt( kiomid, cdatt, llok, ksize=ksize, cdvar=cdvar )
       ENDIF
       !
-   END SUBROUTINE iom_gettime
-
+   END SUBROUTINE iom_chkatt
 
    !!----------------------------------------------------------------------
    !!                   INTERFACE iom_getatt
    !!----------------------------------------------------------------------
-   SUBROUTINE iom_g0d_iatt( kiomid, cdatt, pvar, cdvar )
-      INTEGER         , INTENT(in   )                 ::   kiomid    ! Identifier of the file
-      CHARACTER(len=*), INTENT(in   )                 ::   cdatt     ! Name of the attribute
-      INTEGER         , INTENT(  out)                 ::   pvar      ! read field
-      CHARACTER(len=*), INTENT(in   ), OPTIONAL       ::   cdvar     ! Name of the variable
+   SUBROUTINE iom_g0d_iatt( kiomid, cdatt, katt0d, cdvar )
+      INTEGER               , INTENT(in   )           ::   kiomid    ! Identifier of the file
+      CHARACTER(len=*)      , INTENT(in   )           ::   cdatt     ! Name of the attribute
+      INTEGER               , INTENT(  out)           ::   katt0d    ! read field
+      CHARACTER(len=*)      , INTENT(in   ), OPTIONAL ::   cdvar     ! Name of the variable
       !
       IF( kiomid > 0 ) THEN
-         IF( iom_file(kiomid)%nfid > 0 ) THEN
-            SELECT CASE (iom_file(kiomid)%iolib)
-            CASE (jpnf90   )   ;   IF( PRESENT(cdvar) ) THEN
-                                      CALL iom_nf90_getatt( kiomid, cdatt, pvar, cdvar=cdvar )
-                                   ELSE
-                                      CALL iom_nf90_getatt( kiomid, cdatt, pvar )
-                                   ENDIF
-            CASE DEFAULT
-               CALL ctl_stop( 'iom_g0d_iatt: accepted IO library is only jpnf90' )
-            END SELECT
-         ENDIF
+         IF( iom_file(kiomid)%nfid > 0 )   CALL iom_nf90_getatt( kiomid, cdatt,  katt0d =  katt0d, cdvar=cdvar )
       ENDIF
    END SUBROUTINE iom_g0d_iatt
 
-   SUBROUTINE iom_g0d_ratt( kiomid, cdatt, pvar, cdvar )
-      INTEGER         , INTENT(in   )                 ::   kiomid    ! Identifier of the file
-      CHARACTER(len=*), INTENT(in   )                 ::   cdatt     ! Name of the attribute
-      REAL(wp)        , INTENT(  out)                 ::   pvar      ! written field
-      CHARACTER(len=*), INTENT(in   ), OPTIONAL       ::   cdvar     ! Name of the variable
+   SUBROUTINE iom_g1d_iatt( kiomid, cdatt, katt1d, cdvar )
+      INTEGER               , INTENT(in   )           ::   kiomid    ! Identifier of the file
+      CHARACTER(len=*)      , INTENT(in   )           ::   cdatt     ! Name of the attribute
+      INTEGER, DIMENSION(:) , INTENT(  out)           ::   katt1d    ! read field
+      CHARACTER(len=*)      , INTENT(in   ), OPTIONAL ::   cdvar     ! Name of the variable
       !
       IF( kiomid > 0 ) THEN
-         IF( iom_file(kiomid)%nfid > 0 ) THEN
-            SELECT CASE (iom_file(kiomid)%iolib)
-            CASE (jpnf90   )   ;   IF( PRESENT(cdvar) ) THEN
-                                      CALL iom_nf90_getatt( kiomid, cdatt, pvar, cdvar=cdvar )
-                                   ELSE
-                                      CALL iom_nf90_getatt( kiomid, cdatt, pvar )
-                                   ENDIF
-            CASE DEFAULT    
-               CALL ctl_stop( 'iom_g0d_ratt: accepted IO library is only jpnf90' )
-            END SELECT
-         ENDIF
+         IF( iom_file(kiomid)%nfid > 0 )   CALL iom_nf90_getatt( kiomid, cdatt,  katt1d =  katt1d, cdvar=cdvar )
+      ENDIF
+   END SUBROUTINE iom_g1d_iatt
+
+   SUBROUTINE iom_g0d_ratt( kiomid, cdatt, patt0d, cdvar )
+      INTEGER               , INTENT(in   )           ::   kiomid    ! Identifier of the file
+      CHARACTER(len=*)      , INTENT(in   )           ::   cdatt     ! Name of the attribute
+      REAL(wp)              , INTENT(  out)           ::   patt0d    ! read field
+      CHARACTER(len=*)      , INTENT(in   ), OPTIONAL ::   cdvar     ! Name of the variable
+      !
+      IF( kiomid > 0 ) THEN
+         IF( iom_file(kiomid)%nfid > 0 )   CALL iom_nf90_getatt( kiomid, cdatt,  patt0d =  patt0d, cdvar=cdvar )
       ENDIF
    END SUBROUTINE iom_g0d_ratt
 
-   SUBROUTINE iom_g0d_catt( kiomid, cdatt, pvar, cdvar )
-      INTEGER         , INTENT(in   )                 ::   kiomid    ! Identifier of the file
-      CHARACTER(len=*), INTENT(in   )                 ::   cdatt     ! Name of the attribute
-      CHARACTER(len=*), INTENT(  out)                 ::   pvar      ! written field
-      CHARACTER(len=*), INTENT(in   ), OPTIONAL       ::   cdvar     ! Name of the variable
+   SUBROUTINE iom_g1d_ratt( kiomid, cdatt, patt1d, cdvar )
+      INTEGER               , INTENT(in   )           ::   kiomid    ! Identifier of the file
+      CHARACTER(len=*)      , INTENT(in   )           ::   cdatt     ! Name of the attribute
+      REAL(wp), DIMENSION(:), INTENT(  out)           ::   patt1d    ! read field
+      CHARACTER(len=*)      , INTENT(in   ), OPTIONAL ::   cdvar     ! Name of the variable
       !
       IF( kiomid > 0 ) THEN
-         IF( iom_file(kiomid)%nfid > 0 ) THEN
-            SELECT CASE (iom_file(kiomid)%iolib)
-            CASE (jpnf90   )   ;   IF( PRESENT(cdvar) ) THEN
-                                      CALL iom_nf90_getatt( kiomid, cdatt, pvar, cdvar=cdvar )
-                                   ELSE
-                                      CALL iom_nf90_getatt( kiomid, cdatt, pvar )
-                                   ENDIF
-            CASE DEFAULT
-               CALL ctl_stop( 'iom_g0d_ratt: accepted IO library is only jpnf90' )
-            END SELECT
-         ENDIF
+         IF( iom_file(kiomid)%nfid > 0 )   CALL iom_nf90_getatt( kiomid, cdatt,  patt1d =  patt1d, cdvar=cdvar )
+      ENDIF
+   END SUBROUTINE iom_g1d_ratt
+   
+   SUBROUTINE iom_g0d_catt( kiomid, cdatt, cdatt0d, cdvar )
+      INTEGER               , INTENT(in   )           ::   kiomid    ! Identifier of the file
+      CHARACTER(len=*)      , INTENT(in   )           ::   cdatt     ! Name of the attribute
+      CHARACTER(len=*)      , INTENT(  out)           ::   cdatt0d   ! read field
+      CHARACTER(len=*)      , INTENT(in   ), OPTIONAL ::   cdvar     ! Name of the variable
+      !
+      IF( kiomid > 0 ) THEN
+         IF( iom_file(kiomid)%nfid > 0 )   CALL iom_nf90_getatt( kiomid, cdatt, cdatt0d = cdatt0d, cdvar=cdvar )
       ENDIF
    END SUBROUTINE iom_g0d_catt
+
 
    !!----------------------------------------------------------------------
    !!                   INTERFACE iom_putatt
    !!----------------------------------------------------------------------
-   SUBROUTINE iom_p0d_iatt( kiomid, cdatt, pvar, cdvar )
-      INTEGER         , INTENT(in   )                 ::   kiomid    ! Identifier of the file
-      CHARACTER(len=*), INTENT(in   )                 ::   cdatt     ! Name of the attribute
-      INTEGER         , INTENT(in   )                 ::   pvar      ! write field
-      CHARACTER(len=*), INTENT(in   ), OPTIONAL       ::   cdvar     ! Name of the variable
+   SUBROUTINE iom_p0d_iatt( kiomid, cdatt, katt0d, cdvar )
+      INTEGER               , INTENT(in   )           ::   kiomid    ! Identifier of the file
+      CHARACTER(len=*)      , INTENT(in   )           ::   cdatt     ! Name of the attribute
+      INTEGER               , INTENT(in   )           ::   katt0d    ! written field
+      CHARACTER(len=*)      , INTENT(in   ), OPTIONAL ::   cdvar     ! Name of the variable
       !
       IF( kiomid > 0 ) THEN
-         IF( iom_file(kiomid)%nfid > 0 ) THEN
-            SELECT CASE (iom_file(kiomid)%iolib)
-            CASE (jpnf90   )   ;   IF( PRESENT(cdvar) ) THEN
-                                      CALL iom_nf90_putatt( kiomid, cdatt, pvar, cdvar=cdvar )
-                                   ELSE
-                                      CALL iom_nf90_putatt( kiomid, cdatt, pvar )
-                                   ENDIF
-            CASE DEFAULT
-               CALL ctl_stop( 'iom_p0d_iatt: accepted IO library is only jpnf90' )
-            END SELECT
-         ENDIF
+         IF( iom_file(kiomid)%nfid > 0 )   CALL iom_nf90_putatt( kiomid, cdatt,  katt0d =  katt0d, cdvar=cdvar )
       ENDIF
    END SUBROUTINE iom_p0d_iatt
 
-   SUBROUTINE iom_p0d_ratt( kiomid, cdatt, pvar, cdvar )
-      INTEGER         , INTENT(in   )                 ::   kiomid    ! Identifier of the file
-      CHARACTER(len=*), INTENT(in   )                 ::   cdatt     ! Name of the attribute
-      REAL(wp)        , INTENT(in   )                 ::   pvar      ! write field
-      CHARACTER(len=*), INTENT(in   ), OPTIONAL       ::   cdvar     ! Name of the variable
+   SUBROUTINE iom_p1d_iatt( kiomid, cdatt, katt1d, cdvar )
+      INTEGER               , INTENT(in   )           ::   kiomid    ! Identifier of the file
+      CHARACTER(len=*)      , INTENT(in   )           ::   cdatt     ! Name of the attribute
+      INTEGER, DIMENSION(:) , INTENT(in   )           ::   katt1d    ! written field
+      CHARACTER(len=*)      , INTENT(in   ), OPTIONAL ::   cdvar     ! Name of the variable
       !
       IF( kiomid > 0 ) THEN
-         IF( iom_file(kiomid)%nfid > 0 ) THEN
-            SELECT CASE (iom_file(kiomid)%iolib)
-            CASE (jpnf90   )   ;   IF( PRESENT(cdvar) ) THEN
-                                      CALL iom_nf90_putatt( kiomid, cdatt, pvar, cdvar=cdvar )
-                                   ELSE
-                                      CALL iom_nf90_putatt( kiomid, cdatt, pvar )
-                                   ENDIF
-            CASE DEFAULT    
-               CALL ctl_stop( 'iom_p0d_ratt: accepted IO library is only jpnf90' )
-            END SELECT
-         ENDIF
+         IF( iom_file(kiomid)%nfid > 0 )   CALL iom_nf90_putatt( kiomid, cdatt,  katt1d =  katt1d, cdvar=cdvar )
+      ENDIF
+   END SUBROUTINE iom_p1d_iatt
+
+   SUBROUTINE iom_p0d_ratt( kiomid, cdatt, patt0d, cdvar )
+      INTEGER               , INTENT(in   )           ::   kiomid    ! Identifier of the file
+      CHARACTER(len=*)      , INTENT(in   )           ::   cdatt     ! Name of the attribute
+      REAL(wp)              , INTENT(in   )           ::   patt0d    ! written field
+      CHARACTER(len=*)      , INTENT(in   ), OPTIONAL ::   cdvar     ! Name of the variable
+      !
+      IF( kiomid > 0 ) THEN
+         IF( iom_file(kiomid)%nfid > 0 )   CALL iom_nf90_putatt( kiomid, cdatt,  patt0d =  patt0d, cdvar=cdvar )
       ENDIF
    END SUBROUTINE iom_p0d_ratt
 
-   SUBROUTINE iom_p0d_catt( kiomid, cdatt, pvar, cdvar )
-      INTEGER         , INTENT(in   )                 ::   kiomid    ! Identifier of the file
-      CHARACTER(len=*), INTENT(in   )                 ::   cdatt     ! Name of the attribute
-      CHARACTER(len=*), INTENT(in   )                 ::   pvar      ! write field
-      CHARACTER(len=*), INTENT(in   ), OPTIONAL       ::   cdvar     ! Name of the variable
+   SUBROUTINE iom_p1d_ratt( kiomid, cdatt, patt1d, cdvar )
+      INTEGER               , INTENT(in   )           ::   kiomid    ! Identifier of the file
+      CHARACTER(len=*)      , INTENT(in   )           ::   cdatt     ! Name of the attribute
+      REAL(wp), DIMENSION(:), INTENT(in   )           ::   patt1d    ! written field
+      CHARACTER(len=*)      , INTENT(in   ), OPTIONAL ::   cdvar     ! Name of the variable
       !
       IF( kiomid > 0 ) THEN
-         IF( iom_file(kiomid)%nfid > 0 ) THEN
-            SELECT CASE (iom_file(kiomid)%iolib)
-            CASE (jpnf90   )   ;   IF( PRESENT(cdvar) ) THEN
-                                      CALL iom_nf90_putatt( kiomid, cdatt, pvar, cdvar=cdvar )
-                                   ELSE
-                                      CALL iom_nf90_putatt( kiomid, cdatt, pvar )
-                                   ENDIF
-            CASE DEFAULT
-               CALL ctl_stop( 'iom_p0d_ratt: accepted IO library is only jpnf90' )
-            END SELECT
-         ENDIF
+         IF( iom_file(kiomid)%nfid > 0 )   CALL iom_nf90_putatt( kiomid, cdatt,  patt1d =  patt1d, cdvar=cdvar )
+      ENDIF
+   END SUBROUTINE iom_p1d_ratt
+   
+   SUBROUTINE iom_p0d_catt( kiomid, cdatt, cdatt0d, cdvar )
+      INTEGER               , INTENT(in   )           ::   kiomid    ! Identifier of the file
+      CHARACTER(len=*)      , INTENT(in   )           ::   cdatt     ! Name of the attribute
+      CHARACTER(len=*)      , INTENT(in   )           ::   cdatt0d   ! written field
+      CHARACTER(len=*)      , INTENT(in   ), OPTIONAL ::   cdvar     ! Name of the variable
+      !
+      IF( kiomid > 0 ) THEN
+         IF( iom_file(kiomid)%nfid > 0 )   CALL iom_nf90_putatt( kiomid, cdatt, cdatt0d = cdatt0d, cdvar=cdvar )
       ENDIF
    END SUBROUTINE iom_p0d_catt
+
 
    !!----------------------------------------------------------------------
    !!                   INTERFACE iom_rstput
@@ -1603,11 +1519,7 @@ CONTAINS
          IF( kiomid > 0 ) THEN
             IF( iom_file(kiomid)%nfid > 0 ) THEN
                ivid = iom_varid( kiomid, cdvar, ldstop = .FALSE. )
-               SELECT CASE (iom_file(kiomid)%iolib)
-               CASE (jpnf90   )   ;   CALL iom_nf90_rstput(   kt, kwrite, kiomid, cdvar, ivid, ktype, pv_r0d = pvar )
-               CASE DEFAULT     
-                  CALL ctl_stop( 'iom_rp0d: accepted IO library is only jpnf90 (jpioipsl option has been removed)' )
-               END SELECT
+               CALL iom_nf90_rstput( kt, kwrite, kiomid, cdvar, ivid, ktype, pv_r0d = pvar )
             ENDIF
          ENDIF
       ENDIF
@@ -1637,11 +1549,7 @@ CONTAINS
          IF( kiomid > 0 ) THEN
             IF( iom_file(kiomid)%nfid > 0 ) THEN
                ivid = iom_varid( kiomid, cdvar, ldstop = .FALSE. )
-               SELECT CASE (iom_file(kiomid)%iolib)
-               CASE (jpnf90   )   ;   CALL iom_nf90_rstput(   kt, kwrite, kiomid, cdvar, ivid, ktype, pv_r1d = pvar )
-               CASE DEFAULT     
-                  CALL ctl_stop( 'iom_rp1d: accepted IO library is only jpnf90 (jpioipsl option has been removed)' )
-               END SELECT
+               CALL iom_nf90_rstput( kt, kwrite, kiomid, cdvar, ivid, ktype, pv_r1d = pvar )
             ENDIF
          ENDIF
       ENDIF
@@ -1671,11 +1579,7 @@ CONTAINS
          IF( kiomid > 0 ) THEN
             IF( iom_file(kiomid)%nfid > 0 ) THEN
                ivid = iom_varid( kiomid, cdvar, ldstop = .FALSE. )
-               SELECT CASE (iom_file(kiomid)%iolib)
-               CASE (jpnf90   )   ;   CALL iom_nf90_rstput(   kt, kwrite, kiomid, cdvar, ivid, ktype, pv_r2d = pvar )
-               CASE DEFAULT     
-                  CALL ctl_stop( 'iom_rp2d: accepted IO library is only jpnf90 (jpioipsl option has been removed)' )
-               END SELECT
+               CALL iom_nf90_rstput( kt, kwrite, kiomid, cdvar, ivid, ktype, pv_r2d = pvar )
             ENDIF
          ENDIF
       ENDIF
@@ -1705,16 +1609,58 @@ CONTAINS
          IF( kiomid > 0 ) THEN
             IF( iom_file(kiomid)%nfid > 0 ) THEN
                ivid = iom_varid( kiomid, cdvar, ldstop = .FALSE. )
-               SELECT CASE (iom_file(kiomid)%iolib)
-               CASE (jpnf90   )   ;   CALL iom_nf90_rstput(   kt, kwrite, kiomid, cdvar, ivid, ktype, pv_r3d = pvar )
-               CASE DEFAULT     
-                  CALL ctl_stop( 'iom_rp3d: accepted IO library is only jpnf90 (jpioipsl option has been removed)' )
-               END SELECT
+               CALL iom_nf90_rstput( kt, kwrite, kiomid, cdvar, ivid, ktype, pv_r3d = pvar )
             ENDIF
          ENDIF
       ENDIF
    END SUBROUTINE iom_rp3d
 
+
+  SUBROUTINE iom_delay_rst( cdaction, cdcpnt, kncid )
+      !!---------------------------------------------------------------------
+      !!   Routine iom_delay_rst: used read/write restart related to mpp_delay
+      !!
+      !!---------------------------------------------------------------------
+      CHARACTER(len=*), INTENT(in   ) ::   cdaction        !
+      CHARACTER(len=*), INTENT(in   ) ::   cdcpnt
+      INTEGER         , INTENT(in   ) ::   kncid
+      !
+      INTEGER  :: ji
+      INTEGER  :: indim
+      LOGICAL  :: llattexist
+      REAL(wp), ALLOCATABLE, DIMENSION(:) ::   zreal1d
+      !!---------------------------------------------------------------------
+      !
+      !                                      ===================================
+      IF( TRIM(cdaction) == 'READ' ) THEN   ! read restart related to mpp_delay !
+         !                                   ===================================
+         DO ji = 1, nbdelay
+            IF ( c_delaycpnt(ji) == cdcpnt ) THEN
+               CALL iom_chkatt( kncid, 'DELAY_'//c_delaylist(ji), llattexist, indim )
+               IF( llattexist )  THEN
+                  ALLOCATE( todelay(ji)%z1d(indim) )
+                  CALL iom_getatt( kncid, 'DELAY_'//c_delaylist(ji), todelay(ji)%z1d(:) )
+                  ndelayid(ji) = 0   ! set to 0 to specify that the value was read in the restart
+               ENDIF
+           ENDIF
+         END DO
+         !                                   ====================================
+      ELSE                                  ! write restart related to mpp_delay !
+         !                                   ====================================
+         DO ji = 1, nbdelay   ! save only ocean delayed global communication variables
+            IF ( c_delaycpnt(ji) == cdcpnt ) THEN
+               IF( ASSOCIATED(todelay(ji)%z1d) ) THEN
+                  CALL mpp_delay_rcv(ji)   ! make sure %z1d is received
+                  CALL iom_putatt( kncid, 'DELAY_'//c_delaylist(ji), todelay(ji)%z1d(:) )
+               ENDIF
+            ENDIF
+         END DO
+         !
+      ENDIF
+      
+   END SUBROUTINE iom_delay_rst
+  
+   
 
    !!----------------------------------------------------------------------
    !!                   INTERFACE iom_put
@@ -1970,8 +1916,8 @@ CONTAINS
          ! mask land points, keep values on coast line -> specific mask for U, V and W points
          SELECT CASE ( cdgrd )
          CASE('T')   ;   zmask(:,:,:)       = tmask(:,:,:)
-         CASE('U')   ;   zmask(2:jpim1,:,:) = tmask(2:jpim1,:,:) + tmask(3:jpi,:,:)   ;   CALL lbc_lnk( zmask, 'U', 1. )
-         CASE('V')   ;   zmask(:,2:jpjm1,:) = tmask(:,2:jpjm1,:) + tmask(:,3:jpj,:)   ;   CALL lbc_lnk( zmask, 'V', 1. )
+         CASE('U')   ;   zmask(2:jpim1,:,:) = tmask(2:jpim1,:,:) + tmask(3:jpi,:,:)   ;   CALL lbc_lnk( 'iom', zmask, 'U', 1. )
+         CASE('V')   ;   zmask(:,2:jpjm1,:) = tmask(:,2:jpjm1,:) + tmask(:,3:jpj,:)   ;   CALL lbc_lnk( 'iom', zmask, 'V', 1. )
          CASE('W')   ;   zmask(:,:,2:jpk  ) = tmask(:,:,1:jpkm1) + tmask(:,:,2:jpk)   ;   zmask(:,:,1) = tmask(:,:,1)
          END SELECT
          !
@@ -2014,7 +1960,7 @@ CONTAINS
       nj = nlej-nldj+1
       !
       z_fld(:,:) = 1._wp
-      CALL lbc_lnk( z_fld, cdgrd, -1. )    ! Working array for location of northfold
+      CALL lbc_lnk( 'iom', z_fld, cdgrd, -1. )    ! Working array for location of northfold
       !
       ! Cell vertices that can be defined
       DO jj = 2, jpjm1
@@ -2032,8 +1978,8 @@ CONTAINS
       !
       ! Cell vertices on boundries
       DO jn = 1, 4
-         CALL lbc_lnk( z_bnds(jn,:,:,1), cdgrd, 1., pval=999._wp )
-         CALL lbc_lnk( z_bnds(jn,:,:,2), cdgrd, 1., pval=999._wp )
+         CALL lbc_lnk( 'iom', z_bnds(jn,:,:,1), cdgrd, 1., pval=999._wp )
+         CALL lbc_lnk( 'iom', z_bnds(jn,:,:,2), cdgrd, 1., pval=999._wp )
       END DO
       !
       ! Zero-size cells at closed boundaries if cell points provided,

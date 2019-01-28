@@ -91,7 +91,7 @@ MODULE zdftke
 #  include "vectopt_loop_substitute.h90"
    !!----------------------------------------------------------------------
    !! NEMO/OCE 4.0 , NEMO Consortium (2018)
-   !! $Id: zdftke.F90 10068 2018-08-28 14:09:04Z nicolasmartin $
+   !! $Id: zdftke.F90 10425 2018-12-19 21:54:16Z smasson $
    !! Software governed by the CeCILL license (see ./LICENSE)
    !!----------------------------------------------------------------------
 CONTAINS
@@ -102,8 +102,8 @@ CONTAINS
       !!----------------------------------------------------------------------
       ALLOCATE( htau(jpi,jpj) , dissl(jpi,jpj,jpk) , apdlr(jpi,jpj,jpk) ,   STAT= zdf_tke_alloc )
       !
-      IF( lk_mpp             )   CALL mpp_sum ( zdf_tke_alloc )
-      IF( zdf_tke_alloc /= 0 )   CALL ctl_warn('zdf_tke_alloc: failed to allocate arrays')
+      CALL mpp_sum ( 'zdftke', zdf_tke_alloc )
+      IF( zdf_tke_alloc /= 0 )   CALL ctl_stop( 'STOP', 'zdf_tke_alloc: failed to allocate arrays' )
       !
    END FUNCTION zdf_tke_alloc
 
@@ -201,7 +201,7 @@ CONTAINS
       REAL(wp) ::   zus   , zwlc  , zind       !   -         -
       REAL(wp) ::   zzd_up, zzd_lw             !   -         -
       INTEGER , DIMENSION(jpi,jpj)     ::   imlc
-      REAL(wp), DIMENSION(jpi,jpj)     ::   zhlc
+      REAL(wp), DIMENSION(jpi,jpj)     ::   zhlc, zfr_i
       REAL(wp), DIMENSION(jpi,jpj,jpk) ::   zpelc, zdiag, zd_up, zd_lw
       !!--------------------------------------------------------------------
       !
@@ -289,16 +289,25 @@ CONTAINS
             END DO
          END DO
          zcof = 0.016 / SQRT( zrhoa * zcdrag )
+         DO jj = 2, jpjm1
+            DO ji = fs_2, fs_jpim1   ! vector opt.
+               zus  = zcof * SQRT( taum(ji,jj) )           ! Stokes drift
+               zfr_i(ji,jj) = ( 1._wp - 4._wp * fr_i(ji,jj) ) * zus * zus * zus * tmask(ji,jj,1) ! zus > 0. ok
+               IF (zfr_i(ji,jj) < 0. ) zfr_i(ji,jj) = 0.
+            END DO
+         END DO         
          DO jk = 2, jpkm1         !* TKE Langmuir circulation source term added to en
             DO jj = 2, jpjm1
                DO ji = fs_2, fs_jpim1   ! vector opt.
-                  zus  = zcof * SQRT( taum(ji,jj) )           ! Stokes drift
-                  !                                           ! vertical velocity due to LC
-                  zind = 0.5 - SIGN( 0.5, pdepw(ji,jj,jk) - zhlc(ji,jj) )
-                  zwlc = zind * rn_lc * zus * SIN( rpi * pdepw(ji,jj,jk) / zhlc(ji,jj) )
-                  !                                           ! TKE Langmuir circulation source term
-                  en(ji,jj,jk) = en(ji,jj,jk) + rdt * MAX(0.,1._wp - 4.*fr_i(ji,jj) ) * ( zwlc * zwlc * zwlc )   &
-                     &                              / zhlc(ji,jj) * wmask(ji,jj,jk) * tmask(ji,jj,1)
+                  IF ( zfr_i(ji,jj) /= 0. ) THEN               
+                     ! vertical velocity due to LC   
+                     IF ( pdepw(ji,jj,jk) - zhlc(ji,jj) < 0 .AND. wmask(ji,jj,jk) /= 0. ) THEN
+                        !                                           ! vertical velocity due to LC
+                        zwlc = rn_lc * SIN( rpi * pdepw(ji,jj,jk) / zhlc(ji,jj) )   ! warning: optimization: zus^3 is in zfr_i
+                        !                                           ! TKE Langmuir circulation source term
+                        en(ji,jj,jk) = en(ji,jj,jk) + rdt * zfr_i(ji,jj) * ( zwlc * zwlc * zwlc ) / zhlc(ji,jj)
+                     ENDIF
+                  ENDIF
                END DO
             END DO
          END DO

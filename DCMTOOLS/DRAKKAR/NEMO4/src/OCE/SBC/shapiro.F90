@@ -95,7 +95,7 @@ MODULE shapiro
                ptabout(1,1) = SUM(ptabout(:,2)) / jpi
                ptabout(jpi,jpj) = SUM(ptabout(:,jpj-1)) / jpi
             ELSE
-               CALL lbc_lnk(ptabout, 'T', 1.) ! Boundary condition
+               CALL lbc_lnk('shapiro',ptabout, 'T', 1.) ! Boundary condition
             ENDIF
             zvarout(:,:) = ptabout(:,:)
          ENDDO  ! end loop jn

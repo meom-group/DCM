@@ -27,6 +27,7 @@ MODULE restart
    USE in_out_manager  ! I/O manager
    USE iom             ! I/O module
    USE diurnal_bulk
+   USE lib_mpp         ! distribued memory computing library
 
    IMPLICIT NONE
    PRIVATE
@@ -40,7 +41,7 @@ MODULE restart
 #  include "vectopt_loop_substitute.h90"
    !!----------------------------------------------------------------------
    !! NEMO/OCE 4.0 , NEMO Consortium (2018)
-   !! $Id: restart.F90 10068 2018-08-28 14:09:04Z nicolasmartin $
+   !! $Id: restart.F90 10425 2018-12-19 21:54:16Z smasson $
    !! Software governed by the CeCILL license (see ./LICENSE)
    !!----------------------------------------------------------------------
 CONTAINS
@@ -103,10 +104,7 @@ CONTAINS
             IF(lwp) THEN
                WRITE(numout,*)
                IF(.NOT.lwxios) THEN
-                  SELECT CASE ( jprstlib )
-                  CASE DEFAULT         ;   WRITE(numout,*)                            &
-                      '             open ocean restart NetCDF file: ',TRIM(clpath)//TRIM(clname)
-                  END SELECT
+                  WRITE(numout,*) '             open ocean restart NetCDF file: ',TRIM(clpath)//TRIM(clname)
                   IF ( snc4set%luse )      WRITE(numout,*) '             opened for NetCDF4 chunking and compression'
                   IF( kt == nitrst - 1 ) THEN   ;   WRITE(numout,*) '             kt = nitrst - 1 = ', kt
                   ELSE                          ;   WRITE(numout,*) '             kt = '             , kt
@@ -115,7 +113,7 @@ CONTAINS
             ENDIF
             !
             IF(.NOT.lwxios) THEN
-               CALL iom_open( TRIM(clpath)//TRIM(clname), numrow, ldwrt = .TRUE., kiolib = jprstlib )
+               CALL iom_open( TRIM(clpath)//TRIM(clname), numrow, ldwrt = .TRUE. )
             ELSE
 #if defined key_iomput
                cwxios_context = "rstw_"//TRIM(ADJUSTL(clkt))
@@ -143,7 +141,7 @@ CONTAINS
       !!---------------------------------------------------------------------
       !!                   ***  ROUTINE rstwrite  ***
       !!                     
-      !! ** Purpose :   Write restart fields in the format corresponding to jprstlib
+      !! ** Purpose :   Write restart fields in NetCDF format
       !!
       !! ** Method  :   Write in numrow when kt == nitrst in NetCDF
       !!              file, save fields which are necessary for restart
@@ -152,6 +150,7 @@ CONTAINS
       !!----------------------------------------------------------------------
                      IF(lwxios) CALL iom_swap(      cwxios_context          )
                      CALL iom_rstput( kt, nitrst, numrow, 'rdt'    , rdt       , ldxios = lwxios)   ! dynamics time step
+                     CALL iom_delay_rst( 'WRITE', 'OCE', numrow )   ! save only ocean delayed global communication variables
 
       IF ( .NOT. ln_diurnal_only ) THEN
                      CALL iom_rstput( kt, nitrst, numrow, 'ub'     , ub, ldxios = lwxios        )     ! before fields
@@ -203,12 +202,11 @@ CONTAINS
       !!---------------------------------------------------------------------- 
       !!                   ***  ROUTINE rst_read_open  ***
       !! 
-      !! ** Purpose :   Open read files for restart (format fixed by jprstlib )
+      !! ** Purpose :   Open read files for NetCDF restart
       !! 
       !! ** Method  :   Use a non-zero, positive value of numror to assess whether or not
       !!                the file has already been opened
       !!----------------------------------------------------------------------
-      INTEGER        ::   jlibalt = jprstlib
       LOGICAL        ::   llok
       CHARACTER(lc)  ::   clpath   ! full path to ocean output restart file
       !!----------------------------------------------------------------------
@@ -216,16 +214,14 @@ CONTAINS
       IF( numror <= 0 ) THEN
          IF(lwp) THEN                                             ! Contol prints
             WRITE(numout,*)
-            SELECT CASE ( jprstlib )
-            CASE ( jpnf90    )   ;   WRITE(numout,*) 'rst_read : read oce NetCDF restart file'
-            END SELECT
+            WRITE(numout,*) 'rst_read : read oce NetCDF restart file'
             IF ( snc4set%luse )      WRITE(numout,*) 'rst_read : configured with NetCDF4 support'
             WRITE(numout,*) '~~~~~~~~'
          ENDIF
          lxios_sini = .FALSE.
          clpath = TRIM(cn_ocerst_indir)
          IF( clpath(LEN_TRIM(clpath):) /= '/' ) clpath = TRIM(clpath) // '/'
-         CALL iom_open( TRIM(clpath)//cn_ocerst_in, numror, kiolib = jlibalt )
+         CALL iom_open( TRIM(clpath)//cn_ocerst_in, numror )
 ! are we using XIOS to read the data? Part above will have to modified once XIOS
 ! can handle checking if variable is in the restart file (there will be no need to open
 ! restart)
@@ -252,7 +248,7 @@ CONTAINS
       !!---------------------------------------------------------------------- 
       !!                   ***  ROUTINE rst_read  ***
       !! 
-      !! ** Purpose :   Read files for restart (format fixed by jprstlib )
+      !! ** Purpose :   Read files for NetCDF restart
       !! 
       !! ** Method  :   Read in restart.nc file fields which are necessary for restart
       !!----------------------------------------------------------------------
@@ -269,6 +265,8 @@ CONTAINS
          IF( zrdt /= rdt )   neuler = 0
       ENDIF
 
+      CALL iom_delay_rst( 'READ', 'OCE', numror )   ! read only ocean delayed global communication variables
+      
       ! Diurnal DSST 
       IF( ln_diurnal ) CALL iom_get( numror, jpdom_autoglo, 'Dsst' , x_dsst, ldxios = lrxios ) 
       IF ( ln_diurnal_only ) THEN 

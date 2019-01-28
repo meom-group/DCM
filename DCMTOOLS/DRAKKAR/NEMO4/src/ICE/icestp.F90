@@ -51,7 +51,7 @@ MODULE icestp
    USE sbc_oce        ! Surface boundary condition: ocean fields
    USE sbc_ice        ! Surface boundary condition: ice   fields
    !
-   USE iceforcing     ! sea-ice: Surface boundary condition       !!gm why not icesbc module name
+   USE icesbc         ! sea-ice: Surface boundary conditions
    USE icedyn         ! sea-ice: dynamics
    USE icethd         ! sea-ice: thermodynamics
    USE icecor         ! sea-ice: corrections
@@ -89,7 +89,7 @@ MODULE icestp
 #  include "vectopt_loop_substitute.h90"
    !!----------------------------------------------------------------------
    !! NEMO/ICE 4.0 , NEMO Consortium (2018)
-   !! $Id: icestp.F90 10069 2018-08-28 14:12:24Z nicolasmartin $
+   !! $Id: icestp.F90 10535 2019-01-16 17:36:47Z clem $
    !! Software governed by the CeCILL license (see ./LICENSE)
    !!----------------------------------------------------------------------
 CONTAINS
@@ -151,7 +151,7 @@ CONTAINS
          ! It provides the following fields used in sea ice model:
          !    utau_ice, vtau_ice = surface ice stress [N/m2]
          !------------------------------------------------!
-                                        CALL ice_forcing_tau( kt, ksbc, utau_ice, vtau_ice )          
+                                        CALL ice_sbc_tau( kt, ksbc, utau_ice, vtau_ice )          
          !-------------------------------------!
          ! --- ice dynamics and advection  --- !
          !-------------------------------------!
@@ -182,7 +182,7 @@ CONTAINS
          !    qemp_oce, qemp_ice,  = sensible heat (associated with evap & precip) [W/m2]
          !    qprec_ice, qevap_ice
          !------------------------------------------------------!
-                                        CALL ice_forcing_flx( kt, ksbc )
+                                        CALL ice_sbc_flx( kt, ksbc )
          !----------------------------!
          ! --- ice thermodynamics --- !
          !----------------------------!
@@ -193,15 +193,8 @@ CONTAINS
                                         CALL ice_var_glo2eqv          ! necessary calls (at least for coupling)
                                         CALL ice_var_agg( 2 )         ! necessary calls (at least for coupling)
          !
-!! clem: one should switch the calculation of the fluxes onto the parent grid but the following calls do not work
-!!       moreover it should only be called at the update frequency (as in agrif_ice_update.F90)
-!# if defined key_agrif
-!         IF( .NOT. Agrif_Root() )     CALL Agrif_ChildGrid_To_ParentGrid()
-!# endif
                                         CALL ice_update_flx( kt )     ! -- Update ocean surface mass, heat and salt fluxes
-!# if defined key_agrif
-!         IF( .NOT. Agrif_Root() )     CALL Agrif_ParentGrid_To_ChildGrid()
-!# endif
+         !
          IF( ln_icediahsb )             CALL ice_dia( kt )            ! -- Diagnostics outputs 
          !
                                         CALL ice_wri( kt )            ! -- Ice outputs 
@@ -232,7 +225,10 @@ CONTAINS
       INTEGER :: ji, jj, ierr
       !!----------------------------------------------------------------------
       IF(lwp) WRITE(numout,*)
-      IF(lwp) WRITE(numout,*) 'ice_init: Arrays allocation & Initialization off all routines & init state' 
+      IF(lwp) WRITE(numout,*) 'Sea Ice Model: SI3 (Sea Ice modelling Integrated Initiative)' 
+      IF(lwp) WRITE(numout,*) '~~~~~~~~~~~~~'
+      IF(lwp) WRITE(numout,*)
+      IF(lwp) WRITE(numout,*) 'ice_init: Arrays allocation & Initialization of all routines & init state' 
       IF(lwp) WRITE(numout,*) '~~~~~~~~'
       !
       !                                ! Open the reference and configuration namelist files and namelist output file
@@ -244,10 +240,10 @@ CONTAINS
       !
       !                                ! Allocate the ice arrays (sbc_ice already allocated in sbc_init)
       ierr =        ice_alloc        ()      ! ice variables
-      ierr = ierr + sbc_ice_alloc    ()      ! surface forcing 
+      ierr = ierr + sbc_ice_alloc    ()      ! surface boundary conditions 
       ierr = ierr + ice1D_alloc      ()      ! thermodynamics
       !
-      IF( lk_mpp    )   CALL mpp_sum( ierr )
+      CALL mpp_sum( 'icestp', ierr )
       IF( ierr /= 0 )   CALL ctl_stop('STOP', 'ice_init : unable to allocate ice arrays')
       !
       CALL ice_itd_init                ! ice thickness distribution initialization
@@ -264,7 +260,7 @@ CONTAINS
       CALL ice_var_glo2eqv
       CALL ice_var_agg(1)
       !
-      CALL ice_forcing_init            ! set ice-ocean and ice-atm. coupling parameters
+      CALL ice_sbc_init                ! set ice-ocean and ice-atm. coupling parameters
       !
       CALL ice_dyn_init                ! set ice dynamics parameters
       !
@@ -303,7 +299,7 @@ CONTAINS
 #if defined key_drakkar
       CHARACTER(LEN=20) :: cl_no     ! provide space for segment number
 #endif
-      NAMELIST/nampar/ jpl, nlay_i, nlay_s, nn_virtual_itd, ln_icedyn, ln_icethd, rn_amax_n, rn_amax_s,  &
+      NAMELIST/nampar/ jpl, nlay_i, nlay_s, ln_virtual_itd, ln_icedyn, ln_icethd, rn_amax_n, rn_amax_s,  &
          &             cn_icerst_in, cn_icerst_indir, cn_icerst_out, cn_icerst_outdir
       !!-------------------------------------------------------------------
       !
@@ -336,17 +332,17 @@ CONTAINS
          WRITE(numout,*) '         number of ice  categories                           jpl       = ', jpl
          WRITE(numout,*) '         number of ice  layers                               nlay_i    = ', nlay_i
          WRITE(numout,*) '         number of snow layers                               nlay_s    = ', nlay_s
-         WRITE(numout,*) '         virtual ITD param for jpl=1 (1-3) or not (0)   nn_virtual_itd = ', nn_virtual_itd
+         WRITE(numout,*) '         virtual ITD param for jpl=1 (T) or not (F)     ln_virtual_itd = ', ln_virtual_itd
          WRITE(numout,*) '         Ice dynamics       (T) or not (F)                   ln_icedyn = ', ln_icedyn
          WRITE(numout,*) '         Ice thermodynamics (T) or not (F)                   ln_icethd = ', ln_icethd
          WRITE(numout,*) '         maximum ice concentration for NH                              = ', rn_amax_n 
          WRITE(numout,*) '         maximum ice concentration for SH                              = ', rn_amax_s
       ENDIF
       !                                        !--- check consistency
-      IF ( jpl > 1 .AND. nn_virtual_itd == 1 ) THEN
-         nn_virtual_itd = 0
+      IF ( jpl > 1 .AND. ln_virtual_itd ) THEN
+         ln_virtual_itd = .FALSE.
          IF(lwp) WRITE(numout,*)
-         IF(lwp) WRITE(numout,*) '   nn_virtual_itd forced to 0 as jpl>1, no need with multiple categories to emulate them'
+         IF(lwp) WRITE(numout,*) '   ln_virtual_itd forced to false as jpl>1, no need with multiple categories to emulate them'
       ENDIF
       !
       IF( ln_cpl .AND. nn_cats_cpl /= 1 .AND. nn_cats_cpl /= jpl ) THEN
@@ -383,11 +379,17 @@ CONTAINS
       e_s_b (:,:,:,:) = e_s (:,:,:,:)   ! snow thermal energy
       e_i_b (:,:,:,:) = e_i (:,:,:,:)   ! ice thermal energy
       WHERE( a_i_b(:,:,:) >= epsi20 )
-         h_i_b(:,:,:) = v_i_b (:,:,:) / a_i_b(:,:,:)   ! ice thickness
-         h_s_b(:,:,:) = v_s_b (:,:,:) / a_i_b(:,:,:)   ! snw thickness
+         h_i_b(:,:,:) = v_i_b(:,:,:) / a_i_b(:,:,:)   ! ice thickness
+         h_s_b(:,:,:) = v_s_b(:,:,:) / a_i_b(:,:,:)   ! snw thickness
       ELSEWHERE
          h_i_b(:,:,:) = 0._wp
          h_s_b(:,:,:) = 0._wp
+      END WHERE
+      
+      WHERE( a_ip(:,:,:) >= epsi20 )
+         h_ip_b(:,:,:) = v_ip(:,:,:) / a_ip(:,:,:)   ! ice pond thickness
+      ELSEWHERE
+         h_ip_b(:,:,:) = 0._wp
       END WHERE
       !
       ! ice velocities & total concentration
@@ -445,7 +447,7 @@ CONTAINS
       t_si       (:,:,:) = rt0   ! temp at the ice-snow interface
 
       tau_icebfr(:,:)   = 0._wp   ! landfast ice param only (clem: important to keep the init here)
-      cnd_ice   (:,:,:) = 0._wp   ! initialisation: effective conductivity at the top of ice/snow (Jules coupling)
+      cnd_ice   (:,:,:) = 0._wp   ! initialisation: effective conductivity at the top of ice/snow (ln_cndflx=T)
       qtr_ice_bot(:,:,:) = 0._wp  ! initialization: part of solar radiation transmitted through the ice needed at least for outputs
       !
       ! for control checks (ln_icediachk)

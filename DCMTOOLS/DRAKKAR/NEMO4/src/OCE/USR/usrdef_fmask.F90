@@ -29,7 +29,7 @@ MODULE usrdef_fmask
 #  include "vectopt_loop_substitute.h90"
    !!----------------------------------------------------------------------
    !! NEMO/OCE 4.0 , NEMO Consortium (2018)
-   !! $Id: usrdef_fmask.F90 10069 2018-08-28 14:12:24Z nicolasmartin $ 
+   !! $Id: usrdef_fmask.F90 10425 2018-12-19 21:54:16Z smasson $ 
    !! Software governed by the CeCILL license (see ./LICENSE)
    !!----------------------------------------------------------------------
 CONTAINS
@@ -167,7 +167,7 @@ CONTAINS
          IF(lwp) WRITE(numout,*) '~~~~~~~~~~~~~'
       ENDIF
       !
-      CALL lbc_lnk( pfmsk, 'F', 1._wp )      ! Lateral boundary conditions on fmask
+      CALL lbc_lnk( 'usrdef_fmask', pfmsk, 'F', 1._wp )      ! Lateral boundary conditions on fmask
       !
    END SUBROUTINE usr_def_fmask
    

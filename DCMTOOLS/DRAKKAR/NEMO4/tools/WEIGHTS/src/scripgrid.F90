@@ -9,6 +9,7 @@ PROGRAM scripgrid
 
 #if defined ARGC
   INTEGER :: IARGC
+  EXTERNAL IARGC
 
   if (IARGC() == 1) then
     CALL GETARG(1, infile)

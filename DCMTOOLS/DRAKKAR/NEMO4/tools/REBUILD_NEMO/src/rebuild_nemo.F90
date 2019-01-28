@@ -1,5 +1,5 @@
 PROGRAM rebuild_nemo
-
+#define key_netcdf4
    !!=========================================================================
    !!                        ***  rebuild_nemo  ***
    !!=========================================================================
@@ -13,11 +13,12 @@ PROGRAM rebuild_nemo
    !!     * does not copy subdomain halo regions
    !!     * works for 1,2,3 and 4d arrays or types for all valid NetCDF types
    !!     * utilises OMP shared memory parallelisation where applicable
-   !!     * time 'chunking' for lower memory use 
+   !!     * time 'slicing' for lower memory use 
    !!       (only for 4D vars with unlimited dimension)
    !!
    !!  Ed Blockley - August 2011
    !!  (based on original code by Matt Martin)
+   !!  Julien Palmieri and Andrew Coward - September 2018 (add compression and chunking)
    !!
    !!-------------------------------------------------------------------------
    !!
@@ -37,7 +38,7 @@ PROGRAM rebuild_nemo
    !!  Diagnostic output is written to numout (default 6 - stdout)
    !!  and errors are written to numerr (default 0 - stderr).
    !!
-   !!  If time chunking is specified the code will use less memory but take a little longer.
+   !!  If time slicing is specified the code will use less memory but take a little longer.
    !!  It does this by breaking down the 4D input variables over their 4th dimension 
    !!  (generally time) by way of a while loop.
    !!
@@ -65,20 +66,34 @@ PROGRAM rebuild_nemo
    CHARACTER(LEN=nf90_max_name) :: filebase, suffix, attname, dimname, varname, time, date, zone, timestamp
    CHARACTER(LEN=nf90_max_name), ALLOCATABLE :: filenames(:), indimnames(:)
    CHARACTER(LEN=nf90_max_name), DIMENSION(2) :: dims
+   CHARACTER(LEN=256) :: cnampath, cdimlst, cdim
+   CHARACTER(LEN=50)  :: clibnc ! netcdf library version
 
-   INTEGER :: ndomain, ifile, ndomain_file, nchunksize, deflate_level
+   INTEGER :: ndomain, ifile, ndomain_file, nslicesize, deflate_level
    INTEGER :: ncid, outid, idim, istop
    INTEGER :: natts, attid, xtype, varid, rbdims 
    INTEGER :: jv, ndims, nvars, dimlen, dimids(4)
    INTEGER :: dimid, unlimitedDimId, di, dj, dr
-   INTEGER :: nmax_unlimited, nt, ntchunk 
-   INTEGER :: chunksize = 32000000
+   INTEGER :: nmax_unlimited, nt, ntslice 
+   INTEGER :: fchunksize = 32000000  ! NetCDF global file chunk cache size
+   INTEGER :: patchchunk             ! NetCDF processor-domain file chunk cache size
    INTEGER :: nthreads = 1
+   INTEGER :: chunkalg = 0          ! NetCDF4 variable chunking algorithm
+                                    ! Default variable chunksizes (typical ORCA025
+                                    ! recommendations which can be adjusted via namelist
+                                    ! or will be bounded if too large for domain.)
+   INTEGER :: nc4_xchunk = 206      ! Default x (longitude) variable chunk size
+   INTEGER :: nc4_ychunk = 135      ! Default y (latitude)  variable chunk size
+   INTEGER :: nc4_zchunk = 1        ! Default z (depth) variable chunk size (almost always 1)
+   INTEGER :: nc4_tchunk = 1        ! Default t (time)  variable chunk size (almost always 1)
    INTEGER, ALLOCATABLE  :: outdimids(:), outdimlens(:), indimlens(:), inncids(:)
+   INTEGER, ALLOCATABLE  :: chunksizes(:)
    INTEGER, ALLOCATABLE  :: global_sizes(:), rebuild_dims(:)
    INTEGER, DIMENSION(2) :: halo_start, halo_end, local_sizes
    INTEGER, DIMENSION(2) :: idomain, jdomain, rdomain, start_pos
    INTEGER :: ji, jj, jk, jl, jr
+   INTEGER :: nargs                 ! number of arguments
+   INTEGER, EXTERNAL :: iargc
  
    REAL(sp) :: ValMin, ValMax, InMin, InMax, rmdi
    REAL(dp), ALLOCATABLE :: mdiVals(:)
@@ -148,17 +163,16 @@ PROGRAM rebuild_nemo
    REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: globaldata_3d_dp
    REAL(dp), ALLOCATABLE, DIMENSION(:,:,:,:) :: globaldata_4d_dp
 
-   LOGICAL :: l_valid = .false.
+   LOGICAL :: l_valid     = .false.
    LOGICAL :: l_noRebuild = .false.
-   LOGICAL :: l_findDims = .true.
-   LOGICAL :: l_maskout = .false.
+   LOGICAL :: l_findDims  = .true.
+   LOGICAL :: l_maskout   = .false.
+   LOGICAL :: l_namexist  = .false.
 
-   NAMELIST/nam_rebuild/ filebase, ndomain, dims, nchunksize, l_maskout, deflate_level
+   NAMELIST/nam_rebuild/ filebase, ndomain, dims, nslicesize, l_maskout, deflate_level, &
+                       & nc4_xchunk, nc4_ychunk, nc4_zchunk, nc4_tchunk, fchunksize         
 
-! Add on for coordinate file
-  INTEGER(i4) :: ncidc, id
-  REAL(sp), ALLOCATABLE, DIMENSION(:,:) :: glam, gphi   ! for nav_lon, nav_lat from  coordinate file
-  CHARACTER(LEN=80) :: cl_glam, cl_gphi, cl_grid, cl_coor='coordinates.nc'
+   external      :: getarg
 
    !End of definitions 
 
@@ -173,17 +187,51 @@ PROGRAM rebuild_nemo
 !$OMP END PARALLEL
  
 !--------------------------------------------------------------------------------
-!1. Read in the namelist 
+!1.0 Check netcdf version for warning
+   clibnc = TRIM(nf90_inq_libvers())
+   IF (ICHAR(clibnc(1:1)) <= 3) THEN
+      PRINT *, '=========================================================='
+      PRINT *, 'You are using old netcdf library (',TRIM(clibnc),').'
+      PRINT *, 'REBUILD_NEMO support of old netcdf library will end soon'
+      PRINT *, 'please consider moving to netcdf 4 or higher'
+      PRINT *, '=========================================================='
+   END IF
+
+!1.1 Get the namelist path
+   !Determine the number of arguments on the command line
+   nargs=iargc()
+   !Check that the required argument is present, if it is not then set it to the default value: nam_rebuild
+   IF (nargs == 0) THEN
+      WRITE(numout,*)
+      WRITE(numout,*) 'W A R N I N G : Namelist path not supplied as command line argument. Using default, nam_rebuild.'
+      cnampath='nam_rebuild'
+   ELSE IF (nargs == 1) THEN
+      CALL getarg(1, cnampath)
+   ELSE 
+      WRITE(numerr,*) 'E R R O R ! : Incorrect number of command line arguments. Please supply only'
+      WRITE(numerr,*) '         the path to the namelist file, or no arguments to use default value'
+      STOP 1
+   END IF
+
+   ! check presence of namelist
+   INQUIRE(FILE=cnampath, EXIST=l_namexist)
+   IF (.NOT. l_namexist) THEN
+      WRITE(numout,*)
+      WRITE(numout,*) 'E R R O R : Namelist '//TRIM(cnampath)//' not present.'
+      STOP 42
+   END IF
+
+!1.2 Read in the namelist 
 
    dims(:) = ""
-   nchunksize = 0
+   nslicesize = 0
    deflate_level = 0
-   OPEN( UNIT=numnam, FILE='nam_rebuild', FORM='FORMATTED', STATUS='OLD' )
+   OPEN( UNIT=numnam, FILE=TRIM(cnampath), FORM='FORMATTED', STATUS='OLD' )
    READ( numnam, nam_rebuild )
    CLOSE( numnam )
    IF( .NOT. ALL(dims(:) == "") ) l_findDims = .false.
- 
-!1.1 Set up the filenames and fileids
+
+!1.3 Set up the filenames and fileids
 
    ALLOCATE(filenames(ndomain))
    IF (l_verbose) WRITE(numout,*) 'Rebuilding the following files:'
@@ -211,9 +259,11 @@ PROGRAM rebuild_nemo
    ENDIF
   
 !2.1 Set up the output file
-
-!  CALL check_nf90( nf90_create( TRIM(filebase)//'.nc', nf90_64bit_offset, outid, chunksize=chunksize ) )
-   CALL check_nf90( nf90_create( TRIM(filebase)//'.nc', NF90_NETCDF4, outid, chunksize=chunksize ) )
+#if defined key_netcdf4
+   CALL check_nf90( nf90_create( TRIM(filebase)//'.nc', nf90_netcdf4, outid, chunksize=fchunksize ) )
+#else
+   CALL check_nf90( nf90_create( TRIM(filebase)//'.nc', nf90_64bit_offset, outid, chunksize=fchunksize ) )
+#endif
 
 !2.2 Set up dimensions in output file
 
@@ -316,7 +366,7 @@ PROGRAM rebuild_nemo
       ENDIF
       outdimlens(idim) = dimlen
    END DO
-   ! nmax_unlimited is only used for time-chunking so we set it to be at least 1 to 
+   ! nmax_unlimited is only used for time-slicing so we set it to be at least 1 to 
    ! account for files with no record dimension or zero length record dimension(!)
    nmax_unlimited = max(nmax_unlimited,1)
 
@@ -365,14 +415,50 @@ PROGRAM rebuild_nemo
    DO jv = 1, nvars
       CALL check_nf90( nf90_inquire_variable( ncid, jv, varname, xtype, ndims, dimids, natts ) )
       ALLOCATE(outdimids(ndims))
-      DO idim = 1, ndims
-         outdimids(idim) = dimids(idim)
-      END DO
+      ALLOCATE(chunksizes(ndims))
+      IF( ndims > 0 ) then
+        DO idim = 1, ndims
+           outdimids(idim) = dimids(idim)
+           chunksizes(idim) = outdimlens(dimids(idim))
+           cdim='|'//TRIM(indimnames(dimids(idim)))//'|'
 
-      CALL check_nf90( nf90_def_var( outid, varname, xtype, outdimids, varid, &
-                                     deflate_level=deflate_level ) )
+! trick to find var in a list of suggestion (var0 and var1 : INDEX(|var0|var1|,|var|)
+           cdimlst='|x|x_grid_T|x_grid_U|x_grid_V|x_grid_W|'
+           if( INDEX(TRIM(cdimlst),TRIM(cdim)) > 0 ) &
+    &                             chunksizes(idim) = min(outdimlens(dimids(idim)), max(nc4_xchunk,1))
 
+           cdimlst='|y|y_grid_T|y_grid_U|y_grid_V|y_grid_W|'
+           if( INDEX(TRIM(cdimlst),TRIM(cdim)) > 0 ) &
+    &                             chunksizes(idim) = min(outdimlens(dimids(idim)), max(nc4_ychunk,1))
+
+           cdimlst='|z|deptht|depthu|depthv|depthw|depth|nav_lev|'
+           if( INDEX(TRIM(cdimlst),TRIM(cdim)) > 0 ) &
+    &                             chunksizes(idim) = min(outdimlens(dimids(idim)), max(nc4_zchunk,1))
+
+           cdimlst='|t|time|time_counter|'
+           if( INDEX(TRIM(cdimlst),TRIM(cdim)) > 0 ) &
+    &                             chunksizes(idim) = min(outdimlens(dimids(idim)), max(nc4_tchunk,1))
+
+        END DO
+#if defined key_netcdf4
+        CALL check_nf90( nf90_def_var( outid, varname, xtype, outdimids, varid, &
+                                       deflate_level=deflate_level ) )
+        IF (l_verbose) WRITE(numout,*) 'Dims    : ',ndims, outdimids(1:ndims)
+        IF (l_verbose) WRITE(numout,*) 'names   : ',(TRIM(indimnames(dimids(idim)))//' ',idim=1,ndims)
+        IF (l_verbose) WRITE(numout,*) 'lens    : ',(outdimlens(dimids(idim)),idim=1,ndims)
+        IF (l_verbose) WRITE(numout,*) 'Chunking: ',chunksizes
+        IF (l_verbose) WRITE(numout,*) 'Deflation : ',deflate_level
+        IF (l_verbose) WRITE(numout,*) 'Chunk algo: ',chunkalg
+        CALL check_nf90( nf90_def_var_chunking( outid, varid, chunkalg, &
+   &                                 chunksizes ) )
+      ELSE
+        CALL check_nf90( nf90_def_var( outid, varname, xtype, outdimids, varid ) )
+#else
+      CALL check_nf90( nf90_def_var( outid, varname, xtype, outdimids, varid ) )
+#endif
+      ENDIF
       DEALLOCATE(outdimids)
+      DEALLOCATE(chunksizes)
       IF (l_verbose) WRITE(numout,*) 'Defining variable '//TRIM(varname)//'...' 
       IF( natts > 0 ) THEN
          DO attid = 1, natts
@@ -385,6 +471,7 @@ PROGRAM rebuild_nemo
          END DO
       ENDIF
    END DO
+
 !2.3 End definitions in output file and copy 1st file ncid to the inncids array
 
    CALL check_nf90( nf90_enddef( outid ) )
@@ -397,8 +484,13 @@ PROGRAM rebuild_nemo
 !3.1 Open each file and store the ncid in inncids array
 
    IF (l_verbose) WRITE(numout,*) 'Opening input files...'
+
+   ! Set a file chunk cache size for the processor-domain files that scales with the number of processors
+   patchchunk = max(8192, fchunksize/ndomain)
+
+   ! open files 
    DO ifile = 2, ndomain
-      CALL check_nf90( nf90_open( TRIM(filenames(ifile)), nf90_share, ncid, chunksize=chunksize ) )
+      CALL check_nf90( nf90_open( TRIM(filenames(ifile)), nf90_share, ncid, chunksize=patchchunk ) )
       inncids(ifile) = ncid
    END DO
    IF (l_verbose) WRITE(numout,*) 'All input files open.'
@@ -410,8 +502,8 @@ PROGRAM rebuild_nemo
       l_valid = .false.
       istop = nf90_noerr
       nt = 1
-      ntchunk = nmax_unlimited
-      IF( nchunksize == 0 ) nchunksize = nmax_unlimited
+      ntslice = nmax_unlimited
+      IF( nslicesize == 0 ) nslicesize = nmax_unlimited
 
 !3.2 Inquire variable to find out name and how many dimensions it has
 !    and importantly whether it contains the dimensions in rebuild_dims()
@@ -425,31 +517,21 @@ PROGRAM rebuild_nemo
          IF( ANY( dimids(1:ndims) == rebuild_dims(2) )) l_noRebuild = .false.
       ENDIF
 
-! 3.2.00 : check against nav_lon, nav_lat for special treatment, then cycle to next var
-      IF ( TRIM(varname) == 'nav_lon' ) THEN
-         CALL check_nf90( nf90_put_var( outid, jv, glam ) )
-         CYCLE
-      ENDIF
-      IF ( TRIM(varname) == 'nav_lat' ) THEN
-         CALL check_nf90( nf90_put_var( outid, jv, gphi ) )
-         CYCLE
-      ENDIF
-
-!3.2.0 start while loop for time chunking
+!3.2.0 start while loop for time slicing
 
       DO WHILE( nt <= nmax_unlimited )
 
          IF( ndims > 3 ) THEN
-            ntchunk = MIN( nchunksize, nmax_unlimited + 1 - nt )
+            ntslice = MIN( nslicesize, nmax_unlimited + 1 - nt )
          ENDIF
 
       IF (l_noRebuild) THEN
 
-         IF( nchunksize == nmax_unlimited .OR. ndims <= 3 ) THEN
+         IF( nslicesize == nmax_unlimited .OR. ndims <= 3 ) THEN
             IF (l_verbose) WRITE(numout,*) 'Copying data from variable '//TRIM(varname)//'...'
          ELSE
             IF (l_verbose) WRITE(numout,'(A,I3,A,I3,A)') ' Copying data from variable '  &
-            &                 //TRIM(varname)//' for chunks ',nt,' to ',nt+ntchunk-1,' ...'
+            &                 //TRIM(varname)//' for slices ',nt,' to ',nt+ntslice-1,' ...'
          ENDIF
 
 !3.2.1 If rebuilding not required then just need to read in variable
@@ -551,23 +633,23 @@ PROGRAM rebuild_nemo
             SELECT CASE( xtype )
                CASE( NF90_BYTE )
                   ALLOCATE(globaldata_4d_i1(indimlens(dimids(1)),indimlens(dimids(2)),       &
-                     &                      indimlens(dimids(3)),ntchunk))
+                     &                      indimlens(dimids(3)),ntslice))
                   CALL check_nf90( nf90_get_var( ncid, jv, globaldata_4d_i1, start=(/1,1,1,nt/) ) )
                CASE( NF90_SHORT )
                   ALLOCATE(globaldata_4d_i2(indimlens(dimids(1)),indimlens(dimids(2)),       &
-                     &                      indimlens(dimids(3)),ntchunk))
+                     &                      indimlens(dimids(3)),ntslice))
                   CALL check_nf90( nf90_get_var( ncid, jv, globaldata_4d_i2, start=(/1,1,1,nt/) ) )
                CASE( NF90_INT )
                   ALLOCATE(globaldata_4d_i4(indimlens(dimids(1)),indimlens(dimids(2)),       &
-                     &                      indimlens(dimids(3)),ntchunk))
+                     &                      indimlens(dimids(3)),ntslice))
                   CALL check_nf90( nf90_get_var( ncid, jv, globaldata_4d_i4, start=(/1,1,1,nt/) ) )
                CASE( NF90_FLOAT )
                   ALLOCATE(globaldata_4d_sp(indimlens(dimids(1)),indimlens(dimids(2)),       &
-                     &                      indimlens(dimids(3)),ntchunk))
+                     &                      indimlens(dimids(3)),ntslice))
                   CALL check_nf90( nf90_get_var( ncid, jv, globaldata_4d_sp, start=(/1,1,1,nt/) ) )
                CASE( NF90_DOUBLE )
                   ALLOCATE(globaldata_4d_dp(indimlens(dimids(1)),indimlens(dimids(2)),       &
-                     &                      indimlens(dimids(3)),ntchunk))
+                     &                      indimlens(dimids(3)),ntslice))
                   CALL check_nf90( nf90_get_var( ncid, jv, globaldata_4d_dp, start=(/1,1,1,nt/) ) )
                CASE DEFAULT
                   WRITE(numerr,*) 'Unknown nf90 type: ', xtype
@@ -580,11 +662,11 @@ PROGRAM rebuild_nemo
 
 !3.2.2 For variables that require rebuilding we need to read in from all ndomain files
 !      Here we allocate global variables ahead of looping over files
-         IF( nchunksize == nmax_unlimited .OR. ndims <= 3 ) THEN
+         IF( nslicesize == nmax_unlimited .OR. ndims <= 3 ) THEN
             IF (l_verbose) WRITE(numout,*) 'Rebuilding data from variable '//TRIM(varname)//'...'
          ELSE
             IF (l_verbose) WRITE(numout,'(A,I3,A,I3,A)') ' Rebuilding data from variable '  &
-            &                 //TRIM(varname)//' for chunks ',nt,' to ',nt+ntchunk-1,' ...'
+            &                 //TRIM(varname)//' for slices ',nt,' to ',nt+ntslice-1,' ...'
          ENDIF
          IF( ndims == 1 ) THEN
 
@@ -665,23 +747,23 @@ PROGRAM rebuild_nemo
             SELECT CASE( xtype )
                CASE( NF90_BYTE )
                   ALLOCATE(globaldata_4d_i1(outdimlens(dimids(1)),outdimlens(dimids(2)),     &
-                     &                      outdimlens(dimids(3)),ntchunk))
+                     &                      outdimlens(dimids(3)),ntslice))
                   IF (l_maskout) globaldata_4d_i1(:,:,:,:)=mdiVals(jv)
                CASE( NF90_SHORT )
                   ALLOCATE(globaldata_4d_i2(outdimlens(dimids(1)),outdimlens(dimids(2)),     &
-                     &                      outdimlens(dimids(3)),ntchunk))
+                     &                      outdimlens(dimids(3)),ntslice))
                   IF (l_maskout) globaldata_4d_i2(:,:,:,:)=mdiVals(jv)
                CASE( NF90_INT )
                   ALLOCATE(globaldata_4d_i4(outdimlens(dimids(1)),outdimlens(dimids(2)),     &
-                     &                      outdimlens(dimids(3)),ntchunk))
+                     &                      outdimlens(dimids(3)),ntslice))
                   IF (l_maskout) globaldata_4d_i4(:,:,:,:)=mdiVals(jv)
                CASE( NF90_FLOAT )
                   ALLOCATE(globaldata_4d_sp(outdimlens(dimids(1)),outdimlens(dimids(2)),     &
-                     &                      outdimlens(dimids(3)),ntchunk))
+                     &                      outdimlens(dimids(3)),ntslice))
                   IF (l_maskout) globaldata_4d_sp(:,:,:,:)=mdiVals(jv)
                CASE( NF90_DOUBLE )
                   ALLOCATE(globaldata_4d_dp(outdimlens(dimids(1)),outdimlens(dimids(2)),     &
-                     &                      outdimlens(dimids(3)),ntchunk))
+                     &                      outdimlens(dimids(3)),ntslice))
                   IF (l_maskout) globaldata_4d_dp(:,:,:,:)=mdiVals(jv)
                CASE DEFAULT
                   WRITE(numerr,*) 'Unknown nf90 type: ', xtype
@@ -702,13 +784,13 @@ PROGRAM rebuild_nemo
 !$OMP&         localdata_4d_i2,localdata_4d_i4,localdata_4d_sp,localdata_4d_dp,           &
 !$OMP&         localdata_1d_i1,localdata_2d_i1,localdata_3d_i1,localdata_4d_i1)           &
 !$OMP& SHARED(jv,nvars,varname,filenames,ValMin,ValMax,indimlens,outdimlens,rbdims,       &
-!$OMP&        ndomain,outid,chunksize,istop,l_valid,nthreads,inncids,rebuild_dims,        &
+!$OMP&        ndomain,outid,fchunksize,istop,l_valid,nthreads,inncids,rebuild_dims,       &
 !$OMP&        globaldata_1d_i2,globaldata_1d_i4,globaldata_1d_sp,globaldata_1d_dp,        &
 !$OMP&        globaldata_2d_i2,globaldata_2d_i4,globaldata_2d_sp,globaldata_2d_dp,        &
 !$OMP&        globaldata_3d_i2,globaldata_3d_i4,globaldata_3d_sp,globaldata_3d_dp,        &
 !$OMP&        globaldata_4d_i2,globaldata_4d_i4,globaldata_4d_sp,globaldata_4d_dp,        &
 !$OMP&        globaldata_1d_i1,globaldata_2d_i1,globaldata_3d_i1,globaldata_4d_i1,        &
-!$OMP&        ntchunk,nt,nmax_unlimited,indimnames,dims)
+!$OMP&        ntslice,nt,nmax_unlimited,indimnames,dims,patchchunk)
 
          DO ifile = 1, ndomain
 
@@ -964,11 +1046,11 @@ PROGRAM rebuild_nemo
                SELECT CASE( xtype )
                   CASE( NF90_BYTE )
                      ALLOCATE(localdata_4d_i1(local_sizes(di),local_sizes(dj),               &
-                         &                     indimlens(dimids(3)),ntchunk))
+                         &                     indimlens(dimids(3)),ntslice))
                      CALL check_nf90( nf90_get_var( ncid, jv, localdata_4d_i1, start=(/1,1,1,nt/) ), istop )
 !$OMP  PARALLEL DEFAULT(NONE) PRIVATE(ji,jj,jk,jl)   &
-!$OMP& SHARED(idomain,jdomain,indimlens,dimids,start_pos,globaldata_4d_i1,localdata_4d_i1,di,dj,nt,ntchunk)
-                     DO jl = 1, ntchunk
+!$OMP& SHARED(idomain,jdomain,indimlens,dimids,start_pos,globaldata_4d_i1,localdata_4d_i1,di,dj,nt,ntslice)
+                     DO jl = 1, ntslice
 !$OMP DO 
                         DO jk = 1, indimlens(dimids(3))
                            DO jj = jdomain(1), jdomain(2)
@@ -983,11 +1065,11 @@ PROGRAM rebuild_nemo
                      DEALLOCATE(localdata_4d_i1)
                   CASE( NF90_SHORT )
                      ALLOCATE(localdata_4d_i2(local_sizes(di),local_sizes(dj),               &
-                        &                     indimlens(dimids(3)),ntchunk))
+                        &                     indimlens(dimids(3)),ntslice))
                      CALL check_nf90( nf90_get_var( ncid, jv, localdata_4d_i2, start=(/1,1,1,nt/) ), istop )
 !$OMP  PARALLEL DEFAULT(NONE) PRIVATE(ji,jj,jk,jl)   &
-!$OMP& SHARED(idomain,jdomain,indimlens,dimids,start_pos,globaldata_4d_i2,localdata_4d_i2,di,dj,nt,ntchunk)
-                     DO jl = 1, ntchunk
+!$OMP& SHARED(idomain,jdomain,indimlens,dimids,start_pos,globaldata_4d_i2,localdata_4d_i2,di,dj,nt,ntslice)
+                     DO jl = 1, ntslice
 !$OMP DO 
                         DO jk = 1, indimlens(dimids(3))
                            DO jj = jdomain(1), jdomain(2) 
@@ -1002,11 +1084,11 @@ PROGRAM rebuild_nemo
                      DEALLOCATE(localdata_4d_i2)
                   CASE( NF90_INT )
                      ALLOCATE(localdata_4d_i4(local_sizes(di),local_sizes(dj),               &
-                        &                     indimlens(dimids(3)),ntchunk))
+                        &                     indimlens(dimids(3)),ntslice))
                      CALL check_nf90( nf90_get_var( ncid, jv, localdata_4d_i4, start=(/1,1,1,nt/) ), istop )
 !$OMP  PARALLEL DEFAULT(NONE) PRIVATE(ji,jj,jk,jl)   &
-!$OMP& SHARED(idomain,jdomain,indimlens,dimids,start_pos,globaldata_4d_i4,localdata_4d_i4,di,dj,nt,ntchunk)
-                     DO jl = 1, ntchunk
+!$OMP& SHARED(idomain,jdomain,indimlens,dimids,start_pos,globaldata_4d_i4,localdata_4d_i4,di,dj,nt,ntslice)
+                     DO jl = 1, ntslice
 !$OMP DO
                         DO jk = 1, indimlens(dimids(3))
                            DO jj = jdomain(1), jdomain(2) 
@@ -1021,11 +1103,11 @@ PROGRAM rebuild_nemo
                      DEALLOCATE(localdata_4d_i4)
                   CASE( NF90_FLOAT )
                      ALLOCATE(localdata_4d_sp(local_sizes(di),local_sizes(dj),               &
-                        &                     indimlens(dimids(3)),ntchunk))
+                        &                     indimlens(dimids(3)),ntslice))
                      CALL check_nf90( nf90_get_var( ncid, jv, localdata_4d_sp, start=(/1,1,1,nt/) ), istop )
 !$OMP  PARALLEL DEFAULT(NONE) PRIVATE(ji,jj,jk,jl)   &
-!$OMP& SHARED(idomain,jdomain,indimlens,dimids,start_pos,globaldata_4d_sp,localdata_4d_sp,di,dj,nt,ntchunk) 
-                     DO jl = 1, ntchunk
+!$OMP& SHARED(idomain,jdomain,indimlens,dimids,start_pos,globaldata_4d_sp,localdata_4d_sp,di,dj,nt,ntslice) 
+                     DO jl = 1, ntslice
 !$OMP DO
                         DO jk = 1, indimlens(dimids(3))
                            DO jj = jdomain(1), jdomain(2) 
@@ -1040,11 +1122,11 @@ PROGRAM rebuild_nemo
                      DEALLOCATE(localdata_4d_sp)
                   CASE( NF90_DOUBLE )
                      ALLOCATE(localdata_4d_dp(local_sizes(di),local_sizes(dj),               &
-                        &                     indimlens(dimids(3)),ntchunk))
+                        &                     indimlens(dimids(3)),ntslice))
                      CALL check_nf90( nf90_get_var( ncid, jv, localdata_4d_dp, start=(/1,1,1,nt/) ), istop )
 !$OMP  PARALLEL DEFAULT(NONE) PRIVATE(ji,jj,jk,jl)   &
-!$OMP& SHARED(idomain,jdomain,indimlens,dimids,start_pos,globaldata_4d_dp,localdata_4d_dp,di,dj,nt,ntchunk) 
-                     DO jl = 1, ntchunk
+!$OMP& SHARED(idomain,jdomain,indimlens,dimids,start_pos,globaldata_4d_dp,localdata_4d_dp,di,dj,nt,ntslice) 
+                     DO jl = 1, ntslice
 !$OMP DO
                         DO jk = 1, indimlens(dimids(3))
                            DO jj = jdomain(1), jdomain(2) 
@@ -1131,6 +1213,9 @@ PROGRAM rebuild_nemo
                CALL check_nf90( nf90_put_var( outid, jv, globaldata_0d_sp ) )
             CASE( NF90_DOUBLE )
                CALL check_nf90( nf90_put_var( outid, jv, globaldata_0d_dp ) )
+            CASE DEFAULT   
+               WRITE(numerr,*) '0d Unknown nf90 type: ', xtype
+               STOP 4
          END SELECT
 
       ELSEIF( ndims == 1 ) THEN
@@ -1151,6 +1236,9 @@ PROGRAM rebuild_nemo
             CASE( NF90_DOUBLE )
                CALL check_nf90( nf90_put_var( outid, jv, globaldata_1d_dp ) )
                DEALLOCATE(globaldata_1d_dp)
+            CASE DEFAULT   
+               WRITE(numerr,*) '1d Unknown nf90 type: ', xtype
+               STOP 4
          END SELECT
 
       ELSEIF( ndims == 2 ) THEN  
@@ -1172,7 +1260,7 @@ PROGRAM rebuild_nemo
                CALL check_nf90( nf90_put_var( outid, jv, globaldata_2d_dp ) )
                DEALLOCATE(globaldata_2d_dp)
             CASE DEFAULT   
-               WRITE(numerr,*) 'Unknown nf90 type: ', xtype
+               WRITE(numerr,*) '2d Unknown nf90 type: ', xtype
                STOP 4
          END SELECT     
                       
@@ -1195,7 +1283,7 @@ PROGRAM rebuild_nemo
                CALL check_nf90( nf90_put_var( outid, jv, globaldata_3d_dp ) )
                DEALLOCATE(globaldata_3d_dp)
             CASE DEFAULT   
-               WRITE(numerr,*) 'Unknown nf90 type: ', xtype
+               WRITE(numerr,*) '3d Unknown nf90 type: ', xtype
                STOP 4
          END SELECT     
     
@@ -1218,13 +1306,15 @@ PROGRAM rebuild_nemo
                CALL check_nf90( nf90_put_var( outid, jv, globaldata_4d_dp, start=(/1,1,1,nt/) ) )
                DEALLOCATE(globaldata_4d_dp)
             CASE DEFAULT   
-               WRITE(numerr,*) 'Unknown nf90 type: ', xtype
+               WRITE(numerr,*) '4d Unknown nf90 type: ', xtype
                STOP 4
          END SELECT     
+         ! why only for big data set, test the cost.
+         CALL check_nf90( nf90_sync( outid ) )    ! flush buffers to disk after writing big 4D datasets
     
       ENDIF
 
-         nt = nt + ntchunk
+         nt = nt + ntslice
 
       END DO ! WHILE loop
     
@@ -1269,7 +1359,7 @@ CONTAINS
          ELSE
             WRITE(numerr,*) "*** NEMO rebuild failed ***"
             WRITE(numerr,*)
-            STOP 4
+            STOP 5
          ENDIF
       ENDIF
 

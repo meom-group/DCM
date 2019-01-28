@@ -30,7 +30,6 @@ MODULE dommsk
    USE wrk_nemo        ! Memory allocation
    USE timing          ! Timing
 
-
    IMPLICIT NONE
    PRIVATE
 

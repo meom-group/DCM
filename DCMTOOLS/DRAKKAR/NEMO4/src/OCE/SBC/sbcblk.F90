@@ -16,7 +16,7 @@ MODULE sbcblk
    !!            4.0  !  2016-06  (L. Brodeau)  sbcblk_core becomes sbcblk and is not restricted to the CORE algorithm anymore
    !!                 !                        ==> based on AeroBulk (http://aerobulk.sourceforge.net/)
    !!            4.0  !  2016-10  (G. Madec)  introduce a sbc_blk_init routine
-   !!            4.0  !  2016-10  (M. Vancoppenolle)  Introduce Jules emulator (M. Vancoppenolle) 
+   !!            4.0  !  2016-10  (M. Vancoppenolle)  Introduce conduction flux emulator (M. Vancoppenolle) 
    !!----------------------------------------------------------------------
 
    !!----------------------------------------------------------------------
@@ -30,7 +30,7 @@ MODULE sbcblk
    !!             sea-ice case only : 
    !!   blk_ice_tau   : provide the air-ice stress
    !!   blk_ice_flx   : provide the heat and mass fluxes at air-ice interface
-   !!   blk_ice_qcn   : provide ice surface temperature and snow/ice conduction flux (emulating JULES coupler)
+   !!   blk_ice_qcn   : provide ice surface temperature and snow/ice conduction flux (emulating conduction flux)
    !!   Cdn10_Lupkes2012 : Lupkes et al. (2012) air-ice drag
    !!   Cdn10_Lupkes2015 : Lupkes et al. (2015) air-ice drag 
    !!----------------------------------------------------------------------
@@ -45,7 +45,7 @@ MODULE sbcblk
    USE sbc_ice        ! Surface boundary condition: ice fields
    USE lib_fortran    ! to use key_nosignedzero
 #if defined key_si3
-   USE ice     , ONLY :   u_ice, v_ice, jpl, a_i_b, at_i_b, tm_su, rn_cnd_s, hfx_err_dif
+   USE ice     , ONLY :   u_ice, v_ice, jpl, a_i_b, at_i_b, t_su, rn_cnd_s, hfx_err_dif
    USE icethd_dh      ! for CALL ice_thd_snwblow
 #endif
    USE sbcblk_algo_ncar     ! => turb_ncar     : NCAR - CORE (Large & Yeager, 2009) 
@@ -65,9 +65,9 @@ MODULE sbcblk
    PUBLIC   sbc_blk_init  ! called in sbcmod
    PUBLIC   sbc_blk       ! called in sbcmod
 #if defined key_si3
-   PUBLIC   blk_ice_tau   ! routine called in iceforcing
-   PUBLIC   blk_ice_flx   ! routine called in iceforcing
-   PUBLIC   blk_ice_qcn   ! routine called in iceforcing
+   PUBLIC   blk_ice_tau   ! routine called in icesbc
+   PUBLIC   blk_ice_flx   ! routine called in icesbc
+   PUBLIC   blk_ice_qcn   ! routine called in icesbc
 #endif 
 
 !!Lolo: should ultimately be moved in the module with all physical constants ?
@@ -142,7 +142,7 @@ MODULE sbcblk
 #  include "vectopt_loop_substitute.h90"
    !!----------------------------------------------------------------------
    !! NEMO/OCE 4.0 , NEMO Consortium (2018)
-   !! $Id: sbcblk.F90 10190 2018-10-12 12:50:10Z lovato $
+   !! $Id: sbcblk.F90 10535 2019-01-16 17:36:47Z clem $
    !! Software governed by the CeCILL license (see ./LICENSE)
    !!----------------------------------------------------------------------
 CONTAINS
@@ -154,8 +154,8 @@ CONTAINS
       ALLOCATE( Cd_atm (jpi,jpj), Ch_atm (jpi,jpj), Ce_atm (jpi,jpj), t_zu(jpi,jpj), q_zu(jpi,jpj), &
          &      cdn_oce(jpi,jpj), chn_oce(jpi,jpj), cen_oce(jpi,jpj), STAT=sbc_blk_alloc )
       !
-      IF( lk_mpp             )   CALL mpp_sum ( sbc_blk_alloc )
-      IF( sbc_blk_alloc /= 0 )   CALL ctl_warn('sbc_blk_alloc: failed to allocate arrays')
+      CALL mpp_sum ( 'sbcblk', sbc_blk_alloc )
+      IF( sbc_blk_alloc /= 0 )   CALL ctl_stop( 'STOP', 'sbc_blk_alloc: failed to allocate arrays' )
    END FUNCTION sbc_blk_alloc
 
 #if defined key_drakkar
@@ -291,7 +291,7 @@ CONTAINS
       IF ( ln_wave ) THEN
       !Activated wave module but neither drag nor stokes drift activated
          IF ( .NOT.(ln_cdgw .OR. ln_sdw .OR. ln_tauwoc .OR. ln_stcor ) )   THEN
-            CALL ctl_warn( 'Ask for wave coupling but ln_cdgw=F, ln_sdw=F, ln_tauwoc=F, ln_stcor=F')
+            CALL ctl_stop( 'STOP',  'Ask for wave coupling but ln_cdgw=F, ln_sdw=F, ln_tauwoc=F, ln_stcor=F' )
       !drag coefficient read from wave model definable only with mfs bulk formulae and core 
          ELSEIF (ln_cdgw .AND. .NOT. ln_NCAR )       THEN       
              CALL ctl_stop( 'drag coefficient read from wave model definable only with NCAR and CORE bulk formulae')
@@ -462,7 +462,7 @@ CONTAINS
             zwnd_j(ji,jj) = (  sf(jp_wndj)%fnow(ji,jj,1) - rn_vfac * 0.5 * ( pv(ji  ,jj-1) + pv(ji,jj) )  )
          END DO
       END DO
-      CALL lbc_lnk_multi( zwnd_i, 'T', -1., zwnd_j, 'T', -1. )
+      CALL lbc_lnk_multi( 'sbcblk', zwnd_i, 'T', -1., zwnd_j, 'T', -1. )
       ! ... scalar wind ( = | U10m - U_oce | ) at T-point (masked)
       wndm(:,:) = SQRT(  zwnd_i(:,:) * zwnd_i(:,:)   &
          &             + zwnd_j(:,:) * zwnd_j(:,:)  ) * tmask(:,:,1)
@@ -547,7 +547,7 @@ CONTAINS
                &          * MAX(tmask(ji,jj,1),tmask(ji,jj+1,1))
          END DO
       END DO
-      CALL lbc_lnk_multi( utau, 'U', -1., vtau, 'V', -1. )
+      CALL lbc_lnk_multi( 'sbcblk', utau, 'U', -1., vtau, 'V', -1. )
 
       !  Turbulent fluxes over ocean
       ! -----------------------------
@@ -750,7 +750,7 @@ CONTAINS
    !!----------------------------------------------------------------------
    !!   blk_ice_tau : provide the air-ice stress
    !!   blk_ice_flx : provide the heat and mass fluxes at air-ice interface
-   !!   blk_ice_qcn : provide ice surface temperature and snow/ice conduction flux (emulating JULES coupler)
+   !!   blk_ice_qcn : provide ice surface temperature and snow/ice conduction flux (emulating conduction flux)
    !!   Cdn10_Lupkes2012 : Lupkes et al. (2012) air-ice drag
    !!   Cdn10_Lupkes2015 : Lupkes et al. (2015) air-ice drag 
    !!----------------------------------------------------------------------
@@ -789,7 +789,7 @@ CONTAINS
             wndm_ice(ji,jj) = SQRT( zwndi_t * zwndi_t + zwndj_t * zwndj_t ) * tmask(ji,jj,1)
          END DO
       END DO
-      CALL lbc_lnk( wndm_ice, 'T',  1. )
+      CALL lbc_lnk( 'sbcblk', wndm_ice, 'T',  1. )
       !
       ! Make ice-atm. drag dependent on ice concentration
       IF    ( ln_Cd_L12 ) THEN   ! calculate new drag from Lupkes(2012) equations
@@ -829,7 +829,7 @@ CONTAINS
 #endif
          END DO
       END DO
-      CALL lbc_lnk_multi( utau_ice, 'U', -1., vtau_ice, 'V', -1. )
+      CALL lbc_lnk_multi( 'sbcblk', utau_ice, 'U', -1., vtau_ice, 'V', -1. )
       !
       !
       IF(ln_ctl) THEN
@@ -994,13 +994,13 @@ CONTAINS
    END SUBROUTINE blk_ice_flx
    
 
-   SUBROUTINE blk_ice_qcn( k_virtual_itd, ptsu, ptb, phs, phi )
+   SUBROUTINE blk_ice_qcn( ld_virtual_itd, ptsu, ptb, phs, phi )
       !!---------------------------------------------------------------------
       !!                     ***  ROUTINE blk_ice_qcn  ***
       !!
       !! ** Purpose :   Compute surface temperature and snow/ice conduction flux
       !!                to force sea ice / snow thermodynamics
-      !!                in the case JULES coupler is emulated
+      !!                in the case conduction flux is emulated
       !!                
       !! ** Method  :   compute surface energy balance assuming neglecting heat storage
       !!                following the 0-layer Semtner (1976) approach
@@ -1009,7 +1009,7 @@ CONTAINS
       !!              - qcn_ice : surface inner conduction flux (W/m2)
       !!
       !!---------------------------------------------------------------------
-      INTEGER                   , INTENT(in   ) ::   k_virtual_itd   ! single-category option
+      LOGICAL                   , INTENT(in   ) ::   ld_virtual_itd  ! single-category option
       REAL(wp), DIMENSION(:,:,:), INTENT(inout) ::   ptsu            ! sea ice / snow surface temperature
       REAL(wp), DIMENSION(:,:)  , INTENT(in   ) ::   ptb             ! sea ice base temperature
       REAL(wp), DIMENSION(:,:,:), INTENT(in   ) ::   phs             ! snow thickness
@@ -1030,14 +1030,12 @@ CONTAINS
       ! -------------------------------------!
       !      I   Enhanced conduction factor  !
       ! -------------------------------------!
-      ! Emulates the enhancement of conduction by unresolved thin ice (k_virtual_itd = 1/2)
+      ! Emulates the enhancement of conduction by unresolved thin ice (ld_virtual_itd = T)
       ! Fichefet and Morales Maqueda, JGR 1997
       !
       zgfac(:,:,:) = 1._wp
       
-      SELECT CASE ( k_virtual_itd )
-      !
-      CASE ( 1 , 2 )
+      IF( ld_virtual_itd ) THEN
          !
          zfac  = 1._wp /  ( rn_cnd_s + rcnd_i )
          zfac2 = EXP(1._wp) * 0.5_wp * zepsilon
@@ -1052,7 +1050,7 @@ CONTAINS
             END DO
          END DO
          !      
-      END SELECT
+      ENDIF
       
       ! -------------------------------------------------------------!
       !      II   Surface temperature and conduction flux            !
@@ -1167,7 +1165,7 @@ CONTAINS
       !
       REAL(wp), DIMENSION(:,:), INTENT(inout) ::   Cd
       REAL(wp), DIMENSION(:,:), INTENT(inout) ::   Ch
-      REAL(wp), DIMENSION(jpi,jpj)            ::   zst, zqo_sat, zqi_sat
+      REAL(wp), DIMENSION(jpi,jpj)            ::   ztm_su, zst, zqo_sat, zqi_sat
       !
       ! ECHAM6 constants
       REAL(wp), PARAMETER ::   z0_skin_ice  = 0.69e-3_wp  ! Eq. 43 [m]
@@ -1195,6 +1193,11 @@ CONTAINS
       REAL(wp) ::   zCdn_form_tmp
       !!----------------------------------------------------------------------
 
+      ! mean temperature
+      WHERE( at_i_b(:,:) > 1.e-20 )   ;   ztm_su(:,:) = SUM( t_su(:,:,:) * a_i_b(:,:,:) , dim=3 ) / at_i_b(:,:)
+      ELSEWHERE                       ;   ztm_su(:,:) = rt0
+      ENDWHERE
+      
       ! Momentum Neutral Transfert Coefficients (should be a constant)
       zCdn_form_tmp = zce10 * ( LOG( 10._wp / z0_form_ice + 1._wp ) / LOG( rn_zu / z0_form_ice + 1._wp ) )**2   ! Eq. 40
       zCdn_skin_ice = ( vkarmn                                      / LOG( rn_zu / z0_skin_ice + 1._wp ) )**2   ! Eq. 7
@@ -1205,16 +1208,16 @@ CONTAINS
       zChn_skin_ice = vkarmn**2 / ( LOG( rn_zu / z0_ice + 1._wp ) * LOG( rn_zu * z1_alpha / z0_skin_ice + 1._wp ) )   ! Eq. 50 + Eq. 52 (cf Lupkes email for details)
      
       ! Atmospheric and Surface Variables
-      zst(:,:)     = sst_m(:,:) + rt0                                       ! convert SST from Celcius to Kelvin
-      zqo_sat(:,:) = 0.98_wp * q_sat( zst(:,:)  , sf(jp_slp)%fnow(:,:,1) )  ! saturation humidity over ocean [kg/kg]
-      zqi_sat(:,:) = 0.98_wp * q_sat( tm_su(:,:), sf(jp_slp)%fnow(:,:,1) )  ! saturation humidity over ice   [kg/kg]
+      zst(:,:)     = sst_m(:,:) + rt0                                        ! convert SST from Celcius to Kelvin
+      zqo_sat(:,:) = 0.98_wp * q_sat( zst(:,:)   , sf(jp_slp)%fnow(:,:,1) )  ! saturation humidity over ocean [kg/kg]
+      zqi_sat(:,:) = 0.98_wp * q_sat( ztm_su(:,:), sf(jp_slp)%fnow(:,:,1) )  ! saturation humidity over ice   [kg/kg]
       !
       DO jj = 2, jpjm1           ! reduced loop is necessary for reproducibility
          DO ji = fs_2, fs_jpim1
             ! Virtual potential temperature [K]
-            zthetav_os = zst(ji,jj)   * ( 1._wp + rctv0 * zqo_sat(ji,jj) )   ! over ocean
-            zthetav_is = tm_su(ji,jj) * ( 1._wp + rctv0 * zqi_sat(ji,jj) )   ! ocean ice
-            zthetav_zu = t_zu (ji,jj) * ( 1._wp + rctv0 * q_zu(ji,jj)    )   ! at zu
+            zthetav_os = zst(ji,jj)    * ( 1._wp + rctv0 * zqo_sat(ji,jj) )   ! over ocean
+            zthetav_is = ztm_su(ji,jj) * ( 1._wp + rctv0 * zqi_sat(ji,jj) )   ! ocean ice
+            zthetav_zu = t_zu (ji,jj)  * ( 1._wp + rctv0 * q_zu(ji,jj)    )   ! at zu
             
             ! Bulk Richardson Number (could use Ri_bulk function from aerobulk instead)
             zrib_o = grav / zthetav_os * ( zthetav_zu - zthetav_os ) * rn_zu / MAX( 0.5, wndm(ji,jj)     )**2   ! over ocean
@@ -1254,7 +1257,7 @@ CONTAINS
             !
          END DO
       END DO
-      CALL lbc_lnk_multi( Cd, 'T',  1., Ch, 'T', 1. )
+      CALL lbc_lnk_multi( 'sbcblk', Cd, 'T',  1., Ch, 'T', 1. )
       !
    END SUBROUTINE Cdn10_Lupkes2015
 

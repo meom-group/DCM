@@ -1,4 +1,3 @@
-#define ARGC
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !
 !     This routine is the driver for computing the addresses and weights 
@@ -90,8 +89,9 @@
                                  iunit   ! unit number for namelist file
 
       character (char_len) :: nm_in
-#if defined ARGC
+
       integer :: iargc
+      external iargc
 
       if (iargc() == 1) then
         call getarg(1, nm_in)
@@ -99,10 +99,7 @@
         write(6,*) 'need name of namelist file'
         stop
       endif
-#else
-      write(6,*) 'enter name for namelist file'
-      read(5,*) nm_in
-#endif
+
 
 !-----------------------------------------------------------------------
 !

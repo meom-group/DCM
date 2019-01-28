@@ -105,9 +105,13 @@ MODULE nemogcm
    CHARACTER(lc) ::   cform_ccc="( /, ';);););)', / ) "     ! flag for output listing
 #endif
 
+#if defined key_mpp_mpi
+   INCLUDE 'mpif.h'
+#endif
+
    !!----------------------------------------------------------------------
    !! NEMO/OCE 4.0 , NEMO Consortium (2018)
-   !! $Id: nemogcm.F90 10350 2018-11-21 14:12:15Z mathiot $
+   !! $Id: nemogcm.F90 10583 2019-01-25 15:18:45Z clem $
    !! Software governed by the CeCILL license (see ./LICENSE)
    !!----------------------------------------------------------------------
 CONTAINS
@@ -154,7 +158,7 @@ CONTAINS
 #endif
       ! check that all process are still there... If some process have an error,
       ! they will never enter in step and other processes will wait until the end of the cpu time!
-      IF( lk_mpp )   CALL mpp_max( nstop )
+      CALL mpp_max( 'nemogcm', nstop )
 
 #if defined key_drakkar
       IF(lwp) WRITE(numout,cform_bbb)   ! Flag BBBBBB
@@ -206,6 +210,7 @@ CONTAINS
       IF( .NOT.ln_diurnal_only ) THEN                 !==  Standard time-stepping  ==!
          !
          DO WHILE( istp <= nitend .AND. nstop == 0 )
+
 #if defined key_drakkar
             !{ DRAKKAR : print time step for run monitoring
            IF (lwp ) THEN
@@ -213,6 +218,11 @@ CONTAINS
              PRINT '(i8,1x,8i4)', istp, ivalue(:)   ! DRAKKAR code : print time step for run monitoring
            ENDIF
             !}
+#endif
+#if defined key_mpp_mpi
+            ncom_stp = istp
+            IF ( istp == ( nit000 + 1 ) ) elapsed_time = MPI_Wtime()
+            IF ( istp ==         nitend ) elapsed_time = MPI_Wtime() - elapsed_time
 #endif
             CALL stp        ( istp ) 
             istp = istp + 1
@@ -269,9 +279,15 @@ CONTAINS
       IF( lk_oasis     )            CALL cpl_finalize   ! end coupling and mpp communications with OASIS
 #else
       IF    ( lk_oasis ) THEN   ;   CALL cpl_finalize   ! end coupling and mpp communications with OASIS
-      ELSEIF( lk_mpp   ) THEN   ;   CALL mppstop        ! end mpp communications
+      ELSEIF( lk_mpp   ) THEN   ;   CALL mppstop( ldfinal = .TRUE. )   ! end mpp communications
       ENDIF
 #endif
+      !
+      IF(lwm) THEN
+         IF( nstop == 0 ) THEN   ;   STOP 0
+         ELSE                    ;   STOP 999
+         ENDIF
+      ENDIF
       !
    END SUBROUTINE nemo_gcm
 
@@ -286,8 +302,8 @@ CONTAINS
       INTEGER  ::   ios, ilocal_comm   ! local integers
       CHARACTER(len=120), DIMENSION(60) ::   cltxt, cltxt2, clnam
       !!
-      NAMELIST/namctl/ ln_ctl   , nn_print, nn_ictls, nn_ictle,   &
-         &             nn_isplt , nn_jsplt, nn_jctls, nn_jctle,   &
+      NAMELIST/namctl/ ln_ctl   , sn_cfctl, nn_print, nn_ictls, nn_ictle,   &
+         &             nn_isplt , nn_jsplt, nn_jctls, nn_jctle,             &
          &             ln_timing, ln_diacfl
       NAMELIST/namcfg/ ln_read_cfg, cn_domcfg, ln_closea, ln_write_cfg, cn_domcfg_out, ln_use_jattr
       !!----------------------------------------------------------------------
@@ -357,6 +373,18 @@ CONTAINS
 
       narea = narea + 1                                     ! mynode return the rank of proc (0 --> jpnij -1 )
 
+      IF( sn_cfctl%l_config ) THEN
+         ! Activate finer control of report outputs
+         ! optionally switch off output from selected areas (note this only
+         ! applies to output which does not involve global communications)
+         IF( ( narea < sn_cfctl%procmin .OR. narea > sn_cfctl%procmax  ) .OR. &
+           & ( MOD( narea - sn_cfctl%procmin, sn_cfctl%procincr ) /= 0 ) )    &
+           &   CALL nemo_set_cfctl( sn_cfctl, .FALSE., .FALSE. )
+      ELSE
+         ! Use ln_ctl to turn on or off all options.
+         CALL nemo_set_cfctl( sn_cfctl, ln_ctl, .TRUE. )
+      ENDIF
+
       lwm = (narea == 1)                                    ! control of output namelists
       lwp = (narea == 1) .OR. ln_ctl                        ! control of all listing output print
 
@@ -380,21 +408,38 @@ CONTAINS
          WRITE(numout,*) '   CNRS - NERC - Met OFFICE - MERCATOR-ocean - INGV - CMCC'
          WRITE(numout,*) '                       NEMO team'
          WRITE(numout,*) '            Ocean General Circulation Model'
-         WRITE(numout,*) '                NEMO version 4.0  (2017) '
+         WRITE(numout,*) '                NEMO version 4.0  (2019) '
          WRITE(numout,*)
+         WRITE(numout,*) "           ._      ._      ._      ._      ._    "
+         WRITE(numout,*) "       _.-._)`\_.-._)`\_.-._)`\_.-._)`\_.-._)`\_ "
          WRITE(numout,*)
+         WRITE(numout,*) "           o         _,           _,             "
+         WRITE(numout,*) "            o      .' (        .-' /             "
+         WRITE(numout,*) "           o     _/..._'.    .'   /              "
+         WRITE(numout,*) "      (    o .-'`      ` '-./  _.'               "
+         WRITE(numout,*) "       )    ( o)           ;= <_         (       "
+         WRITE(numout,*) "      (      '-.,\\__ __.-;`\   '.        )      "
+         WRITE(numout,*) "       )  )       \) |`\ \)  '.   \      (   (   "
+         WRITE(numout,*) "      (  (           \_/       '-._\      )   )  "
+         WRITE(numout,*) "       )  ) jgs                     `    (   (   "
+         WRITE(numout,*) "     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ "
+         WRITE(numout,*)
+         
          DO ji = 1, SIZE(cltxt)
-            IF( TRIM(cltxt (ji)) /= '' )   WRITE(numout,*) cltxt(ji)    ! control print of mynode
+            IF( TRIM(cltxt (ji)) /= '' )   WRITE(numout,*) TRIM(cltxt(ji))    ! control print of mynode
          END DO
          WRITE(numout,*)
          WRITE(numout,*)
          DO ji = 1, SIZE(cltxt2)
-            IF( TRIM(cltxt2(ji)) /= '' )   WRITE(numout,*) cltxt2(ji)   ! control print of domain size
+            IF( TRIM(cltxt2(ji)) /= '' )   WRITE(numout,*) TRIM(cltxt2(ji))   ! control print of domain size
          END DO
          !
          WRITE(numout,cform_aaa)                                        ! Flag AAAAAAA
          !
       ENDIF
+      ! open /dev/null file to be able to supress output write easily
+      CALL ctl_opn( numnul, '/dev/null', 'REPLACE', 'FORMATTED', 'SEQUENTIAL', -1, 6, .FALSE. )
+      !
       !                                      ! Domain decomposition
       CALL mpp_init                          ! MPP
 
@@ -516,6 +561,17 @@ CONTAINS
          WRITE(numout,*) '~~~~~~~~'
          WRITE(numout,*) '   Namelist namctl'
          WRITE(numout,*) '      run control (for debugging)     ln_ctl     = ', ln_ctl
+         WRITE(numout,*) '       finer control over o/p sn_cfctl%l_config  = ', sn_cfctl%l_config
+         WRITE(numout,*) '                              sn_cfctl%l_runstat = ', sn_cfctl%l_runstat
+         WRITE(numout,*) '                              sn_cfctl%l_trcstat = ', sn_cfctl%l_trcstat
+         WRITE(numout,*) '                              sn_cfctl%l_oceout  = ', sn_cfctl%l_oceout
+         WRITE(numout,*) '                              sn_cfctl%l_layout  = ', sn_cfctl%l_layout
+         WRITE(numout,*) '                              sn_cfctl%l_mppout  = ', sn_cfctl%l_mppout
+         WRITE(numout,*) '                              sn_cfctl%l_mpptop  = ', sn_cfctl%l_mpptop
+         WRITE(numout,*) '                              sn_cfctl%procmin   = ', sn_cfctl%procmin  
+         WRITE(numout,*) '                              sn_cfctl%procmax   = ', sn_cfctl%procmax  
+         WRITE(numout,*) '                              sn_cfctl%procincr  = ', sn_cfctl%procincr 
+         WRITE(numout,*) '                              sn_cfctl%ptimincr  = ', sn_cfctl%ptimincr 
          WRITE(numout,*) '      level of print                  nn_print   = ', nn_print
          WRITE(numout,*) '      Start i indice for SUM control  nn_ictls   = ', nn_ictls
          WRITE(numout,*) '      End i indice for SUM control    nn_ictle   = ', nn_ictle
@@ -587,7 +643,8 @@ CONTAINS
       ENDIF
       !
       IF( 1._wp /= SIGN(1._wp,-0._wp)  )   CALL ctl_stop( 'nemo_ctl: The intrinsec SIGN function follows f2003 standard.',  &
-         &                                                'Compile with key_nosignedzero enabled' )
+         &                                                'Compile with key_nosignedzero enabled:',   &
+         &                                                '--> add -Dkey_nosignedzero to the definition of %CPP in your arch file' )
       !
 #if defined key_agrif
       IF( ln_timing )   CALL ctl_stop( 'AGRIF not implemented with ln_timing = true')
@@ -656,10 +713,37 @@ CONTAINS
       ierr = ierr + diadct_alloc ()    ! 
 #endif 
       !
-      IF( lk_mpp    )   CALL mpp_sum( ierr )
+      CALL mpp_sum( 'nemogcm', ierr )
       IF( ierr /= 0 )   CALL ctl_stop( 'STOP', 'nemo_alloc: unable to allocate standard ocean arrays' )
       !
    END SUBROUTINE nemo_alloc
+
+   SUBROUTINE nemo_set_cfctl(sn_cfctl, setto, for_all )
+      !!----------------------------------------------------------------------
+      !!                     ***  ROUTINE nemo_set_cfctl  ***
+      !!
+      !! ** Purpose :   Set elements of the output control structure to setto.
+      !!                for_all should be .false. unless all areas are to be
+      !!                treated identically.
+      !!
+      !! ** Method  :   Note this routine can be used to switch on/off some
+      !!                types of output for selected areas but any output types
+      !!                that involve global communications (e.g. mpp_max, glob_sum)
+      !!                should be protected from selective switching by the
+      !!                for_all argument
+      !!----------------------------------------------------------------------
+      LOGICAL :: setto, for_all
+      TYPE (sn_ctl) :: sn_cfctl
+      !!----------------------------------------------------------------------
+      IF( for_all ) THEN
+         sn_cfctl%l_runstat = setto
+         sn_cfctl%l_trcstat = setto
+      ENDIF
+      sn_cfctl%l_oceout  = setto
+      sn_cfctl%l_layout  = setto
+      sn_cfctl%l_mppout  = setto
+      sn_cfctl%l_mpptop  = setto
+   END SUBROUTINE nemo_set_cfctl
 
    !!======================================================================
 END MODULE nemogcm

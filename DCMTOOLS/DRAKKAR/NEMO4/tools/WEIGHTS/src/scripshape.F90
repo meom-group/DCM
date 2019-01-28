@@ -26,6 +26,7 @@
       LOGICAL  :: around, verbose
 #if defined ARGC
       INTEGER(KIND=4) :: iargc
+      EXTERNAL :: iargc
 #endif
 
       CHARACTER(LEN=256) :: interp_file, output_file, name_file
