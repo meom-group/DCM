@@ -6,4 +6,6 @@
 # to be compiled out of the DCM structure.
 #  NEMO fcm files should indicate the xios root directory
 #svn co http://forge.ipsl.jussieu.fr/nemo/svn/NEMO/trunk -r 10089 NEMO4
-svn co http://forge.ipsl.jussieu.fr/nemo/svn/NEMO/trunk -r 10374 NEMO4
+#svn co http://forge.ipsl.jussieu.fr/nemo/svn/NEMO/trunk -r 10374 NEMO4
+# as of Jan 28, 2019 :
+svn co http://forge.ipsl.jussieu.fr/nemo/svn/NEMO/trunk -r 10587 NEMO4
