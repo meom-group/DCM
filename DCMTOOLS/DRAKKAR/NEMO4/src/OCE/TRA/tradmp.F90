@@ -412,7 +412,7 @@ CONTAINS
          IF( cdtype == 'TRC' ) cfile = 'damping.coeff.trc'
          IF( cdtype == 'DYN' ) cfile = 'damping.coeff.dyn'
          cfile = TRIM( cfile )
-         CALL iom_open  ( cfile, imask, ldwrt = .TRUE., kiolib = jprstlib )
+         CALL iom_open  ( cfile, imask, ldwrt = .TRUE. )
          CALL iom_rstput( 0, 0, imask, 'Resto', presto )
          CALL iom_close ( imask )
       ENDIF

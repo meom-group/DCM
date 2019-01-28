@@ -1320,8 +1320,8 @@ CONTAINS
       ENDIF
 !some final adjustments
       ! C1D case : always call lbc_lnk to replicate the central value over the whole 3X3 domain
-      IF( lk_c1d .AND. PRESENT(pv_r2d) )   CALL lbc_lnk( pv_r2d,'Z',1. )
-      IF( lk_c1d .AND. PRESENT(pv_r3d) )   CALL lbc_lnk( pv_r3d,'Z',1. )
+      IF( lk_c1d .AND. PRESENT(pv_r2d) )   CALL lbc_lnk( 'iom', pv_r2d,'Z',1. )
+      IF( lk_c1d .AND. PRESENT(pv_r3d) )   CALL lbc_lnk( 'iom', pv_r3d,'Z',1. )
 
       !--- Apply scale_factor and offset
       zscf = iom_file(kiomid)%scf(idvar)      ! scale factor

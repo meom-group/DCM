@@ -51,15 +51,17 @@
       cn_ocerst_out = "restart" !  suffix of ocean restart name (output)
       cn_ocerst_outdir = "<CN_DIRRST>"      !  directory in which to write output ocean restarts
    ln_iscpl    = .false.   !  cavity evolution forcing or coupling to ice sheet model
-   nn_istate   =      1      !  output the initial state (1) or not (0)
+   nn_istate   =       0   !  output the initial state (1) or not (0)
    ln_rst_list = .false.   !  output restarts at list of times using nn_stocklist (T) or at set frequency with nn_stock (F)
    nn_stock    =    0      !  frequency of creation of a restart file (modulo referenced to 1)
    nn_stocklist = 0,0,0,0,0,0,0,0,0,0 ! List of timesteps when a restart file is to be written
    nn_write    =    5475   !  frequency of write in the output file   (modulo referenced to nn_it000)
-   ln_mskland  = .false.     !  mask land points in NetCDF outputs (costly: + ~15%)
+   ln_mskland  = .false.   !  mask land points in NetCDF outputs (costly: + ~15%)
    ln_cfmeta   = .false.   !  output additional data to netCDF files required for compliance with the CF metadata standard
-   ln_clobber  = .true.     !  clobber (overwrite) an existing file
-   nn_chunksz  =       0     !  chunksize (bytes) for NetCDF file (works only with iom_nf90 routines)
+   ln_clobber  = .true.    !  clobber (overwrite) an existing file
+   nn_chunksz  =       0   !  chunksize (bytes) for NetCDF file (works only with iom_nf90 routines)
+   ln_xios_read = .FALSE.  !  use XIOS to read restart file (only for a single file restart)
+   nn_wxios = 0      !  use XIOS to write restart file 0 - no, 1 - single file output, 2 - multiple file output
 /
 !-----------------------------------------------------------------------
 &namdom        !   time and space domain
@@ -132,12 +134,14 @@
    ln_wd_il    = .false    !  T/F activation of iterative   limiter
    ln_wd_dl    = .false.   !  T/F activation of directional limiter
    ln_wd_dl_bc = .false.   !  T/F Directional limiteer Baroclinic option
-   ln_wd_dl_rmp = .false.   !  T/F Turn on directional limiter ramp
+   ln_wd_dl_rmp = .false.  !  T/F Turn on directional limiter ramp
    rn_wdmin0   =  0.30     !  depth at which WaD starts
    rn_wdmin1   =  0.2      !  Minimum wet depth on dried cells
    rn_wdmin2   =  0.0001   !  Tolerance of min wet depth on dried cells
    rn_wdld     =  2.5      !  Land elevation below which WaD is allowed
    nn_wdit     =   20      !  Max iterations for WaD limiter
+   rn_wd_sbcdep =  5.0     !  Depth at which to taper sbc fluxes
+   rn_wd_sbcfra =  0.999   !  Fraction of SBC fluxes at taper depth (Must be <1)
 /
 !-----------------------------------------------------------------------
 &namcrs        !   coarsened grid (for outputs and/or TOP)              (ln_crs =T)
@@ -1415,12 +1419,22 @@
    ln_nnogather =  .false.  !  activate code to avoid mpi_allgather use at the northfold
    jpni        =   8       !  jpni   number of processors following i (set automatically if < 1)
    jpnj        =   9       !  jpnj   number of processors following j (set automatically if < 1)
-   jpnij       =  55       !  jpnij  number of local domains (set automatically if < 1)
 /
 !-----------------------------------------------------------------------
 &namctl        !   Control prints                                       (default: OFF)
 !-----------------------------------------------------------------------
-   ln_ctl      = .false.   !  trends control print (expensive!)
+   ln_ctl = .FALSE.                 ! Toggle all report printing on/off (T/F); Ignored if sn_cfctl%l_config is T
+     sn_cfctl%l_config = .TRUE.     ! IF .true. then control which reports are written with the following
+       sn_cfctl%l_runstat = .FALSE. ! switches and which areas produce reports with the proc integer settings.
+       sn_cfctl%l_trcstat = .FALSE. ! The default settings for the proc integers should ensure
+       sn_cfctl%l_oceout  = .FALSE. ! that  all areas report.
+       sn_cfctl%l_layout  = .FALSE. !
+       sn_cfctl%l_mppout  = .FALSE. !
+       sn_cfctl%l_mpptop  = .FALSE. !
+       sn_cfctl%procmin   = 0       ! Minimum area number for reporting [default:0]
+       sn_cfctl%procmax   = 1000000 ! Maximum area number for reporting [default:1000000]
+       sn_cfctl%procincr  = 1       ! Increment for optional subsetting of areas [default:1]
+       sn_cfctl%ptimincr  = 1       ! Timestep increment for writing time step progress info
    nn_print    =    0      !  level of print (0 no extra print)
    nn_ictls    =    0      !  start i indice of control sum (use to compare mono versus
    nn_ictle    =    0      !  end   i indice of control sum        multi processor runs

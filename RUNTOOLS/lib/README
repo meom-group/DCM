@@ -1,0 +1,3 @@
+After cloning DCM you must create a link which makes function_4.sh point to the corresponding machine.
+
+For instance :  ln -sf function_4_occigen2.sh function_4.sh

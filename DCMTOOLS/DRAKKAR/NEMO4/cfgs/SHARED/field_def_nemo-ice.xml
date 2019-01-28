@@ -28,7 +28,8 @@
           <field id="icemask05"    long_name="Ice mask (0 if ice conc. lower than  5%, 1 otherwise)"   standard_name="sea_ice_mask05"                            unit="" />
           <field id="icemask15"    long_name="Ice mask (0 if ice conc. lower than 15%, 1 otherwise)"   standard_name="sea_ice_mask15"                            unit="" />
 	  <field id="icepres"      long_name="Fraction of time steps with sea ice"                     standard_name="sea_ice_time_fraction"                     unit="" />
-	  
+          <field id="fasticepres"  long_name="Fraction of time steps with landfast ice"                standard_name="fast_ice_time_fraction"                    unit="" />
+ 
 	  <!-- general fields -->
           <field id="icemass"      long_name="Sea-ice mass per area"                                   standard_name="sea_ice_amount"                            unit="kg/m2"/>
           <field id="snwmass"      long_name="Snow mass per area"                                      standard_name="liquid_water_content_of_surface_snow"      unit="kg/m2"/>
@@ -147,7 +148,7 @@
           <!-- heat fluxes associated with mass exchange -->
           <field id="hfxthd"       long_name="heat fluxes from ice-ocean mass exchange during thermo"       unit="W/m2" />
           <field id="hfxdyn"       long_name="heat fluxes from ice-ocean mass exchange during dynamic"      unit="W/m2" />
-          <field id="hfxres"       long_name="heat fluxes from ice-ocean mass exchange during resultant"    unit="W/m2" />
+          <field id="hfxres"       long_name="heat fluxes from undiagnosed processes"                       unit="W/m2" />
           <field id="hfxsub"       long_name="heat fluxes from ice-atm. mass exchange during sublimation"   unit="W/m2" />
           <field id="hfxspr"       long_name="heat fluxes from ice-atm. mass exchange during snow precip"   unit="W/m2" />
 

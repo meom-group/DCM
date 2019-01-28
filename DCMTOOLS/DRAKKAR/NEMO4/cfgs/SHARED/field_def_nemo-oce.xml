@@ -343,8 +343,6 @@
 	<field_group id="SBC_0D"  grid_ref="grid_1point" >
 	</field_group>
 
-
-
       </field_group> <!-- SBC -->
 
       <!-- U grid -->

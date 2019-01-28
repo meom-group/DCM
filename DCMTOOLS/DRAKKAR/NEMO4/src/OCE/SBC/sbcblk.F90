@@ -165,7 +165,7 @@ CONTAINS
       !!----------------------------------------------------------------------
       ALLOCATE( rmskkatax(jpi,jpj), rmskkatay(jpi,jpj),  STAT= sbc_kata_alloc )
       !
-      IF( lk_mpp             )   CALL mpp_sum ( sbc_kata_alloc )
+      CALL mpp_sum ( 'sbc_kata_alloc',sbc_kata_alloc )
       IF( sbc_kata_alloc > 0 )   CALL ctl_warn('sbc_kata_alloc: allocation of arrays failed')
       !
    END FUNCTION sbc_kata_alloc
