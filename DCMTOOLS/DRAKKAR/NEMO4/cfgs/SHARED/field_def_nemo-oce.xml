@@ -992,7 +992,7 @@
     </field_group>
 
     <field_group id="25h_grid_W" grid_ref="grid_W_3D" operation="instant">
-      <field id="vomecrtz25h"         name="k current 25h mean"                 unit="m/s"      />
+      <field id="vovecrtz25h"         name="k current 25h mean"                 unit="m/s"      />
       <field id="avt25h"              name="vertical diffusivity25h mean"       unit="m2/s" />
       <field id="avm25h"              name="vertical viscosity 25h mean"        unit="m2/s" />
       <field id="tke25h"              name="turbulent kinetic energy 25h mean" />

@@ -93,7 +93,7 @@
 &namdyn_rhg     !   Ice rheology
 !------------------------------------------------------------------------------
    ln_rhg_EVP       = .true.          !  EVP rheology
-      ln_aEVP       = .true.          !     adaptive rheology (Kimmritz et al. 2016 & 2017)
+      ln_aEVP       = .false.         !     adaptive rheology (Kimmritz et al. 2016 & 2017)
       rn_creepl     =   2.0e-9        !     creep limit [1/s]
       rn_ecc        =   2.0           !     eccentricity of the elliptical yield curve          
       nn_nevp       = 120             !     number of EVP subcycles                             
