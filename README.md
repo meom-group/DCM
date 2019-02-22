@@ -15,5 +15,5 @@ In July 2018, the anouncement of the major release NEMO_4.0 with deep modificati
    DCM is distributed under the CeCILL [license](License/DCMCeCILL.md).
 
 ## Using DCM :
-  Users are invited to read the [user manual](DOC/user_manual.md) to learn how to use DCM !
+  Users are invited to read the [user manual](DOC/dcm_user_manual.md) to learn how to use DCM !
 
