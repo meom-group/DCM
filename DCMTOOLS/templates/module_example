@@ -2,12 +2,12 @@
 ##
 ## modules modulefile
 ##
-## DCM_4.0beta
+## DCM_4.0
 ##
 ## This is an example to be copied and edited in a $HOME/modules directory
-## in the subdir DCM/ with the name  4.0beta
-## Hence, a module load DCM/4,0beta  will load the environment for using
-## DCM_4.0beta
+## in the subdir DCM/ with the name  4.0
+## Hence, a module load DCM/4.0  will load the environment for using
+## DCM_4.0
 ## If another DCM module is already loaded, use module unload before
 ## or module switch.
 ## $Id: module_example 425 2011-01-19 19:01:03Z forge $
@@ -26,20 +26,25 @@ conflict DCM
 conflict NEMODRAK
 
 # for Tcl script use only
-set             version         4.0beta
-set             alter_version   4.0beta
+set             version         4.0
 set             base_path       $::env(DEVGIT)/DCM_$version/DCMTOOLS
-set             alter_path      $::env(DEVGIT)/DCM_$alter_version/DCMTOOLS
 setenv          HOMEDCM         $base_path
-setenv          HOMEDCM2        $alter_path
-# RUNTOOLS is the associated RUNTOOL for this DCM version
-setenv          RUNTOOLS        $::env(DEVGIT)/DCM_$version/RUNTOOLS
 # REFDIR is the reference NEMO  directory
 setenv          REFDIR          ${base_path}/NEMOREF/NEMO4
-setenv          REFDIR2         ${alter_path}/NEMOREF/NEMO4
 # CUSDIR is the DRAKKAR customized directory
 setenv          CUSDIR          ${base_path}/DRAKKAR/NEMO4
+#### define the equivalent variables HOMEDCM2, REFDIR2, CUSDIR2 for an alternative version ( alter_version)
+####  This is used in advanced comparison tools
+set             alter_version   4.0
+set             alter_path      $::env(DEVGIT)/DCM_$alter_version/DCMTOOLS
+setenv          HOMEDCM2        $alter_path
+# REFDIR is the reference NEMO  directory
+setenv          REFDIR2         ${alter_path}/NEMOREF/NEMO4
+# CUSDIR is the DRAKKAR customized directory
 setenv          CUSDIR2         ${alter_path}/DRAKKAR/NEMO4
+
+# RUNTOOLS is the associated RUNTOOL for this DCM version
+setenv          RUNTOOLS        $::env(DEVGIT)/DCM_$version/RUNTOOLS
 
 prepend-path    PATH            ${base_path}/bin
 
