@@ -9,7 +9,7 @@ without argument, a clear *USAGE* message is displayed on the screen.
 
 ## [Getting Started](./dcm_getting_started.md)
 
-## [Using DCM for compilation and code maintenance](./dcm_compilation.md)
+## [Using DCM for compilation and code maintenance](./dcm_compil_manual.md)
 
-## [Using DCM at runtime](./dcm_runtime.md)
+## [Using DCM at runtime](./dcm_rt_manual.md)
 
