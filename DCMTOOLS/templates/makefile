@@ -2,12 +2,12 @@
 # ------------------------------------------
 # --- Variables to be customized by users ---
 
-# CONF = generic name of the configuration
+# CONFIG = generic name of the configuration
 # CASE   = case id for this variant
 # CASEREF = reference case for this configuration (a former case ID or 'none' )
 
 
-CONF = CONF
+CONFIG = CONF
 CASE = CASE
 CASEREF = 'none'
 
@@ -29,7 +29,7 @@ REFONLY = 'no'
 
 # MACHINE : name of architecture for compilation. Assume that a arch_${MACHINE}.fcm exists in ARCH 
 # to know available arch_xxx.fcm, use dcm_lsarch. You can edit/add your own arch_xxx.fcm in
-# CONF-CASE/ARCH/ directory
+# CONFIG-CASE/ARCH/ directory
 MACHINE = GCC_MEOM
 
 # NCOMPIL_PROC : number of procs to use for the compilation of the code.
@@ -59,11 +59,11 @@ REF = $(REFDIR)
 CUS = $(CUSDIR)
 LOC = $(PWD)
 
-CONFIG_DIR = $(UDIR)/CONFIG_$(CONF)/$(CONF)-$(CASE)
-COMPIL_DIR = $(CDIR)/W$(CONF)-$(CASE)
-WK =  $(COMPIL_DIR)/cfgs/$(CONF)-$(CASE)/WORK
+CONFIG_DIR = $(UDIR)/CONFIG_$(CONFIG)/$(CONFIG)-$(CASE)
+COMPIL_DIR = $(CDIR)/W$(CONFIG)-$(CASE)
+WK =  $(COMPIL_DIR)/cfgs/$(CONFIG)-$(CASE)/WORK
 
-CFILE := $(CONF)-$(CASE)
+CFILE := $(CONFIG)-$(CASE)
 
 # CFILE is used below for setting the ref_cfgs.txt file in TOOLS/COMPILE
 ifeq ($(OCE),'use')
@@ -98,10 +98,10 @@ endif
 compile: copyfile copynamelist
 	@echo ' '
 	@echo '... compile nemo  with fcm ...'
-	@cp CPP.keys $(PDIR)/RUN_$(CONF)/$(CONF)-$(CASE)/EXE/
-	@dcm_cpp2fcm > $(COMPIL_DIR)/cfgs/$(CONF)-$(CASE)/cpp_$(CONF)-$(CASE).fcm
-	@cd $(COMPIL_DIR) ; ./makenemo -r $(CONF)-$(CASE)  -j $(NCOMPIL_PROC)
-	@ln -sf $(COMPIL_DIR)/cfgs/$(CONF)-$(CASE)/BLD/bin/nemo.exe $(PDIR)/RUN_$(CONF)/$(CONF)-$(CASE)/EXE/nemo4.exe
+	@cp CPP.keys $(PDIR)/RUN_$(CONFIG)/$(CONFIG)-$(CASE)/EXE/
+	@dcm_cpp2fcm > $(COMPIL_DIR)/cfgs/$(CONFIG)-$(CASE)/cpp_$(CONFIG)-$(CASE).fcm
+	@cd $(COMPIL_DIR) ; ./makenemo -r $(CONFIG)-$(CASE)  -j $(NCOMPIL_PROC)
+	@ln -sf $(COMPIL_DIR)/cfgs/$(CONFIG)-$(CASE)/BLD/bin/nemo.exe $(PDIR)/RUN_$(CONFIG)/$(CONFIG)-$(CASE)/EXE/nemo4.exe
 
 
 copyfile:
@@ -110,23 +110,23 @@ ifeq ($(CASEREF),'none')
 else
 	@echo " CASEREF=$(CASEREF)"
   ifeq ($(OCE),'use') 
-	@-cp -f -p -R ../$(CONF)-$(CASEREF)/src/OCE/  $(COMPIL_DIR)/src/
-	@-cp -f -p -R ../$(CONF)-$(CASEREF)/ext/IOIPSL/*  $(COMPIL_DIR)/ext/IOIPSL/src/.
+	@-cp -f -p -R ../$(CONFIG)-$(CASEREF)/src/OCE/  $(COMPIL_DIR)/src/
+	@-cp -f -p -R ../$(CONFIG)-$(CASEREF)/ext/IOIPSL/*  $(COMPIL_DIR)/ext/IOIPSL/src/.
   endif
   ifeq ($(ICE),'use')
-	@-cp -f -p -R ../$(CONF)-$(CASEREF)/src/ICE/  $(COMPIL_DIR)/src
+	@-cp -f -p -R ../$(CONFIG)-$(CASEREF)/src/ICE/  $(COMPIL_DIR)/src
   endif
   ifeq ($(TOP),'use')
-	@-cp -f -p -R ../$(CONF)-$(CASEREF)/src/TOP/  $(COMPIL_DIR)/src
+	@-cp -f -p -R ../$(CONFIG)-$(CASEREF)/src/TOP/  $(COMPIL_DIR)/src
   endif
   ifeq ($(OFF),'use')
-	@-cp -f -p -R ../$(CONF)-$(CASEREF)/src/OFF/  $(COMPIL_DIR)/src
+	@-cp -f -p -R ../$(CONFIG)-$(CASEREF)/src/OFF/  $(COMPIL_DIR)/src
   endif
   ifeq ($(NST),'use')
-	@-cp -f -p -R ../$(CONF)-$(CASEREF)/src/NST/  $(COMPIL_DIR)/src
+	@-cp -f -p -R ../$(CONFIG)-$(CASEREF)/src/NST/  $(COMPIL_DIR)/src
   endif
   ifeq ($(SAS),'use')
-	@-cp -f -p -R ../$(CONF)-$(CASEREF)/src/SAS/  $(COMPIL_DIR)/src
+	@-cp -f -p -R ../$(CONFIG)-$(CASEREF)/src/SAS/  $(COMPIL_DIR)/src
   endif
 endif
 ifeq ($(OCE),'use') 
@@ -150,16 +150,16 @@ ifeq ($(SAS),'use')
 endif
 # MY_SRC, if used must be the last one to copy
 ifeq ($(MY_SRC),'use')
-	@-cp -f -p -R  $(CONFIG_DIR)/src/MY_SRC/ $(COMPIL_DIR)/cfgs/$(CONF)-$(CASE)/
+	@-cp -f -p -R  $(CONFIG_DIR)/src/MY_SRC/ $(COMPIL_DIR)/cfgs/$(CONFIG)-$(CASE)/
 endif
 	@-cp -f -p -R $(CONFIG_DIR)/arch $(COMPIL_DIR)
 	@gmake links
-#	@-rm -f $(COMPIL_DIR)/CONFIG/$(CONF)-$(CASE)/MY_SRC/*.[Ffh]90
-#	@-cp -f -p *.[Ffh]90 $(COMPIL_DIR)/CONFIG/$(CONF)-$(CASE)/MY_SRC/
+#	@-rm -f $(COMPIL_DIR)/CONFIG/$(CONFIG)-$(CASE)/MY_SRC/*.[Ffh]90
+#	@-cp -f -p *.[Ffh]90 $(COMPIL_DIR)/CONFIG/$(CONFIG)-$(CASE)/MY_SRC/
 
 copynamelist:
-#	@rcp $(CONFIG_DIR)/CTL/namelist_ice.NATL4 uqbar:/u/rech/cli/rcli099/$(CONF)-$(CASE)/namelist_ice.NATL4
-#	@rcp $(CONFIG_DIR)/CTL/namelist.NATL4 uqbar:/u/rech/cli/rcli099/$(CONF)-$(CASE)/namelist.NATL4
+#	@rcp $(CONFIG_DIR)/CTL/namelist_ice.NATL4 uqbar:/u/rech/cli/rcli099/$(CONFIG)-$(CASE)/namelist_ice.NATL4
+#	@rcp $(CONFIG_DIR)/CTL/namelist.NATL4 uqbar:/u/rech/cli/rcli099/$(CONFIG)-$(CASE)/namelist.NATL4
 
 
 ##############
@@ -193,7 +193,7 @@ else
 	-cp  $(PREV_CONFIG)/arch/* arch/
 	-cp  $(PREV_CONFIG)/CPP.keys .
 	-cp  $(PREV_CONFIG)/makefile makefile.prev
-	-cp  $(PREV_CONFIG)/nam* $(PDIR)/RUN_$(CONF)/$(CONF)-$(CASE)/CTL/
+	-cp  $(PREV_CONFIG)/nam* $(PDIR)/RUN_$(CONFIG)/$(CONFIG)-$(CASE)/CTL/
 endif
 	@gmake links
 
@@ -205,7 +205,7 @@ else
 	@echo "   copy a test case  configuration $(TEST_CASE) to local directory"
 	-cp -f -R $(REFDIR)/tests/$(TEST_CASE)/MY_SRC ./src/
 	-cat $(REFDIR)/tests/$(TEST_CASE)/cpp_$(TEST_CASE).fcm | awk '{for (i=2 ; i <= NF ; i++ ) print $$i }' > CPP.keys
-	-cat $(REFDIR)/tests/demo_cfgs.txt | grep $(TEST_CASE) | sed -e "s/$(TEST_CASE)/$(CONF)-$(CASE)/" > $(CONF)-$(CASE)_cfgs.txt
+	-cat $(REFDIR)/tests/demo_cfgs.txt | grep $(TEST_CASE) | sed -e "s/$(TEST_CASE)/$(CONFIG)-$(CASE)/" > $(CONFIG)-$(CASE)_cfgs.txt
 endif
 	@gmake links
 
@@ -217,7 +217,7 @@ else
 	@echo "   copy a nemo reference  case  configuration $(NEMO_REF_CASE) to local directory"
 	-cp -f -R $(REFDIR)/cfgs/$(NEMO_REF_CASE)/MY_SRC ./src/
 	-cat $(REFDIR)/cfgs/$(NEMO_REF_CASE)/cpp_$(NEMO_REF_CASE).fcm | awk '{for (i=2 ; i <= NF ; i++ ) print $$i }' > CPP.keys
-	-cat $(REFDIR)/cfgs/ref_cfgs.txt | grep $(NEMO_REF_CASE) | sed -e "s/$(NEMO_REF_CASE)/$(CONF)-$(CASE)/" > $(CONF)-$(CASE)_cfgs.txt
+	-cat $(REFDIR)/cfgs/ref_cfgs.txt | grep $(NEMO_REF_CASE) | sed -e "s/$(NEMO_REF_CASE)/$(CONFIG)-$(CASE)/" > $(CONFIG)-$(CASE)_cfgs.txt
 endif
 	@gmake links
 
@@ -230,8 +230,8 @@ copyref:
 	@cp -f -R $(REF)/ext $(COMPIL_DIR)/.
 	@cp -f -R $(REF)/mk  $(COMPIL_DIR)/.
 	@cp -f -R $(REF)/arch  $(COMPIL_DIR)/.
-	@mkdir -p $(COMPIL_DIR)/cfgs/$(CONF)-$(CASE)/EXPREF
-	@mkdir -p $(COMPIL_DIR)/cfgs/$(CONF)-$(CASE)/MY_SRC
+	@mkdir -p $(COMPIL_DIR)/cfgs/$(CONFIG)-$(CASE)/EXPREF
+	@mkdir -p $(COMPIL_DIR)/cfgs/$(CONFIG)-$(CASE)/MY_SRC
 	@cp -f -R $(REF)/makenemo $(COMPIL_DIR)/
 ifeq ($(REFONLY),'yes')
 	@echo "    WARNING : DRAKKAR version is not used "
@@ -243,22 +243,22 @@ else
 	@cp -f -R $(CUS)/arch  $(COMPIL_DIR)/.
 endif
 	@gmake copyfile
-ifeq ("$(wildcard $(CONF)-$(CASE)_cfgs.txt)","")
+ifeq ("$(wildcard $(CONFIG)-$(CASE)_cfgs.txt)","")
 	@echo $(CFILE) > $(COMPIL_DIR)/cfgs/ref_cfgs.txt
 else
-	@cp $(CONF)-$(CASE)_cfgs.txt $(COMPIL_DIR)/cfgs/ref_cfgs.txt
+	@cp $(CONFIG)-$(CASE)_cfgs.txt $(COMPIL_DIR)/cfgs/ref_cfgs.txt
 endif
-	@dcm_cpp2fcm > $(COMPIL_DIR)/cfgs/$(CONF)-$(CASE)/cpp_$(CONF)-$(CASE).fcm
-	@cd $(COMPIL_DIR) ;  ./makenemo -r $(CONF)-$(CASE) -m $(MACHINE)  -j0
+	@dcm_cpp2fcm > $(COMPIL_DIR)/cfgs/$(CONFIG)-$(CASE)/cpp_$(CONFIG)-$(CASE).fcm
+	@cd $(COMPIL_DIR) ;  ./makenemo -r $(CONFIG)-$(CASE) -m $(MACHINE)  -j0
 
 WORK:
 	@ln -s $(WK) WORK
 
 cleaninst:
-	@-\rm -rf $(CDIR)/W$(CONF)-$(CASE)/*
+	@-\rm -rf $(CDIR)/W$(CONFIG)-$(CASE)/*
 
 clean:
-	@cd $(COMPIL_DIR)/CONFIG/ ; ./makenemo -r $(CONF)-$(CASE) clean 
+	@cd $(COMPIL_DIR)/CONFIG/ ; ./makenemo -r $(CONFIG)-$(CASE) clean 
 
 # restore target is used to restore a SINGLE file from the 3levels references
 # must be invoked like : make restore RESTORE=OPA_SRC/SBC/ocesbc.F90  (for instance, with the full path relative to NEMO)
@@ -284,7 +284,7 @@ else
 	@echo "         ===> no CASEREF to take into account"
   else
 	@echo "    Restoring  $(RESTORE) from CASEREF=$(CASEREF) "
-	@-cp  ../$(CONF)-$(CASEREF)/$(RESTORE)  $(COMPIL_DIR)/$(RESTORE)
+	@-cp  ../$(CONFIG)-$(CASEREF)/$(RESTORE)  $(COMPIL_DIR)/$(RESTORE)
   endif
 endif
 
@@ -306,7 +306,7 @@ else
 	@echo "no CASEREF to take into account"
   else
 	@echo " CASEREF=$(CASEREF) "
-	@-cp  ../$(CONF)-$(CASEREF)/ext/$(RESTORE)  $(COMPIL_DIR)/ext/IOIPSL/src/$(RESTORE)
+	@-cp  ../$(CONFIG)-$(CASEREF)/ext/$(RESTORE)  $(COMPIL_DIR)/ext/IOIPSL/src/$(RESTORE)
   endif
 endif
 links:
