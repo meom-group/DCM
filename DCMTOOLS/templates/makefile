@@ -44,8 +44,7 @@ NST = 'notused'
 SAS = 'notused'
 MY_SRC='notused'
 # if set to 'check' maintain an 'install_history' file giving 
-#  the date of install and the svn info of $HOMEDCM
-SVN = 'no'
+#  the date of install and the git hash of $HOMEDCM
 GIT = 'check'
 
 # --- All customizations by users is done above this line ... Only experts touch things below ... ---
