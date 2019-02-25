@@ -2,7 +2,7 @@
 
   This document explains how to use DCM in order to create a model configuration,
 from code installation to compilation. It assumes that you have already
-installed an operational version of DCM, following instruction given in the
+installed an operational version of DCM, following instructions given in the
 ['Getting Started ' document](./dcm_getting_started.md).
 
 ## Important vocabulary and syntax:
@@ -15,7 +15,7 @@ installed an operational version of DCM, following instruction given in the
 
 #### File name convention:
 
-  Once the concept of `CONFIG` and `CASE` is well understood, all files produced by a model experiment will use the following rule for the name :
+  `CONFIG` and `CASE` are used throughout all the production process, in particular for naming model output files. The rule is as follows :
 
 ```
     <CONFIG>-<CASE>_<TAG>_<GRID>.nc
@@ -196,7 +196,7 @@ Where \<code.F90\> is a NEMO fortran module (for instance `nemogcm.F90`). This c
 
 ## Extra tricks :
 
-  * In some cases, you need to re-do an installation of the code in order to be sure of was is really in your WORK... This must be done by the sequence :  
+  * In some cases, you need to re-do an installation of the code in order to be sure of what is really in your WORK... This must be done by the sequence :  
 
     ```
     make cleaninst && make install
