@@ -2,7 +2,7 @@
 # This is an example of a CPP.keys file (using all the available CPP keys --not necesserary compatible together-- )
 # The syntax is quite free, line starting with # are comments and not taken into account
 # P_P, '=' and all '\' are not necessary (they are skipped in the process of building cpp.fcm file).
-# cpp2fcm.ksh  will be used in makefile in order to fit the fcm syntax. You can make a try of this
+# dcm_cpp2fcm  will be used in makefile in order to fit the fcm syntax. You can make a try of this
 # command (no arguments) in the current dir : it will display what would be cpp.fcm 
 
 key_agrif
