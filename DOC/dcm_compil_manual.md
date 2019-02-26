@@ -60,7 +60,7 @@ Note that using DCM and DRAKKAR convention, special characters such as `. - _` a
 
 ### 2. Editing templates in `$UDIR/CONFIG_<CONFIG>/<CONFIG>-<CASE>/` (aka *confcase* directory)
 
-  **From now onward, all actions must be performed while staying in the *confcase* directory.**
+  **From now onwards, all actions must be performed while staying in the *confcase* directory.**
 
 ```
    cd $UDIR/CONFIG_<CONFIG>/<CONFIG>-<CASE>/
