@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# $Id: function_4_curie.sh 301 2011-08-26 10:03:13Z molines $
+# $Id: function_4_irene 301 2011-08-26 10:03:13Z molines $
 ######################################################################################
-#    KSH script functions used below:
+#    bash script functions used below:
 ######################################################################################
 # copy()   
 # rcopy() 
@@ -61,7 +61,7 @@ core_rapatrie() {
            }
 # ---
 
-# rapatrie_res is normaly used for restart. On curie it is just the same as rapatrie
+# rapatrie_res is normaly used for restart. On irene it is just the same as rapatrie
 #  
 rapatrie_res() { 
       rapatrie  $1 $2 $3 $4
@@ -76,14 +76,14 @@ expatrie() {
 
 # expatrie_res  file $1 on the directory $2, with filename $3; copy $1 on local disk $4
 expatrie_res() {
-      echo expatrie_res does nothing on curie
+      echo expatrie_res does nothing on irene
                }
 # --- 
 
 # remove old restart files from the working directory
 # clean_res() { \rm  $P_R_DIR/*.$1.tar.* ; }
  clean_res() {
-      echo no restart cleaning on curie 
+      echo no restart cleaning on irene 
              }
 # --- 
 
@@ -259,7 +259,7 @@ save_nc () {
 
 # save_arch_file   file  archive_dir  # used when XIOS in use
 save_arch_file () {
-      echo nothing to do on curie ! > /dev/null
+      echo nothing to do on irene ! > /dev/null
                   }
 # --
 
@@ -275,7 +275,7 @@ lsrestart() {
 # Make batch header for submitted scripts
 # mk_batch_hdr  --name name --wallclock wallclock --account account --nodes nodes --cores cores --par --seq --option "options line" --help
 mk_batch_hdr() {
-   # initialization of variables on curie
+   # initialization of variables on irene
    name=''
    account=''
    wallclock=01:00:00
@@ -287,10 +287,10 @@ mk_batch_hdr() {
    option=''
    mk_batch_hdr_core $@     # pass all input argument to the core of the function (in function_all)
 
-# on curie wall clock must be passed in seconds ( need to translate argument given as hh:mm:ss )
+# on irene wall clock must be passed in seconds ( need to translate argument given as hh:mm:ss )
 wallclock_second=$( echo $wallclock | awk -F: '{print $1*3600 +$2*60 +$3}')
 
-#  Build header for curie 
+#  Build header for irene 
 cat << eof 
 #!/bin/bash
 #MSUB -r $name

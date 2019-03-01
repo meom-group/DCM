@@ -1,7 +1,7 @@
 #!/bin/bash
 # $Id: function_4_all.sh $
 ######################################################################################
-#    KSH script functions used below: valid for any machines 
+#    bash script functions used below: valid for any machines 
 ######################################################################################
 # VALID FOR ANY MACHINES
 #########################
