@@ -35,9 +35,45 @@
    mpirun -np $XIOS_CORES xios_server.exe : -np $NEMO4_CORES nemo4.exe 
 ```
 
-  Where `XIOS_CORES` is the number of cores dedicated to XIOS, and `NEMO4_CORES` is the number of cores dedicated to NEMO4. This statement launch 2 executables with the MPMD (Multiple Program Multiple Data) paradigm.
+  Where `XIOS_CORES` is the number of cores dedicated to XIOS, and `NEMO4_CORES` is the number of cores dedicated to NEMO4. This statement launch 2 executables with the MPMD (Multiple Program Multiple Data) paradigm. 
 
-  DCM's runtools consist of a collection of scripts, handling all the machinery required to produce a long simulation (chaining elementary segments of run), dealing with the model output, restart files etc...  Although it works even for simple configurations (such as test cases or idealized cases), it is primarily designed for complex realistic cases (which explains the relative complexity of the tools).
+  This general overview of how to run a NEMO configuration is valid even if you do not use DCM. DCM's runtools offer an environement for automatization of most of the task required for run production.  It is  a collection of scripts, handling all the machinery required to produce a long simulation (chaining elementary segments of run), dealing with the model output, restart files etc...  Although it works even for simple configurations (such as test cases or idealized cases), it is primarily designed for complex realistic cases (which explains the relative complexity of the tools).
 
+## Starting with DCM's runtools:
+  When you did `dcm_mkconfdir_local` for preparing your configuration, both `EXE` and `CTL` directories were created in `$PDIR/RUN_<CONFIG>/<CONFIG>-<CASE>`. In `EXE` you already know that you have `nemo4.exe` and `CPP.keys` for your configuration. All the management of the run will be done from `CTL` (standing for 'control'). 
 
-  This document explains how to run a model configuration, using DCM runtools.
+ 1. **Prepare the RUNTOOLS** ( to be done once ):
+    The main production script [`nemo4.sh`](../RUNTOOLS/lib/nemo4.sh), is valid for any system. The portability through different systems is achieved by using bash functions instead of machine dependent command. Let take an example to make it clear: for instance, the command used to submit a job on a batch system depends on the scheduler you are using; it may be `qsub`, `llsubmit`, `sbatch` .... In the main script a generic funcion `submit` is used in place of all the variant. Then `submit` is defined within a function file depending on the machine. Before using the main script, this specific function file is sourced so that the *ad hoc* command for submission will be used. 
+
+    In order to be fully generic, the name of the functions file is hard coded as `function_4.sh`. Hence, preparing the RUNTOOLS is limited to make a link pointing to the *ad hoc* functions file for your machine:
+    
+    ```
+    cd $RUNTOOLS/lib
+    ln -sf function-<MACHINE>.sh function_4.sh
+    ```
+
+    In the actual DCM, functions for HPC machines **ada**, **irene** and **occigen** are provided. 
+
+    For your purpose you may need to create the function file for your machine. Starting from one of the existing file is a good option. Most of the tricks are in `submit`, `runcode` and other job control statements. You can then contribute to the RUNTOOLS by sending your own `function_<MACHINE>.sh` file !
+
+ 1. **Create your run time environment** in `CTL`
+    
+    ```
+    cd $PDIR/RUN_<CONFIG>/<CONFIG>-<CASE>/CTL
+    dcm_mkctl -a
+    ```
+
+    This will copy template files to your `CTL`, with some automatic editing to fit the CONFIG and CASE names :
+    * `includefile.sh`
+    * `<CONFIG>-<CASE>_<MACHINE>.sh`
+    * `run_nemo.sh`
+
+ 1. Edit template files :
+ 1. Run the code
+
+    ```
+    ./run_nemo.sh
+    ```
+
+    And that's it !
+
