@@ -25,7 +25,7 @@ set -x
 # Environmemt and miscelaneous
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 login_node=node    # usefull on jade or an any machines requiring scp or ssh to access remote data
-MAILTO=<MAILTO>
+#MAILTO=<MAILTO>
 ACCOUNT=none       # account number for project submission (e.g curie, vayu ...)
 QUEUE=none         # queue name (e.g. curie )
 

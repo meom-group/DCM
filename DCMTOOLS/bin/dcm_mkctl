@@ -55,11 +55,6 @@ echo CASE   = $CASE
 
 INCLUDEFILE=includefile_4.sh
 
-if [ ! $MAILTO ] ; then 
-  echo MAILTO environement not set. Please set it either in your starting file or
-  echo 'n the command line [ example : export MAILTO=myself@mydomain]'
-  exit
-fi
 
 if [ ! $PDIR ] ; then
   echo PDIR environement not set. 
@@ -98,10 +93,10 @@ for f in CONFCASE_${machine}.sh $INCLUDEFILE run_nemo.sh ; do
    target=$CTLDIR/$g
    if [ $dryrun ] ; then
      
- $cmd   cat $f '|' sed -e "s/<CONFIG>/$CONFIG/g" -e "s/<CASE>/$CASE/g" -e "s/<MAILTO>/$MAILTO/g" \
+ $cmd   cat $f '|' sed -e "s/<CONFIG>/$CONFIG/g" -e "s/<CASE>/$CASE/g"  \
                      -e "s/<MACHINE>/$machine/"  "to "   $CTLDIR/$g
    else
- $cmd   cat $f | sed -e "s/<CONFIG>/$CONFIG/g" -e "s/<CASE>/$CASE/g" -e "s/<MAILTO>/$MAILTO/g" \
+ $cmd   cat $f | sed -e "s/<CONFIG>/$CONFIG/g" -e "s/<CASE>/$CASE/g"  \
                      -e "s/<MACHINE>/$machine/"  > $CTLDIR/$g
    fi
 done
