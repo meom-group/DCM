@@ -98,9 +98,13 @@ done
 cd $CTLDIR
 
   $cmd mv includefile_4.sh includefile.sh  
+  $cmd cat << eof > ${CONFIG}-${CASE}.db
+1 1 100
+eof
 
 echo runtools script have been copied to $CTLDIR
 echo Please edit and check carefully the following scripts :
 echo "        - ${CONFIG}-${CASE}_${machine}.sh"
 echo "        - includefile.sh"
 echo "        - run_nemo.sh"
+echo "        - ${CONFIG}-${CASE}.db"
