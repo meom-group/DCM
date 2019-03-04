@@ -76,6 +76,16 @@ fi
 CTLDIR=$PDIR/RUN_${CONFIG}/$CONFCASE/CTL
 mkdir -p $CTLDIR
 
+# add security check : do nothing if CTL is not empty !
+cd $CTLDIR
+nfile=$( wc -l )
+if [ $nfile != 0 ] ; then
+   echo dcm_mkctl can be used only for EMPTY CTL directories !
+   usage
+   exit !
+fi
+cd -
+
 cd $RUNTOOLS/templates
 
 for f in CONFCASE_${machine}.sh $INCLUDEFILE run_nemo.sh ; do
