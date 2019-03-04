@@ -11,17 +11,14 @@ usage() {
             echo 'in order to fit your needs !'
             exit 1   
         }
-
-while getopts :hnam:c: opt ; do
+CONFCASE=''
+while getopts :hc: opt ; do
    case $opt in 
      (h) usage ;;
      (c) CONFCASE=${OPTARG} ;;
-     (*) ;;
+     (*) usage ;;
     esac
 done
-shift $(($OPTIND-1))
-
-if [ ! $CONFCASE ] ; then usage ; fi 
 
 CONFIG=${CONFCASE%-*}
 CASE=${CONFCASE#*-}
@@ -49,9 +46,9 @@ NEWCASE=${NEWCONFCASE#*-}
 
 cp $PDIR/RUN_${CONFIG}/${CONFIG}-${CASE}/CTL/${CONFIG}-${CASE}* ./
 cp $PDIR/RUN_${CONFIG}/${CONFIG}-${CASE}/CTL/*.xml ./
-cp $PDIR/RUN_${CONFIG}/${CONFIG}-${CASE}/CTL/run_nemo.sh ./
+cp $PDIR/RUN_${CONFIG}/${CONFIG}-${CASE}/CTL/run_nemo* ./
 cp $PDIR/RUN_${CONFIG}/${CONFIG}-${CASE}/CTL/namelist* ./
-cp $PDIR/RUN_${CONFIG}/${CONFIG}-${CASE}/CTL/includefile.sh ./
+cp $PDIR/RUN_${CONFIG}/${CONFIG}-${CASE}/CTL/includefile.* ./
 
 if [ $NEWCONFIG != $CONFIG ] ; then
   dcm_chconfig $CONFIG $NEWCONFIG
