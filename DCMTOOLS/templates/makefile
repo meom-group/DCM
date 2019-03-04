@@ -7,8 +7,8 @@
 # CASEREF = reference case for this configuration (a former case ID or 'none' )
 
 
-CONFIG = CONF
-CASE = CASE
+CONFIG = <CONFIG>
+CASE = <CASE>
 CASEREF = 'none'
 
 # PREV_CONFIG  (type the full path or 'none' )
@@ -335,6 +335,19 @@ ifeq ($(GIT),'check')
 	@echo install_history updated
 endif
 
+ctl:
+	@dcm_mkctl -c $(CONFIG)-$(CASE)
+	@mkdir -p $(PDIR)/RUN_$(CONFIG)/$(CONFIG)-$(CASE)/CTL/XML
+	@mkdir -p $(PDIR)/RUN_$(CONFIG)/$(CONFIG)-$(CASE)/CTL/NAMELIST
+ifeq ($(REFONLY),'yes')
+	@cd $(PDIR)/RUN_$(CONFIG)/$(CONFIG)-$(CASE)/CTL/XML ; cp $(HOMEDCM)/NEMOREF/NEMO4/cfgs/SHARED/*xml ./
+	@cd $(PDIR)/RUN_$(CONFIG)/$(CONFIG)-$(CASE)/CTL/NAMELIST ; cp $(HOMEDCM)/NEMOREF/NEMO4/cfgs/SHARED/namelist* ./
+else
+	@cd $(PDIR)/RUN_$(CONFIG)/$(CONFIG)-$(CASE)/CTL/XML ; cp $(HOMEDCM)/NEMOREF/NEMO4/cfgs/SHARED/*xml ./
+	@cd $(PDIR)/RUN_$(CONFIG)/$(CONFIG)-$(CASE)/CTL/XML ; cp $(HOMEDCM)/DRAKKAR/NEMO4/cfgs/SHARED/*xml ./
+	@cd $(PDIR)/RUN_$(CONFIG)/$(CONFIG)-$(CASE)/CTL/NAMELIST ; cp $(HOMEDCM)/NEMOREF/NEMO4/cfgs/SHARED/namelist* ./
+	@cd $(PDIR)/RUN_$(CONFIG)/$(CONFIG)-$(CASE)/CTL/NAMELIST ; cp $(HOMEDCM)/DRAKKAR/NEMO4/cfgs/SHARED/namelist* ./
+endif
 
 cleansvn:
 	@-find . -name ".svn" -exec \rm -rf {} \;
