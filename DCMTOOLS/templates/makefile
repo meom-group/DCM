@@ -367,4 +367,7 @@ help:
 	@echo  - make cleaninst     : remove previous installation completly
 	@echo  - make clean         : perform a makenemo clean in $(COMPIL_DIR)/CONFIG
 	@echo  - make links   : redo links in the local directory
+	@echo  - make ctl     : create and populates the $(PDIR)/RUN_$(CONFIG)/$(CONFIG)-$(CASE)/CTL directory
+	@echo "                   " - copy reference namelists in CTL/NAMELIST
+	@echo "                   " - copy reference xml files in CTL/XML
 	@echo  - make help    : display this short help message
