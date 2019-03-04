@@ -1,0 +1,67 @@
+#!/bin/bash
+#  dcm_clone_ctl script :
+#  This script is used to clone an existing CTL into the local one
+#
+usage() {
+            echo 'usage : dcm_clone_clt [-h]  -c from_CONFIG-CASE'
+            echo '   This script must be launch from the new empty CTL. It will'
+            echo ' copy the relevant files from 'from_CONFIG-CASE' to this directory.'
+            echo ' CONFIG and CASE will be changed to the new config.'
+            echo '  After this cloning, it is your responsability to edit the files'
+            echo 'in order to fit your needs !'
+            exit 1   
+        }
+
+while getopts :hnam:c: opt ; do
+   case $opt in 
+     (h) usage ;;
+     (c) CONFCASE=${OPTARG} ;;
+     (*) ;;
+    esac
+done
+shift $(($OPTIND-1))
+
+if [ ! $CONFCASE ] ; then usage ; fi 
+
+CONFIG=${CONFCASE%-*}
+CASE=${CONFCASE#*-}
+
+echo ' Cloning  CTL from : '
+echo "     " CONFIG = $CONFIG
+echo "     " CASE   = $CASE
+
+# Basic check :
+here=$(basename $(pwd) )
+if [ $here != CTL ] ; then
+   echo you MUST run this script in an empty CTL directory !
+   exit 1
+fi
+
+nfile=$( ls | wc -l)
+if [ $nfile != 0 ] ; then
+   echo you MUST run this script in an empty CTL directory !
+   exit 1
+fi
+tmp=$(pwd)
+NEWCONFCASE=$(basename $(dirname $tmp) )
+NEWCONFIG=${NEWCONFCASE%-*}
+NEWCASE=${NEWCONFCASE#*-}
+
+cp $PDIR/RUN_${CONFIG}/${CONFIG}-${CASE}/CTL/${CONFIG}-${CASE}* ./
+cp $PDIR/RUN_${CONFIG}/${CONFIG}-${CASE}/CTL/*.xml ./
+cp $PDIR/RUN_${CONFIG}/${CONFIG}-${CASE}/CTL/run_nemo.sh ./
+cp $PDIR/RUN_${CONFIG}/${CONFIG}-${CASE}/CTL/namelist* ./
+cp $PDIR/RUN_${CONFIG}/${CONFIG}-${CASE}/CTL/includefile.sh ./
+
+if [ $NEWCONFIG != $CONFIG ] ; then
+  dcm_chconfig $CONFIG $NEWCONFIG
+fi
+
+  dcm_chcase $CASE $NEWCASE
+
+
+
+
+
+
+
