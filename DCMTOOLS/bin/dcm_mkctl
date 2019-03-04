@@ -78,7 +78,7 @@ mkdir -p $CTLDIR
 
 # add security check : do nothing if CTL is not empty !
 cd $CTLDIR
-nfile=$( wc -l )
+nfile=$( ls | wc -l )
 if [ $nfile != 0 ] ; then
    echo dcm_mkctl can be used only for EMPTY CTL directories !
    usage
