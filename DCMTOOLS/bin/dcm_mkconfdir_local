@@ -195,9 +195,9 @@ fi
 
 if [ ! -f makefile ] ;  then
   \cp $HOMEDCM/templates/makefile .
-  sed -e "s/CONF = CONF/CONF = $CONFIG/" makefile > tmp
+  sed -e "s/<CONFIG>/$CONFIG/" makefile > tmp
   \mv -f tmp makefile
-  sed -e "s/CASE = CASE/CASE = $CASE/" makefile > tmp
+  sed -e "s/<CASE>/$CASE/" makefile > tmp
   \mv -f tmp makefile
 fi
 
