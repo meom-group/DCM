@@ -5,53 +5,53 @@
 # action in .bashrc/.
 # Of course, without the modules, the file must be edited if you change the version
 # of DCM ( and this is very tedious). I recommend the use of modules !
+# for memory:
+# export WORKDIR=????   # if not set by the system
+# export STOREDIR=????  # Access to archiving system
 ####################################################
 #
 #       Drakkar environment
 ####################################################
 # HOMEDCM is the directory where the DCM resides
 # in general  it points to a unique directory for each machine
-#  on rhodes
+#
 export HOMEDCM=/some/git/repository/DCM_4.0/DCMTOOLS
 # RUNTOOLS point to the RUNTOOLS directory assiociated with this level of DCM
 export RUNTOOLS=/some/git/repository/DCM_4.0/RUNTOOLS
 
 # REFDIR is the reference NEMO  directory
-#  on zahir
+# 
 export REFDIR=$HOMEDCM/NEMOREF/NEMO4
 
 # CUSDIR is the DRAKKAR customized directory
-#     holding the permanent customized files not yet under cvs, but valid
-#     for all the users (in the modipsl tree) will overwrite the REF during install
-#  on zahir
+#  
 export CUSDIR=$HOMEDCM/DRAKKAR/NEMO4
 
-export PATH=${PATH}:$HOMEDCM/TOOLS
+export PATH=${PATH}:$HOMEDCM/bin
 #
-##############################################
-
-## The following is to be done  always ( module/no modules)
-#
-# UDIR is the user directory (usually home)
+########################################################################
+# UDIR is the user directory (usually under $HOME)
 #  where the CONFIG_xxx directories and source files reside.
-#  on rhodes or zahir
-export UDIR=$HOME
+export UDIR=$HOME/CONFIGS
 
 # CDIR is the directory for compilation.
-#   On zahir, we choose CDIR  as $WORKDIR.
+#   for a given CONFIG-CASE, compilation will use $CDIR/W<CONFIG>-<CASE>/
 export CDIR=$WORKDIR
 
-#[ If DDIR not defined, CDIR is used in place 
+#[ If DDIR not defined, WORKDIR is used in place 
 # DDIR is the directory where data ( -S -MEAN -R -I ) will be stored
-#   On zahir, we choose DDIR  as $WORKDIR.
+# 
 export DDIR=$WORKDIR
 #]
 
 # PDIR is the HOME directory of the Production Machine.
-#   On zahir, it is set to something like /homegpfs/rech/cli/rcli002
-export PDIR=$HOME
+#   
+export PDIR=$HOME/RUNS
 
-# SDIR is the HOME directory of the Storage machine.
-#  On zahir, it is set to something like /u/rech/cli/rcli002
-export SDIR=/u/rech/cli/rcli099
+# SDIR is the HOME directory of the Storage machine (independent machine) or
+#       an NFS link to your archiving system
+#  
+export SDIR=$STOREDIR
 
+#
+##############################################

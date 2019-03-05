@@ -3,35 +3,40 @@
 # to set up your environement for using DCM4.
 # This version assumes that you are using modules and that you already
 # set up the module file for DCM ( see an example in templates/module_example
+
+# for memory:
+# export WORKDIR=????   # if not set by the system
+# export STOREDIR=????  # Access to archiving system
 ####################################################
 #
 #       Drakkar environment
 ####################################################
+# Module set up :
 export MODULEPATH=$HOME/modules:$MODULEPATH
 module load DCM
 #
-# UDIR is the user directory (usually home)
+# UDIR is the user directory (usually under $HOME)
 #  where the CONFIG_xxx directories and source files reside.
-#  on rhodes or zahir
-export UDIR=$HOME
+export UDIR=$HOME/CONFIGS
 
 # CDIR is the directory for compilation.
-#   On zahir, we choose CDIR  as $WORKDIR.
+#   for a given CONFIG-CASE, compilation will use $CDIR/W<CONFIG>-<CASE>/
 export CDIR=$WORKDIR
 
-#[ If DDIR not defined, CDIR is used in place 
+#[ If DDIR not defined, WORKDIR is used in place 
 # DDIR is the directory where data ( -S -MEAN -R -I ) will be stored
-#   On zahir, we choose DDIR  as $WORKDIR.
+# 
 export DDIR=$WORKDIR
 #]
 
 # PDIR is the HOME directory of the Production Machine.
-#   On zahir, it is set to something like /homegpfs/rech/cli/rcli002
-export PDIR=$HOME
+#   
+export PDIR=$HOME/RUNS
 
-# SDIR is the HOME directory of the Storage machine.
-#  On zahir, it is set to something like /u/rech/cli/rcli002
-export SDIR=/u/rech/cli/rcli099
+# SDIR is the HOME directory of the Storage machine (independent machine) or
+#       an NFS link to your archiving system
+#  
+export SDIR=$STOREDIR
 
 #
 ##############################################
