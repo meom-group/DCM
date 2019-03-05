@@ -20,6 +20,10 @@ while getopts :hc: opt ; do
     esac
 done
 
+if [ ! $CONFCASE ] ; then
+   usage
+fi
+
 CONFIG=${CONFCASE%-*}
 CASE=${CONFCASE#*-}
 
