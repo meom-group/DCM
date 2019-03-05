@@ -43,6 +43,7 @@
   When you did `dcm_mkconfdir_local` for preparing your configuration, both `EXE` and `CTL` directories were created in `$PDIR/RUN_<CONFIG>/<CONFIG>-<CASE>`. In `EXE` you already know that you have `nemo4.exe` and `CPP.keys` for your configuration. All the management of the run will be done from `CTL` (standing for 'control'). 
 
  1. **Prepare the RUNTOOLS** ( to be done once ):
+
     The main production script [`nemo4.sh`](../RUNTOOLS/lib/nemo4.sh), is valid for any system. The portability through different systems is achieved by using bash functions instead of machine dependent command. Let take an example to make it clear: for instance, the command used to submit a job on a batch system depends on the scheduler you are using; it may be `qsub`, `llsubmit`, `sbatch` .... In the main script a generic funcion `submit` is used in place of all the variant. Then `submit` is defined within a function file depending on the machine. Before using the main script, this specific function file is sourced so that the *ad hoc* command for submission will be used. 
 
     In order to be fully generic, the name of the functions file is hard coded as `function_4.sh`. Hence, preparing the RUNTOOLS is limited to make a link pointing to the *ad hoc* functions file for your machine:
@@ -57,16 +58,20 @@
     For your purpose you may need to create the function file for your machine. Starting from one of the existing file is a good option. Most of the tricks are in `submit`, `runcode` and other job control statements. You can then contribute to the RUNTOOLS by sending your own `function_<MACHINE>.sh` file !
 
  1. **Create your run time environment** in `CTL`
-    
+
+    As already mentionned, all the management of the runs must be done in the corresponding `CTL` directory. Hence, the very first step is to populate it with relevant files. This can be done easily from the *confcase* directory (`$UDIR/CONFIF_<CONFIG>/<CONFIG>-<CASE>/`) with the single command:
+
     ```
-    cd $PDIR/RUN_<CONFIG>/<CONFIG>-<CASE>/CTL
-    dcm_mkctl -a
+    make ctl
     ```
 
     This will copy template files to your `CTL`, with some automatic editing to fit the CONFIG and CASE names :
     * `includefile.sh`
     * `<CONFIG>-<CASE>_<MACHINE>.sh`
     * `run_nemo.sh`
+    * `<CONFIG>-<CASE>.db`
+    * `NAMELIST/namelist*`
+    * `XML/*.xml`
 
  1. Edit template files :
  1. Run the code
@@ -76,4 +81,17 @@
     ```
 
     And that's it !
+ 1. Post processing the output : see [dedicated manual](./dcm_post_process.md) describing hints for post processing
 
+## Cloning an existing configuration:
+
+  It happens very often that a new configuration is built to make sensitivity experiments with respect to some references.  For this particular case, DCM offers a very easy procedure to clone the CTL of an existing running configuratin (as it exists for the code itself). 
+> Note this procedure is not limited to sensitivity experiment, you can clone a completly different configuration, but of course then you need to adjust the parameters in the namelists and in the xml files.
+
+```
+   cd <new empty CTL>
+   dcm_clone_ctl -c <CONFIG>-<CASE>
+```
+
+  With this command you will populate the new empty CTL with a valid set of files identical to the ones for \<CONFIG\>-\<CASE\>, but the the correct names.  Then you need to adjust the namelists, and possibly the xml files. 
+> Note that if the CTL where you want to clone is not empty, no cloning will be done (in order to preserve possibly important settings!).
