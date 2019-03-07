@@ -1,6 +1,3 @@
-## CAUTION :
-**This repository is under construction. Do not use or fork until this CAUTION message disappears !**
-
 # DCM
 Drakkar Config Manager
 
