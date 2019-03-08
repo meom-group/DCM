@@ -13,3 +13,5 @@ without argument, a clear *USAGE* message is displayed on the screen.
 
 ## [Using DCM at runtime](./dcm_rt_manual.md)
 
+## [DCM toolkit](./dcm_toolkit.md) helping/monitoring run production.
+
