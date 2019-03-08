@@ -1,0 +1,50 @@
+#!/bin/bash
+# dcmtk_mvmo2s : move mooring to S directory
+# in $DDIR/CONFIG/CONFCASE-S/freq/MOORINGS/YEAR
+usage() {
+   echo "USAGE : $0 extension"
+   echo "   This script rename the mooring files to the corresponding -S directory"
+   echo "   Must be used in a CTL directory "
+   exit 0
+        }
+if [ $# = 0 ] ; then
+   usage
+fi
+ext=$1
+
+dir=$( basename $(pwd) )
+if [ $dir != CTL ] ; then 
+  usage
+fi
+# CTL eg: /home/molinesj/RUNS/RUN_NATL60/NATL60-MJM151/CTL
+ctlCONFCASE=$( basename $( dirname $(pwd) ) )
+
+moordir=$DDIR/${ctlCONFCASE}-MOORINGS.$ext
+
+if [ ! -d $moordir ] ; then 
+  echo $moordir does not exist ....
+  exit 1
+fi
+
+cd $moordir
+for cf_in in ${ctlCONFCASE}*moor*.nc ; do
+   # eg: cf_in='NATL60-MJM151_1h_20060624_20060708_moorFC_20060708-20060708.nc'
+
+   CONFCASE=$( echo $cf_in | awk -F_ '{print $1}')
+   CONFIG=${CONFCASE%-*}
+   freq=$( echo $cf_in | awk -F_ '{print $2}')
+   moor=$( echo $cf_in | awk -F_ '{print $5}')
+   ndastp=$( echo $cf_in | awk -F_ '{print $6}')
+   ndastp=${ndastp%-*}
+   year=${ndastp:0:4}
+   tag=y${ndastp:0:4}m${ndastp:4:2}d${ndastp:6:2}
+
+   cf_out=${CONFCASE}_${tag}.${freq}_${moor}.nc
+   out_dir=$DDIR/${CONFIG}/${CONFCASE}-S/$freq/MOORINGS/$year
+   mkdir -p $out_dir
+
+   cp $cf_in $out_dir/$cf_out
+done
+# back to CTL
+cd -
+

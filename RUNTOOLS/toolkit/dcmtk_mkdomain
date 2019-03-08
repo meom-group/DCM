@@ -1,0 +1,44 @@
+#!/bin/bash
+
+#set -vx
+
+usage() {
+      echo $(basename $0 ) xmin xmax ymin ymax -d DOM [-c coordinates_file] [ -h ]
+      echo "      " print the xml lines do be inserted in domain_ref.xml file
+      echo "   This version is for XIOS1 : deprecated and obsolete"
+      echo "   New version to be written for XIOS2 "
+      exit 0
+        }
+
+if [ $# = 0 ]  ; then
+   usage
+fi
+
+xmin=$1 ; shift
+xmax=$1 ; shift
+ymin=$1 ; shift
+ymax=$1 ; shift
+
+
+coord=coordinates.nc
+while getopts :hc:d: opt; do
+   case $opt in
+     (h) usage ;;
+     (c) coord=${OPTARG} ;;
+     (d) dom=${OPTARG} ;;
+  esac
+done
+
+
+ tmp=$(cdffindij $xmin $xmax $ymin $ymax -c $coord -p T  | tail -2 | head -1 )
+ imin=$( echo $tmp | awk '{print $1}' )
+ imax=$( echo $tmp | awk '{print $2}' )
+ jmin=$( echo $tmp | awk '{print $3}' )
+ jmax=$( echo $tmp | awk '{print $4}' )
+ ni=$(( imax - imin + 1 ))
+ nj=$(( jmax - jmin + 1 ))
+
+echo '<domain id="'$dom'T" zoom_ibegin="'$imin'" zoom_jbegin="'$jmin'" zoom_ni="'$ni'" zoom_nj="'$nj'"  /> '
+echo '<domain id="'$dom'U" zoom_ibegin="'$imin'" zoom_jbegin="'$jmin'" zoom_ni="'$ni'" zoom_nj="'$nj'"  /> '
+echo '<domain id="'$dom'V" zoom_ibegin="'$imin'" zoom_jbegin="'$jmin'" zoom_ni="'$ni'" zoom_nj="'$nj'"  /> '
+echo '<domain id="'$dom'W" zoom_ibegin="'$imin'" zoom_jbegin="'$jmin'" zoom_ni="'$ni'" zoom_nj="'$nj'"  /> '

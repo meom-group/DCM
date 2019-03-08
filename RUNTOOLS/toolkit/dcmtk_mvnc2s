@@ -1,0 +1,153 @@
+#!/bin/bash
+# $Id: dcmtk_mvnc2s 740 2014-12-20 23:25:21Z molines $
+################################################
+# this script is used to migrate netcdf files from the directory where they are 
+# rebuilt after a run to the storage directory CONFCASE-S
+# The command must be issued from either a CONFCASE-DIMGPROC.xx or a CONFCASE-XIOS.xx directory 
+################################################
+#set -vx
+############## FUNCTIONS #######################
+usage() {
+     echo USAGE : dcmtk_mvnc2s [-h ]
+     echo "       This script is used to move rebuilt nc file to the CONFCASE-S directory"
+     echo "       It is used in <CONFCASE>-XIOS.<seg> output directory after a run."
+     echo "       This script does not store the files on the archive but only move then"
+     echo "       to $DDIR" 
+     echo "       You must use cpdd of mcp to perform the archiving"
+     echo "       This script manage ensemble run, each member considered as a particular "
+     echo "       case, with extension .NNN"
+     echo 
+     echo "   Option :"
+     echo "       [ -h ] : show this help message "
+     exit 0
+        }
+
+
+xios_mvnc2s() {
+     # XIOS regular layout (merge on line )
+     CONFIG=$( echo $(basename $here)  | awk -F- '{ print $1 }' )
+     for member in $(seq $nstart $nend ) ; do 
+       if [ $member = -1 ] ; then
+         MB_EXT=''
+         CASE=$(   echo $(basename $here)  | awk -F- '{ print $2 }' )
+       else
+         MB_DIR=$(printf "%03d" $member)
+         MB_EXT=.$MB_DIR
+         CASE=$(   echo $(basename $here)  | awk -F- '{ print $2 }' )$MB_EXT
+         cd $MB_DIR
+       fi
+       CONFCASE=${CONFIG}-${CASE}
+       # look for output frequency
+       for d in $( ls -d *OUTPUT 2>/dev/null ) ; do
+         if [ -d $d ] ; then 
+            freq=${d%_*}
+            echo $freq
+            mkdir -p $DDIR/$CONFIG/${CONFIG}-${CASE}-S/$freq/
+            cd $d
+            nfil=$( ls -1 ${CONFIG}*-${CASE}_y????m??*.${freq}_*.nc 2>/dev/null | wc -l )
+            if [ $nfil != 0 ] ; then
+              for f in ${CONFIG}*-${CASE}_y????m??*.${freq}_*.nc ; do
+                 tag=$( echo $f | awk -F_ '{print $2}')
+                 year=${tag:1:4}
+                 mkdir -p $DDIR/$CONFIG/${CONFIG}-${CASE}-S/$freq/$year/
+                 mv $f  $DDIR/$CONFIG/${CONFIG}-${CASE}-S/$freq/$year/
+              done
+            else
+               echo no files to transmit in $d
+            fi
+            cd ../
+         fi
+       done
+       cd $here  # back to root dir where mvnc2s was launched
+     done
+              }
+
+xios_wrk_mvnc2s() {
+     # XIOS WRK.* layout (merge off line )
+     CONFIG=$( echo $(basename $here)  | awk -F- '{ print $1 }' )
+     CASE0=$( echo $(basename $here)  | awk -F- '{ print $2 }' )
+     cd WRK.* # should be one only
+     for  member in $(seq $nstart $nend ) ; do
+         if [ $member = -1 ] ; then
+            MB_EXT=''
+         else
+            MB_DIR=$(printf "%03d" $member)
+            MB_EXT=.$MB_DIR
+         fi
+         CASE=${CASE0}$MB_EXT
+         CONFCASE=${CONFIG}-${CASE}
+         for d in  $( ls -d *OUTPUT ) ; do
+              if [ -d $d ] ; then
+                 freq=${d%_*}
+                 echo $freq
+                 mkdir -p $DDIR/$CONFIG/${CONFIG}-${CASE}-S/$freq/
+                 cd $d
+                 nfil=$( ls -1 ${CONFIG}*-${CASE}_y????m??*.${freq}_*.nc 2>/dev/null | wc -l )
+                 if [ $nfil != 0 ] ; then
+                    for f in ${CONFIG}*-${CASE}_y????m??*.${freq}_*.nc ; do
+                      tag=$( echo $f | awk -F_ '{print $2}')
+                      year=${tag:1:4}
+                      mkdir -p $DDIR/$CONFIG/${CONFIG}-${CASE}-S/$freq/$year/
+                      mv $f  $DDIR/$CONFIG/${CONFIG}-${CASE}-S/$freq/$year/
+                    done
+                 else
+                    echo no files to transmit in $d for member $member $CONFCASE $nfil
+                 fi
+                 cd ../
+              fi
+         done  
+     done
+     cd ../
+                  }
+#########  END FUNCTIONS ##########
+
+if [ $# != 0 ] ; then usage ; fi
+
+here=$(pwd)
+echo $here | grep -q XIOS 
+tmp=$?
+
+if [ $tmp  !=  0 ] ; then
+   echo You must use dcmtk_mvnc2s in a CONFIG-CASE-XIOS.x directory.
+   echo It will then copy all CONFIG*nc file in the corresponding -S
+   echo directory, if any, respecting output frequency and year.
+   exit 0
+fi
+
+DDIR=${DDIR:-$CDIR}
+
+# look for ensemble run ? (in this case nnn subdirectory (3digits) 
+
+ens=0 ; nstart=-1 ; nend=-1  # mandatory
+status=$(ls -ld [0-9][0-9][0-9] > /dev/null 2>&1  ; echo $?)
+if [ $status = 0 ] ; then ens=$(ls -1d  [0-9][0-9][0-9] | wc -l ) ; fi
+
+if [ $ens != 0 ] ; then 
+  # look for ensemble start, ensemble end
+  ens_start=$( ls -1d  [0-9][0-9][0-9]  | head -1 )
+  ens_end=$(   ls -1d  [0-9][0-9][0-9]  | tail -1 ) 
+
+  echo Ensemble run with $ens members
+  echo Starting from $ens_start, ending $ens_end
+
+  # need to have member number in decimal
+  nstart=$( printf "%d\n" $ens_start )
+  nend=$( printf "%d\n"   $ens_end )
+  echo Ensemble run with $ens members
+  echo Starting from $ens_start, ending $ens_end
+  echo $nstart $nend
+fi
+
+
+echo Ready to copy from $here to -S, XIOS output
+
+
+## XIOS  ##
+echo XIOS ! $here
+ls -ld WRK.* > /dev/null 2>&1
+if [ $? != 0 ] ; then  
+   xios_mvnc2s
+else 
+   xios_wrk_mvnc2s
+   xios_mvnc2s     # for diaptr
+fi

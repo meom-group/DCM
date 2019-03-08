@@ -1,0 +1,43 @@
+#!/bin/bash
+ 
+# this script establish the list of nc files with bad problems ( time dimension is 0 )
+# it must ne run in any directory containing nc files
+# if used with -v option also print the UNLIM line of the file
+
+usage() {
+       echo " USAGE : dcmtk_chkunlim [-h ] [-v] [-p pattern] "
+       echo "      scan the nc files in the current directory "
+       echo "     With no option, gives the name of corrupted files (UNLIMITED dim = 0 ) "
+       echo " "
+       echo "   OPTIONS :"
+       echo "      -h : print this usage message"
+       echo "      -v : print the UNLIMITED line for all files"
+       echo "      -p pattern : use pattern for filtering the files to scan "
+       exit 0
+        }
+
+lverbose=0
+pattern=''
+
+while getopts :hvp:  opt
+  do
+    case $opt in
+       (h)  usage ;;
+       (v)  lverbose=1 ;;
+       (p)  pattern=$OPTARG ;;
+       (*) ;;
+    esac
+  done
+
+
+if [ $lverbose = 0 ] ; then 
+ for f in *$pattern*.nc ; do 
+   ncdump -h $f | grep UNLIM | tr -d '(' |\
+          awk '{ if ( $(NF -1) == 0 ) print fich " : " $0 }' fich=$f 
+  done
+else
+ echo Verbose ...
+ for f in *$pattern*.nc ; do 
+   echo -n $f " : " ;  ncdump -h $f | grep UNLIM 
+ done
+fi
