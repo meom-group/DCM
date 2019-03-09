@@ -1,0 +1,177 @@
+#!/bin/bash
+# This script is used to perform file transfert between /data and /scratch.
+# It is clever enough to determine the direction of the tranfert
+#------------------------------------------------------------
+#  $Rev: 647 $
+#  $Date: 2014-01-22 20:04:19 +0100 (Wed, 22 Jan 2014) $
+#  $Id: mcp 647 2014-01-22 19:04:19Z molines $
+#--------------------------------------------------------------
+# Functions for use in this script
+#-------------------------------------------------------------
+usage()  {
+   echo "USAGE: $(basename $0) [-h] [-f firstyear] [-l lastyear ]"
+   echo
+   echo "  PURPOSE:"
+   echo "     This script is used to perform file transfert between SDIR and WORKDIR."
+   echo "     It is clever enough to determine the direction of the tranfert"
+   echo "     It uses dcmtk_cpdd or dcmtk_ddcp tools in an iterative way."
+   echo "     It is now rather obsolete as data on SDIR are no more a mirror of WORKDIR."
+   echo
+   echo "  OPTIONS:"
+   echo "      -h : this help page "
+   echo "      -f firstyear : specify the first year to transfer"
+   echo "                     If not given take the first existing year"
+   echo "      -l lastyear : specify the last year to transfer"
+   echo "                     If not given take the last existing year"
+   echo "   $(basename $0) must be used in the CONFCASE-S or CONFCASE-MEAN directory"
+   echo "   "
+   exit 0
+         }
+# chkdir : check existence of directory
+chkdir() {
+      if [ ! -d $1 ] ; then mkdir $1 ; fi 
+         }
+
+# setlistdir : set list of directory to transmit
+setlistdir() {
+   firstyear=$( ls -ld ???? 2> /dev/null | grep '^d' | head -1 |  awk '{print $NF}' )
+   lastyear=$(  ls -ld ???? 2> /dev/null | grep '^d' | tail -1 |  awk '{print $NF}' )
+
+   firstyear=${firstyear:-none}
+   lastyear=${lastyear:-none}
+
+   if [  $firstyear = 'none' -o  $lastyear = 'none'  ] ; then
+     echo WARNING : no year directory to deal with ...
+     exit 0
+   fi
+
+   # chkdir $remote_dir
+
+
+   if [  $year1 = 'none' -a  $year2 = 'none' ] ; then
+      listdir=$(ls -ld * | grep -e '^d' | awk '{ print $NF}')    # no start-end years specified
+   elif [ $year1 = 'none' -a $year2 != 'none'  ] ; then
+      listdir=$(seq $firstyear $year2)  # from firstyear to year2
+   elif [ $year1 != 'none' -a   $year2 = 'none'  ] ; then
+      listdir=$(seq $year1 $lastyear )  # from year1 to lastyear
+   elif [ $year1 = $year2 ] ; then
+      listdir=$year1                    # only one dir specified (eg: 1989-2009)
+   else
+      listdir=$(seq $year1 $year2 )     # from year1 to lastyear
+   fi
+
+   if [ ${#listdir}  = 0 ] ; then
+      echo WARNING: no directory to deal with
+      echo
+      usage
+      exit 0
+   fi
+             }
+#--------------------------------------------------------------------------------
+
+year1='none'
+year2='none'
+
+while getopts :hf:l: opt ; do
+   case $opt in 
+     (h) usage ;;
+     (f) year1=${OPTARG} ;;
+     (l) year2=${OPTARG} ;;
+     (*) usage ;;
+   esac
+done
+
+if [ ! $SDIR ] ; then
+   echo ERROR: Environment variable SDIR must be set before using $(basename $0)
+   echo
+   usage
+fi
+
+if [ ! $DDDIR ] ; then
+  if [ ! $CDIR ] ; then
+    echo ERROR Environment variable CDIR and/or DDIR  must be set  before using $(basename $0)
+    usage
+    exit 0
+  else
+    DDIR=${DDIR:-$CDIR}
+  fi
+fi
+
+hereabs=$(pwd)
+here=$(basename $hereabs)
+
+CONFIG=${here%%-*}
+CONFCASE=${here%-*}
+dirtype=${here##*-}
+
+CASE=${CONFCASE#*-}
+
+if [ $dirtype != 'S' -a $dirtype != 'MEAN' ] ; then 
+   echo ERROR: You are not in a CONFCASE-S or CONFCASE-MEAN directory
+   echo
+   usage
+fi
+# check if you can execute dcmtk_cpdd or dcmtk_ddcp
+which dcmtk_cpdd > /dev/null 2>&1 
+if [ $? != 0 ] ; then 
+   echo ERROR : you must have dcmtk_cpdd in your exec path ...
+   exit 1
+fi
+which dcmtk_ddcp > /dev/null 2>&1 
+if [ $? != 0 ] ; then 
+   echo ERROR : you must have dcmtk_ddcp in your exec path ...
+   exit 1
+fi
+
+rootdir=${hereabs%%/${CONFIG}*}
+
+# Are there year sub-directory ?
+#===============================
+yrlst=$(ls -1F | grep  -w   [0-9].../)
+nyr=$( echo $yrlst | wc -w )
+echo there are $nyr years directory to process : $yrlst
+
+
+case $rootdir in 
+($SDIR) echo transfer from $SDIR to $DDIR ;
+        remote_dir=$DDIR ;
+        CMD='dcmtk_ddcp';;
+($DDIR) echo transfer from $DDIR to $SDIR ;
+        remote_dir=$SDIR ;
+        CMD='dcmtk_cpdd';;
+(*)  echo ERROR you are not in SDIR nor DDIR ;
+     exit 1 ;;
+esac
+
+if (( $nyr != 0 )) ; then
+  setlistdir
+  for d in $listdir ; do
+     d=$( printf "%04d" $d )
+     if [ -d $d ] ; then
+       cd $d
+       ${CMD}
+       cd ../
+     fi
+  done
+else  # check if there are sudirs such as 1d, 1m ...
+  listsubdir='1ts 1h 2h 3h 4h 6h 1d 3d 5d  1m 1mo'
+  zlistsubdir=''
+  # limit zlibsubdir to really existing directories
+  for subdir in $listsubdir ; do   # ??? listsubdir ???
+     if [ -d $subdir ] ; then zlistsubdir="$zlistsubdir $subdir " ; fi
+  done
+
+  for subdir in $zlistsubdir ; do   # ??? listsubdir ???
+     cd $subdir
+     setlistdir
+       for d in $listdir ; do
+          d=$( printf "%04d" $d )
+          if [ -d $d ] ; then
+            cd $d
+            ${CMD}
+            cd ../
+          fi
+       done
+     cd ../
+  done
+fi
