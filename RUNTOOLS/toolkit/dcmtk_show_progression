@@ -1,0 +1,58 @@
+#!/bin/bash
+
+usage() {
+    echo "USAGE : $(basename $0) [-h] [-t plotdevice] [-p prefix] [-s suffix] [-o png file].. "
+    echo "                       [-m ] "
+    echo
+    echo "  PURPOSE : "
+    echo "     Plot the number of files vs the time in the current directory."
+    echo "     This is usefull when data transfert is slow, for estimating"
+    echo "     the real rate of transmission of the files."
+    echo
+    echo "  METHOD : "
+    echo "     The basis of the command is ls -ltr --full-time to get the precise"
+    echo "     date and time of creation/access of each files in the directory."
+    echo
+    echo "  OPTIONS : "
+    echo "     -h  : show this usage message"
+    echo "     -t plotdevice : plotdevice can be X [D] or png. X correspond to the"
+    echo "                     actual display while png create a png file show.png [D]"
+    echo "                     or the name specified with -o option"
+    echo "     -p prefix  : indicate a prefix for filtering the files in the directory"
+    echo "               The default value for the prefix is [" $prefix "]"
+    echo "     -s suffix  : indicate a suffix for filtering the files in the directory"
+    echo "               The default value for the suffix is [" $suffix "]"
+    echo "     -o png_file : Use png_file name instead of default show.png when using"
+    echo "               the -t png option"
+    echo "     -m  : Time axis in minutes, instead of default hours."
+    echo
+    exit 0
+       }
+
+prefix=ORCA
+suffix=nc
+pngfile=show.png
+pdevice=X
+tsec=3600
+tunit=h
+
+while getopts :ht:p:s:o:m opt ; do
+   case $opt in
+    (h) usage ;;
+    (t) pdevice=${OPTARG} ;;
+    (p) prefix=${OPTARG} ;;
+    (s) suffix=${OPTARG} ;;
+    (o) pngfile=${OPTARG} ;;
+    (m) tsec=60 ; tunit=mn ;;
+    (*) usage ;;
+   esac
+done
+if [ $pdevice = X ] ; then pngfile=/dev/null ; fi
+
+
+
+ls -ltr --full-time ${prefix}*${suffix}* | awk '{ if ( NR == 1 ) { d0=$6 ; h0=$7 ; gsub("-"," ",d0) ; gsub(":"," ",h0 ); t0=mktime(d0 " " h0) } 
+                                   date=$6 ; heure=$7 ; gsub("-"," ",date) ; gsub(":"," ",heure ) 
+                                    print (mktime(date " " heure )-t0)/tsec  " " NR }' tsec=$tsec  | graph -T${pdevice} -C -g 3 \
+                                       --x-label "Time ($tunit)" --y-label "Number of files" > $pngfile
+
