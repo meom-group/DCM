@@ -1,0 +1,184 @@
+#!/bin/bash
+
+#set -x
+
+usage() {
+      echo USAGE: $( basename $0 ) [-h ] [-s istep ] [ -b nblock ] [ -f filename ] [ -m ] [ -g ] [-t graphtype] [ -v ] [ -l ]
+      echo "   -h : this help [xxx] indicate the default value "
+      echo "   -s istep : number of time step for the chunk of data to analyse [ $istep ]"
+      echo "   -b nblock : number of chunk of data to analyse [ $nblock ]"
+      echo "   -f filename : nemo_jade.oxxx file name to consider [ $filename ]"
+      echo "   -m : indicate mean and std of the computed performance rates"
+      echo "   -g : pipe results to graph "
+      echo "   -t graph output :  either X gif png ...[ $type ]"
+      echo "   -v : verbose extra informations (do not use with -g option)" 
+      echo "   -y ymin ymax :fix y axis scale to be between ymin and ymax "
+      echo "   -l : label title above verbose informations (do use with -v options)"
+      exit 0
+        }
+
+loop() {
+       for blk in $(seq 1 $nblock ) ; do
+          echo -n $blk 
+          linreg $(( ideb + 10 )) $(( ifin - 10 )) | grep RATE
+          ideb=$(( ifin +1 ))
+          ifin=$(( ideb + $(( istep - 1 )) ))
+       done
+       }
+
+meanstd() {
+        #  loop # | awk '{print $4}' # awk '{sum += $4 ; sumsq+=$4*$4} END {print "MEAN: " sum/NR "          STD: " sqrt(sumsq/NR - (sum/NR)^2)}'
+         cat zloop | awk '{sum += $4 ; sumsq+=$4*$4} END {print "MEAN: " sum/NR "          STD: " sqrt(sumsq/NR - (sum/NR)^2)}'
+          }
+
+loop_verbose() {
+               for blk in $(seq 1 $nblock ) ; do
+                  printf "%6d %4d %4d %4d %4d %4d %4d %4d %4d " $jobid $blk $jpi $jpj $jpk $jpni $jpnj $nb_nproc $nb_nodes  
+                  linreg $(( ideb + 10 )) $(( ifin - 10 )) | grep RATE | awk '{printf "%9.5f \n",$3}' 
+                  ideb=$(( ifin +1 ))
+                  ifin=$(( ideb + $(( istep - 1 )) ))
+               done
+               }
+
+label() {
+        echo "%JOBID CHUN  JPI  JPJ  JPK JPNI JPNJ PROC NODE      RATE"
+        }
+
+# update scan file in order to work in case of you are changing month during run: works if you are in a 28-days or 29-days February year
+# it doesn't work if you change year during the run
+scan_file() {       
+              TZ=$(grep -A 3 'Run the code' $1 | tail -1 | awk '{ print $5}' )
+             cat $1 | sed -e "s/ $TZ  / 120 /" | sed -e 's/ :    / : \n /' | grep -v NAREA | grep -v "On HOST r"  | grep ' 120 ' | grep -v runoff | grep -v '^[1-9]' | grep -v Time |  awk '{ if (NR==1) {st0=$1; \
+   ibis=0; testyear=$2%4; if (testyear!=0) {ibis=1} ; \
+   A[1]=0;A[2]=A[1]+31;A[3]=A[2]+28+ibis;A[4]=A[3]+31;A[5]=A[4]+30;A[6]=A[5]+31;A[7]=A[6]+30;A[8]=A[7]+31;A[9]=A[8]+31;A[10]=A[9]+30;A[11]=A[10]+31;A[12]=A[11]+30; \
+   t0=(A[$3]*24+$4*24+$6)*3600+$7*60+$8+$9/1000};st=$1;t=(A[$3]*24+$4*24+$6)*3600+$7*60+$8+$9/1000;print (t-t0)/60 " " st-st0}'; echo " " ;
+            }
+
+scan_file_diff() {
+              TZ=$(grep -A 3 'Run the code' $1 | tail -1 | awk '{ print $5}' )
+             cat $1 | sed -e "s/ $TZ  / 120 /" | sed -e 's/ :    / : \n /' | grep -v NAREA | grep -v "On HOST r"  | grep ' 120 ' | grep -v runoff | grep -v '^[1-9]' | awk '{ if (NR==1) {st0=$1; \
+   ibis=0; testyear=$2%4; if (testyear!=0) {ibis=1} ; \
+   A[1]=0;A[2]=A[1]+31;A[3]=A[2]+28+ibis;A[4]=A[3]+31;A[5]=A[4]+30;A[6]=A[5]+31;A[7]=A[6]+30;A[8]=A[7]+31;A[9]=A[8]+31;A[10]=A[9]+30;A[11]=A[10]+31;A[12]=A[11]+30; \
+   t0=(A[$3]*24+$4*24+$6)*3600+$7*60+$8+$9/1000};st=$1;t=(A[$3]*24+$4*24+$6)*3600+$7*60+$8+$9/1000;print (t-t0)/60 " " st-st0; t0=t}'; echo " " ;
+            }
+
+
+jobid() {
+        echo $filename | awk -Fo '{print $NF}'
+        }
+
+jpi() {
+      cat $filename | grep JPI | awk '{print $3}' 
+      }
+
+jpj() {
+      cat $filename | grep JPJ | awk '{print $3}'         
+      }
+
+jpk() {
+      cat $filename | grep JPK | awk '{print $3}' 
+      }
+
+nb_nproc() {
+           cat $filename | grep NB_NPROC | awk '{print $3}'
+           }
+
+nb_nodes() {
+           cat $filename | grep NB_NODES | awk '{print $3}'
+           }
+
+jpni() {
+       cat $filename | grep Identificator | awk '{print $2}' | awk -F_ '{print $1}'
+       }
+
+jpnj() {
+       cat $filename | grep Identificator | awk '{print $2}' | awk -F_ '{print $2}'
+       }
+
+ideb=1 
+istep=450
+ifin=$istep
+nblock=70
+filename='none'
+plot=''
+type=X
+verbose=''
+label=''
+ms=''
+yscale=''
+
+if [ $# = 0 ] ; then usage ; fi
+while getopts :hs:b:f:y:gt:vlm opt ; do
+   case $opt in 
+    (h) usage ;;
+    (s) istep=$OPTARG ; ifin=$istep ;;
+    (b) nblock=$OPTARG ;;
+    (f) filename=$OPTARG ;;
+    (g) plot=1 ;;
+    (t) type=$OPTARG  ;;
+    (v) verbose=1 ;;
+    (l) label=1 ;;
+    (y) yscale="-y $OPTARG" ;;
+    (m) ms=1 ;;
+    (\?) echo $( basename $0 ): option -$OPTARG not valid. ; usage ;;
+   esac
+done
+
+if [[ $verbose && $plot ]] ; then
+  echo WARNING : do not use -v and -g at the same time : here -v forced to be 0...
+  verbose=''
+fi
+
+jobid=$( jobid ) ; jobid=${jobid:-NA}
+jpi=$( jpi ) ; jpi=${jpi:-NA}
+jpj=$( jpj ) ; jpj=${jpj:-NA}
+jpk=$( jpk ) ; jpk=${jpk:-NA}
+nb_nproc=$( nb_nproc ) ; nb_nproc=${nb_nproc:-NA}
+nb_nodes=$( nb_nodes ) ; nb_nodes=${nb_nodes:-NA}
+jpni=$( jpni ) ; jpni=${jpni:-NA}
+jpnj=$( jpnj ) ; jpnj=${jpnj:-NA}
+
+if [ $filename = 'none' ] ; then 
+  echo ERROR : a filename must be given with -f 
+  usage
+fi
+
+if [ ! -f $filename ] ; then 
+  echo ERROR : file $filename   is missing 
+  usage
+fi
+
+# filter the input file from task information (when running on curie with XIOS)
+cat $filename | grep -v '^task' | grep -v '^MIX' | grep -v NAREA | grep -v 'WARN' > zzzztmp.o
+# note : with ensemble run, there are 1 line per member in the output file, for each step.
+#       linreg works fine but ...
+filename=zzzztmp.o
+
+scan_file $filename  > zrate
+scan_file_diff $filename  > zdiffrate
+
+if [ ! $verbose ] ; then
+   if [ $plot ] ; then 
+      loop | awk '{print $1 " "$4}' | graph -T$type -m 1 -C -S 2 $yscale -X "Chunk number" -Y "Step/mn" -L" JOB $jobid    Chunk Size: $istep"
+   else
+      loop > zloop
+      cat zloop
+      if [ $ms ] ; then
+         meanstd
+      fi
+   fi
+else
+   if [ $label ] ; then
+      label
+   fi
+   loop_verbose > zloopv
+   cat zloopv
+   if [ $ms ] ; then
+      cat zloopv | awk '{print $1 " " $2 " " $3 " " $10}' > zloop
+      meanstd
+   fi
+fi
+
+
+
+
