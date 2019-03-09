@@ -1,0 +1,40 @@
+#!/bin/bash
+#------------------------------------------------------------
+#  $Rev: 763 $
+#  $Date: 2015-02-26 09:39:35 +0100 (Thu, 26 Feb 2015) $
+#  $Id: linreg.ksh 763 2015-02-26 08:39:35Z molines $
+#--------------------------------------------------------------
+#set -x
+
+usage() {
+      echo USAGE: $( basename $0 ) [-h ] [-n job.o rootname]
+      echo "   PURPOSE:  Scans all the nemo_occigen.o* files in the current directory and "
+      echo "       computes the running speed of the model during the first 180 timesteps "
+      echo "   OPTIONS: "
+      echo "   -h                : Display this help message"
+      echo "   -n job.o_rootname : Use rootname instead of nemo_occigen for the name of"
+      echo "                       the job output file."
+      exit 0
+        }
+
+rootname=nemo_occigen
+while getopts :hn: opt ; do
+  case $opt in
+    (h) usage ;;
+    (n) rootname=${OPTARG} ;;
+    (*) usage ;;
+   esac
+done
+
+
+i=0
+for file in $rootname.o*; do
+   i=$(( i+1 )) 
+   if [ $i = 1 ]; then
+      dcmtk_rate -s 180 -b 1 -f $file -v -l > ztmprate
+   else
+      dcmtk_rate -s 180 -b 1 -f $file -v >> ztmprate
+   fi
+done
+
+cat ztmprate
