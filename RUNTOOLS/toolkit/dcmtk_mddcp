@@ -1,0 +1,58 @@
+#!/bin/bash
+# This script is used to perform an update of  the scratch form /data
+# if some files are removed from scratch
+# It is a wrapper to ddcp and scan all the years in a directory
+
+#------------------------------------------------------------
+#  $Rev: 17 $
+#  $Date: 2010-11-10 11:02:14 +0100 (Wed, 10 Nov 2010) $
+#  $Id: mddcp 17 2010-11-10 10:02:14Z molines $
+#--------------------------------------------------------------
+usage() {
+   echo USAGE: $(basename $0) [-h] 
+   echo "      -h : this help page "
+   echo "   $(basename $0) must be used in the CONFCASE-S or CONFCASE-MEAN directory"
+   echo "   All subdirectories are visited and files copied to $WORKDIR/CONFIG/..."
+   echo "   /data ---> /scratch "
+   echo "   "
+   exit 0
+        }
+
+while getops :h opt ; do
+   case $opt in 
+     (h) usage ;;
+     (*) usage ;;
+   esac
+done
+
+if [ ! $WORKDIR ] ; then
+   echo ERROR: Environment variable WORKDIR must be set before using $(basename $0)
+   echo
+   usage
+fi
+
+here=$(pwd)
+here=$(basename $here)
+
+CONFIG=${here%%-*}
+CONFCASE=${here%-*}
+dirtype=${here##*-}
+
+CASE=${CONFCASE#*-}
+
+if [ $dirtype != 'S' -o $dirtype != 'MEAN' ] ; then 
+   echo ERROR: You are not in a CONFCASE-S or CONFCASE-MEAN directory
+   echo
+   usage
+fi
+
+
+for d in * ; do
+if [ -d $d ] ; then
+  cd $d
+   WDIR=$WORKDIR/$CONFIG/$here/$d
+   dcmtk_ddcp 
+  cd ../
+fi
+done
+

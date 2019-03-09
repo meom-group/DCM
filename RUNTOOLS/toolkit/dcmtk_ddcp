@@ -1,0 +1,219 @@
+#!/bin/bash
+
+# This script is used to copy files from /data to /scratch.
+# it must be used in specific directories, either
+# CONFIG-CASE-S/yyyy , CONFIG-CASE-MEAN/yyyy or CONFIG-CASE-R.
+# It create the equivalent directory on $DDIR
+#------------------------------------------------------------
+#  $Rev: 672 $
+#  $Date: 2014-07-01 22:03:47 +0200 (Tue, 01 Jul 2014) $
+#  $Id: ddcp 672 2014-07-01 20:03:47Z molines $
+#--------------------------------------------------------------
+# Function definitions
+#----------------------
+# Usage manual
+usage() {
+     echo USAGE: $(basename $0) [-h] 
+     echo "      -h : this help page "
+     echo "   This script is used to copy files from either a -S, -MEAN or -R "
+     echo "   directory, located on $SDIR  to $DDIR "
+     echo "     For -S and -MEAN, it must be used in a 'year' subdirectory. "
+     echo "   The same directory will be copied on $DDIR. " 
+     echo "   If files already exist, they are just skipped."
+     echo "   "
+     echo "     This script is used without any arguments, CONFIG and CASE are deduced"
+     echo "   from the directory name."
+     echo "   mcp script (multiple cp) uses this script (and its symetrical cpdd)"
+     echo "   Look at mcp -h for more details "
+     exit 0
+        }
+
+# fastcp take 2 args .1 file name (local and remote)  2: remote directory. If remote file found 
+fastcp() {
+case $machine in
+  (jade | irene | occigen) 
+    if [ ! -f $2/$1 ] ; then
+     echo copy $1
+     dd bs=1024k if=$1 of=$2/$1
+    else   # the file exist, check the size
+      size_remote=$(siz $2/$1 )
+      size_local=$(siz $1 )
+      if  (( $size_remote < $size_local )) ; then
+         \rm -f $2/$1
+         echo re-copy $1
+         dd bs=1024k if=$1 of=$2/$1
+      fi
+    fi ;;
+
+  (adapp )
+    if [ ! -f $2/$1 ] ; then
+#     mfput $1 $2/$1
+      echo 'transfrt from ergon to ada to be coded ( scp ? )'
+    fi ;;
+
+  (ada )
+     tmp=$(rsh ergon " if [ ! -f $2/$1 ] ; then echo missing  ; fi ")
+     if  [ $tmp = missing ] ; then
+#       mfput $1 $2/$1
+      echo transfrt from ergon to ada to be coded
+     fi
+      ;;
+esac
+         }
+
+# check existence of directory and create it if missing
+chkdir() {
+ case $machine in
+ ( jade | irene | occigen )
+    mkdir -p $1 ;;
+ (ada | adapp)
+    echo chkdir not coded for ergon
+#    rsh gaya " mkdir -p $1 " ;;
+ ( * )
+  echo machine $machine not supported ; exit 1 ;;
+ esac
+         }
+
+# function to return the size of the file given as argument
+siz() { ls -l $1  | awk '{ print $5}'  ; }
+
+#--------------------------------------------------------------------------
+# check the positioning of environment
+#-------------------------------------
+if [ ! $SDIR ] ; then
+  echo Environment variable SDIR must be set to the root of the storage machine
+  exit 0
+fi
+
+if [ ! $DDDIR ] ; then
+  if [ ! $CDIR ] ; then 
+    echo Environment variable CDIR and/or DDIR  must be set !
+    exit 0
+  else
+    DDIR=${DDIR:-$CDIR}
+  fi
+fi
+
+# command line parser
+#--------------------
+while getopts :h opt ; do
+  case $opt in
+    (h) usage ;;
+    (*) usage ;;
+   esac
+done
+
+# machine determination
+#-----------------------
+machine=occigen
+hostname | grep occigen > /dev/null
+if [ $? == 0 ]                 ; then machine=occigen ; fi
+if [ $(hostname) == ada336   ] ; then machine=adapp ; fi
+if [ $(hostname) == ada337   ] ; then machine=ada   ; fi
+if [ $(hostname) == curie71  ] ; then machine=curie ; fi
+if [ $(hostname) == irene190 ] ; then machine=irene ; fi
+
+# Determine the type of directory we are in ( R, S MEAN, S/xx MEAN/xx ...)
+#------------------------------------------
+here=$(pwd)
+suffix=${here##*-}
+
+# how many '/' in suffix ?
+nslash=$(echo ${suffix} | awk -F/ '{print NF-1}')
+
+# determine in which kind of tree we are.
+tmp=${suffix:0:1}
+
+case $tmp in
+  ('R') zdir='R' ;;       #                   CONFCASE-R
+  ('S') zdir='S'
+      if [ $nslash = 1 ] ; then
+         zdir='Smain'     # no subdir         CONFCASE-S/year
+      elif [ $nslash = 2 ] ; then
+         zdir='Ssub'      # subdirs 1 level  : CONFCASE-S/xxx/year
+      else
+         zdir='UNKNOWN'   # do not understand where we are
+      fi ;;
+  ('M')
+    tmp2=${suffix:0:4}
+    if [ $tmp2 = 'MEAN' ] ; then
+      if [ $nslash = 1 ] ; then
+         zdir='Mmain'     # no subdir            CONFCASE-MEAN/year
+      elif [ $nslash = 2 ] ; then
+         zdir='Msub'      # subdirs 1 level      CONFCASE-MEAN/xxx/year
+      else
+         zdir='UNKNOWN'   # do not understand where we are
+      fi
+    else
+        zdir='UNKNOWN'    # not a MEAN but a Mxxx ???
+    fi ;;
+esac
+
+# exit if not able to determine where we are !
+#--------------------------------------------
+if [ $zdir = 'UNKNOWN' ] ; then
+  echo Sorry, but cpdd must be exclusively used in CONFCASE-S/yyyy or CONFCASE-MEAN/yyyy or CONFCASE-R directories
+  exit 1
+else
+  echo Working for $zdir
+fi
+#----------------------------------------------------
+# Copy files to SDIR according to the guess setting
+#----------------------------------------------------
+case $zdir in
+( 'R' )
+  echo working for restart files
+  DIR=$( basename $here ) ; CONFCASE=${DIR%-R}
+  CONFIG=$( echo $CONFCASE | awk -F- '{print $1}')
+  CASE=$( echo $CONFCASE | awk -F- '{print $2}' )
+  DATADIR=$DDIR/$CONFIG/$DIR
+  echo CONFIG = $CONFIG
+  echo CASE = $CASE
+  echo CONFCASE = $CONFCASE
+  echo $DATADIR
+  chkdir  $DATADIR
+  for f in *v2* restart.obc.* ; do
+    fastcp $f $DATADIR
+  done 
+  exit ;;   # no more thins to do !
+
+('Smain' | 'Mmain')
+  year=$( basename $here)
+  tmp=$( dirname $here )
+  DIR=$( basename $tmp )
+  CASE=${DIR#*-} ; CASE=${CASE%-*}
+  CONFIG=${DIR%%-*}
+  CONFCASE=${CONFIG}-${CASE}
+
+  echo CONFIG = $CONFIG
+  echo CASE = $CASE
+  echo CONFCASE = $CONFCASE
+  echo YEAR = $year
+  echo DIR = $DIR
+  DATADIR=$DDIR/$CONFIG/$DIR/$year
+  rootdir=../ ;;
+
+('Ssub' | 'Msub' )
+  year=$( basename $here)
+  subdir=$( basename $(dirname $here) )             # just the name of the subdir 
+  tmp=$( dirname $here ) ; tmp2=$( dirname $tmp )  # 2 level to retrieve confcase
+  DIR=$( basename $tmp2 )
+  CASE=${DIR#*-} ; CASE=${CASE%-*}
+  CONFIG=${DIR%%-*}
+  CONFCASE=${CONFIG}-${CASE}
+
+  echo CONFIG = $CONFIG
+  echo CASE = $CASE
+  echo CONFCASE = $CONFCASE
+  echo YEAR = $year
+  echo DIR = $DIR
+  DATADIR=$DDIR/$CONFIG/$DIR/$subdir/$year
+  rootdir=../../ ;;
+esac
+
+  chkdir  $DATADIR
+
+  for f in *.nc ; do
+   fastcp  $f $DATADIR
+  done
+
