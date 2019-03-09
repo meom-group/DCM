@@ -1,0 +1,83 @@
+#!/bin/bash
+
+usage() {
+     echo "   Usage : $( basename $0 ) -c [ -h ] [ -m ]"
+     echo "       Purpose : "
+     echo "             Check files produced when using XIOS. Check that the number of"
+     echo "          subdomain files agrees with the number indicated within the file."
+     echo "            This script must be run into the directory where all splitted"
+     echo "          files are, in particular the _0000.nc files. "
+     echo "            This script is supporting ensemble runs."
+     echo "          "
+     echo "       Arguments :"
+     echo "          -c : launch check. (With no arguments the help message is printed)."
+     echo "          "
+     echo "       Option : "
+     echo "          -h : print this help message"
+     echo "          -m : migrate faulty set of files to local SAVE directory"
+     exit 0
+        }
+
+l_save=''
+l_dirsave=''
+SAVEDIR=SAVE
+if [ $# = 0 ] ; then usage ; fi
+while getopts :chm opt ; do
+   case $opt in
+    (h) usage ;;
+    (c) go=yes ;;
+    (m) l_save=1 ;;
+    (\?) echo $( basename $0 ): option -$OPTARG not valid. ; usage ;;
+   esac
+done
+
+
+bname=$( basename $(pwd) )
+if [ $bname = $SAVEDIR ] ; then # need to look 1 dir up
+   l_dirsave=1
+   if [ $l_save ] ; then
+      echo "  Use of -m option is not allowed when you are already in $SAVEDIR sub-directory"
+      echo "    We will skip migration "
+      l_save=''
+   fi
+   bname=$( basename $( dirname $(pwd) ) )
+fi
+
+ensrun=$(echo $bname | grep -wq [[:digit:]][[:digit:]][[:digit:]] ; echo $?)
+
+case $ensrun in
+ ( 0 )   # ensemble run we are in <member> or <member>/<SAVEDIR>/
+     if [ $l_dirsave ] ; then
+        tmp=$( basename $( dirname $(dirname $(pwd) ) ) )
+     else
+        tmp=$( basename $( dirname  $(pwd) ) ) 
+     fi ;;
+ ( 1 )  # standard run : we are in <confcase>-XIOS.<n> or  <confcase>-XIOS.<n>/<SAVEDIR>/
+     if [ $l_dirsave ] ; then
+        tmp=$( basename $( dirname $(pwd) ) ) 
+     else
+        tmp=$( basename $(pwd) )  
+     fi ;;
+esac
+
+confcase=${tmp%-XIOS*}
+
+for f in ${confcase}*_0000.nc ; do
+    nproc=$(ncdump -h $f | grep DOMAIN_number_total | awk '{ n=NF-1 ; print $n}' )
+    froot=${f%_0000.nc}
+    nbre=$( ls -l ${froot}_????.nc | wc -l )
+    if [ $nbre != $nproc ] ; then
+       echo -n $froot "  :  "  $nbre
+       for nnnn in $(seq -f %04g 0 $(( nproc -1 )) ) ; do
+          if [ ! -f ${froot}_$nnnn.nc ] ; then
+            echo "       " ${froot}_$nnnn.nc missing
+          fi
+       done
+       if [ $l_save ] ; then
+         mkdir -p $SAVEDIR
+         mv ${froot}_????.nc $SAVEDIR
+         echo "   Faulty set ( $nbre ) migrated to $SAVEDIR"
+       fi
+    fi
+done
+echo 
