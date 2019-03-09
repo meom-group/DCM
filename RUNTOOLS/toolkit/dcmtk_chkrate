@@ -1,0 +1,29 @@
+#!/bin/bash
+if [ $# = 0 ] ; then
+    echo "USAGE : $(basename $0) [-n rootname of job.o] go "
+    echo "  "
+    echo " PURPOSE:"
+    echo "     Scan all the job output in current directory produced by scalability "
+    echo "     experiment (e.g. nemo_occigen_10_20_180.o1234) and compute the rate (stp/mn)"
+    echo "     for every job. In the present script, 3 windows of 100 step are used."
+    echo " ARGUMENTS :"
+    echo "     go or anything ! : without arguments, display the usage message."
+    echo " OPTION : "
+    echo "     [-n rootname of job.o] : default is nemo_occigen."
+    exit 0
+fi
+
+rootname=nemo_occigen
+
+while getopts :n: opt ; do
+  case $opt in
+    (n) rootname=${OPTARG} ;;
+    (*) dum=1 ;;
+  esac
+done
+
+for f in ${rootname}*.o* ; do  
+   echo -n $( tmp=${f%.o*} ; echo ${tmp#${rootname}*} | awk -F_ '{ print $1 " " $2 " " $3}')
+   dcmtk_rate -s 100 -b 3 -f $f  | tail -2 | head -1  | awk '{ print "   " $4}' 
+done
+
