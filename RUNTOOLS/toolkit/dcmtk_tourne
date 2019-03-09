@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# display a spining figure according to the rate of integration
+# as seen by time.step file
+
+tourne() {
+echo -n  '-' ; printf " $* \r" ; sleep $wait
+echo  -n '\' ; printf " $* \r" ; sleep $wait
+echo -n  '|' ; printf " $* \r" ; sleep $wait
+echo  -n '/' ; printf " $* \r" ; sleep $wait ; }
+
+wait=0.25
+nb=0
+while (( 1 != 2 )) ; do
+   n=$(cat $(cat waytmp)/time.step)
+   while [  $n == $nb ] ; do 
+   n=$(cat $(cat waytmp)/time.step)
+   nb=$n
+   done
+   tourne  $(cat $(cat waytmp)/time.step)
+done
