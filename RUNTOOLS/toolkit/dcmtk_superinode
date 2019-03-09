@@ -1,0 +1,42 @@
+#!/bin/bash
+# This script give the number of files in subdirectories.
+# If the list of directories is not specified as arguments
+# (wildcards allowed), all the subdir are taken into consideration
+
+
+usage() {
+    echo "USAGE: $(basename $0) [-h] [list of directories]"
+    echo
+    echo "  PURPOSE:"
+    echo "     Give the number of files in the directories of the list (or all directories),"
+    echo "     the size of each directories (Ko), mean file size (Ko) as well as the "
+    echo "     directory name."
+    echo
+    echo "  OPTIONS:"
+    echo "     -h : print this message "
+    echo "     If no list of directories is given, all subdirs are taken into account"
+    exit 0
+        }
+
+while getopts :h  opt
+  do
+    case $opt in 
+       (h)  usage ;;
+       (*) ;;
+    esac
+  done
+
+shift $(($OPTIND-1))
+
+dirs="*"
+if [ $# != 0 ] ; then dirs="$*" ; fi
+
+echo " files  dirsize  mean_file_size  directory"
+for f in $dirs ; do
+  if [ -d $f ] ;  then
+  nf=$( find $f \( -type f -o -type l \)  | wc -l )
+  siz=$( du -sk $f | awk '{print $1}'  )
+  meansiz=$( echo $siz $nf | awk '{ print $1/$2 }'  )
+  echo $nf "    " $siz "     " $meansiz "    "$f
+  fi
+done
