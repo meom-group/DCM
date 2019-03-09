@@ -3,8 +3,15 @@
 #set -x
 
 usage() {
-      echo USAGE: $( basename $0 ) [-h ] [-s istep ] [ -b nblock ] [ -f filename ] [ -m ] [ -g ] [-t graphtype] [ -v ] [ -l ]
-      echo "   -h : this help [xxx] indicate the default value "
+      echo "USAGE: $( basename $0 ) [-h ] [-s istep ] [ -b nblock ] [ -f filename ] [ -m ] "
+      echo "       [ -g ] [-t graphtype] [ -v ] [ -l ]"
+      echo
+      echo "  PURPOSE: "
+      echo "          Display the integration rate (step/minutes) computed from filename "
+      echo "          (drakkar nemo job standard output). The analysis is done by chunks "
+      echo "          of time steps, that are defined with the options."
+      echo "  OPTIONS:"
+      echo "   -h : this help message. "
       echo "   -s istep : number of time step for the chunk of data to analyse [ $istep ]"
       echo "   -b nblock : number of chunk of data to analyse [ $nblock ]"
       echo "   -f filename : nemo_jade.oxxx file name to consider [ $filename ]"
