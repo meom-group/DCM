@@ -1,0 +1,120 @@
+#!/bin/bash
+# this script is used to migrate files in their respective year directory
+# it must be used in a -S directory
+#------------------------------------------------------------
+#  $Rev: 637 $
+#  $Date: 2013-10-18 18:16:23 +0200 (Fri, 18 Oct 2013) $
+#  $Id: mkordre 637 2013-10-18 16:16:23Z molines $
+#--------------------------------------------------------------
+# Shell functions
+# check existence and eventually create directory
+usage() {
+      echo "USAGE: $(basename $0) [-h ] [ extra file types ]"
+      echo
+      echo "  PURPOSE:"
+      echo "     When having a bunch of files in a single directory, try to organize them"
+      echo "     by year directories."
+      echo "     This script is used without arguments in the CONFCASE-S directory or in "
+      echo "     CONFCASE-R directory."
+      echo "     For restart files in -R, they are moved to v2.xx subdirs."
+      echo "     For output files in -S, it moves the files in their respective year directory"
+      echo "     following file types are moved :"
+      echo "     $filtyp "
+      echo "     You can specify list of extra file type as arguments to this script"
+      echo "     $nagrif fine agrif grid specified"
+      echo 
+      echo "  ARGUMENTS:"
+      echo "     If necessary, give a list of extra file type to deal with."
+      echo 
+      echo "  OPTIONS:"
+      echo "      -h : this help message "
+      echo "      -a number of subgrid : in case of AGRIF runs, specify the number of subgrids "
+      exit 0
+        }
+
+chkdir() { if [ ! -d $1 ] ; then mkdir $1 ; fi ; }
+
+
+filtyp="gridT gridU gridV gridW icemod ptrcT diadT trends dynT flxT gridLOM gridSST gridSSU gridSSV" 
+nagrif=0
+
+while getopts :ha: opt ; do
+   case $opt in 
+     (h) usage ;;
+     (a) nagrif=${OPTARG} ;;
+     (*) usage ;;
+   esac
+done
+
+shift $((OPTIND - 1 ))
+
+filtyp="$filtyp $*"
+
+# Checck if the current dir is a xxx-xx-S directory
+here=$( pwd ) 
+# suuport -S/SSF for SSF fields
+if [ $(basename $here ) = SSF ] ; then
+   tmp=$(basename $(dirname $here) )
+   lssf=1
+else
+   tmp=$(basename $here )
+   lssf=''
+fi
+
+ext=$( echo $tmp | sed -e 's/-/ /g' | awk '{print $3}' )
+
+if  [ ${ext:-none}  != 'S' ]  && [ ${ext:-none}  != 'R' ]  ; then 
+  echo 'you are not in an -S directory. You cannot mkordre :('
+  usage
+  exit 1
+fi
+
+case $ext in
+( R )
+CONFCASE=${tmp%-R}  
+  echo mkordre in restart 
+  for f in *_v2* ; do
+     if [ -f $f ] ; then
+     ext=$(echo ${f#*_v2.} | awk -F. '{print $1}')
+     dir=v2.$ext
+     mkdir -p $dir
+     mv $f $dir
+     fi
+  done ;;
+ 
+( * )
+CONFCASE=${tmp%-S}  
+
+
+# Move annex tarfiles to ANNEX
+ls *anne*  2> /dev/null && { chkdir ANNEX ; mv *anne* ANNEX  ; }
+
+# Scan the different types of files and send then to the YEAR directory
+for type in $filtyp; do
+  ls -1 | grep "^${CONFCASE}" | grep "${type}.nc"  2> /dev/null &&  { \
+  for f in ${CONFCASE}*_${type}.nc ; do 
+    tag=$( echo $f | sed -e 's/_/ /g' | awk '{print $2}' )
+    year=$( echo $tag | sed -e's/m/ /' | awk '{print $1}' | tr -d 'y' )
+
+    chkdir $year
+    mv  $f $year
+  done  ; }
+done
+
+# treat agrif output if any; first loop is not done if nagrif=0
+for n in $( seq 1 $nagrif) ; do
+  for type in $filtyp; do
+    ls -1 | grep "^${n}_${CONFCASE}" | grep "${type}.nc"  2> /dev/null &&  { \
+    for f in ${n}_${CONFCASE}*_${type}.nc ; do 
+      tag=$( echo $f | sed -e 's/_/ /g' | awk '{print $3}' )
+      year=$( echo $tag | sed -e's/m/ /' | awk '{print $1}' | tr -d 'y' )
+
+      chkdir ${year}_${n}
+      mv  $f ${year}_${n}
+    done  ; }
+  done
+done ;;
+
+esac
+
+
