@@ -1,0 +1,93 @@
+#!/bin/bash
+# This script is used to update a Journal wiki page with the CPU used for a job.
+# it requires 2 files for input :
+#              1: a text copy of the wiki page ( option -w )
+#              2: a text extraction of the cpu used on jade ( option -c )
+#------------------------------------------------------------
+#  $Rev: 763 $
+#  $Date: 2015-02-26 09:39:35 +0100 (Thu, 26 Feb 2015) $
+#  $Id: add_cpu_2_journal.bash 763 2015-02-26 08:39:35Z molines $
+#--------------------------------------------------------------
+##################################################################################
+
+usage() {
+        echo "USAGE : $(basename $0 ) -w Journal_wiki.txt -c cpu_used.txt [-o output file] [-m machine ]"
+        echo 
+        echo "   PURPOSE:"
+        echo "       Use accounting information hold in cpu_used.txt in order to finish the run's journal"
+        echo "       created by dcmtk_journal_make."
+        echo
+        echo "   OPTIONS:"
+        echo "  -h                   :  this help message "
+        echo "  -w Journal_wiki.txt  :  the name of the text file created from the wiki page"
+        echo "  -c cpu_used.txt      :  the name of the acounting file on HPC computer (see dcmtk_getcpu) "
+        echo "                       :  It can be obtained at https://reser.cines.fr/ with detailed option"
+        echo "  -o output file       :  specify the output file name ( optional, default is Journal_cpu.txt )"
+        echo "                       :  This file is then to be paste into the wiki, in place of the original table"
+        echo "  -m machine           :  Specify the machine you are working on [occigen]. ada is also suported"
+        echo "                          On ada, cpu_used_ada.txt file can be obtained with idrjar -d 01/01-nn/mm"
+        exit
+        }
+
+chkfile()  {
+           if [ ! -f $1 ] ; then 
+            echo "ERROR : file $1 is missing "
+            exit
+           fi
+           }
+
+if [ $# = 0 ] ; then usage ; fi
+raw_journal=''
+cpu_list=''
+cpu_journal=Journal_cpu.txt
+ierr=0
+machine=occigen
+
+while getopts :hw:m:c:o: opt ; do
+  case $opt in 
+  (h) usage ;;
+  (w) raw_journal=$OPTARG ;;
+  (m) machine=$OPTARG ;;
+  (c) cpu_list=$OPTARG ;;
+  (o) cpu_journal=$OPTARG ;;
+  (\?) echo $( basename $0 ): option -$OPTARG not valid. ; usage ;;
+  esac
+done
+
+if [ ! $raw_journal ] ; then 
+   ierr=1
+   echo "ERROR : you must specify a Journal_wiki.txt file "
+fi
+if [ ! $cpu_list ] ; then 
+   ierr=1
+   echo "ERROR : you must specify a cpu_used_jade.txt file "
+fi
+
+if [ $machine != ada -a $machine != jade -a $machine != occigen  -a $machine != curie ] ; then
+   ierr=1
+   echo " ERROR : valid machines are jade occigen curie and  ada "
+fi
+
+if [ $ierr = 1 ] ; then  echo "" ; usage ; fi 
+
+chkfile $raw_journal
+chkfile $cpu_list
+
+case $machine in
+  ( jade   )
+  # transform HHHH:MM:SS in decimal hours ( can also handle times in hour only as previously)
+  cat $cpu_list | awk '{ cpu=$NF ; print cpu }'   | awk -F: '{printf "%7.2f\n" , $1+$2/60.+$3/3600.}' > ztmplist2 
+  cat $cpu_list | awk '{ jobid=$2 ; cpu=$NF ; print jobid " " cpu }'  | sed -e 's/\./ /' | awk  '{ print $1 }' > jobid  ;;
+  ( occigen | curie) 
+  cat $cpu_list | awk 'NR != 1 { jobid=$2 ; cpu=$6 ;  i=index(cpu,"-"); t=substr(cpu,i+1) ; split(t,a,":") ; cpuh=substr(cpu,1,i-1)*24+ a[1]+a[2]/60.+a[3]/3600 ; print cpuh}' > ztmplist2
+  cat $cpu_list | awk 'NR != 1 { jobid=$2 ; print jobid }' > jobid ;;
+  ( ada    )
+  cat $cpu_list | awk  '{printf "%6.1f\n", $5*$7/3600.}' > ztmplist2
+  cat $cpu_list | awk -F. '{print $2}' > jobid ;;
+esac
+
+  paste jobid ztmplist2 > ztmplist
+# \rm ztmplist2 jobid
+  cmd=$(cat ztmplist | awk 'BEGIN{cmd= "sed "} { tpl= $1 "_CPU"; cmd= cmd " -e s/" tpl "/" $2"/" } END{ print cmd }' )
+  echo $cmd
+  cat $raw_journal | $cmd > $cpu_journal
