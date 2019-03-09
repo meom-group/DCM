@@ -1,0 +1,15 @@
+#!/bin/bash
+# cleaning of the job.o files from the xios report lines and from merge messages.
+# The goal is to reduce the size of this job.o erasing useless information.
+# Restore the date of the original file
+# MACHINE is supposed to be in the environment
+logfile=nemo_$MACHINE
+
+
+for f in $logfile.o* ; do
+   tmp="$( ls --full-time $f | awk '{ print $6 " " $7 " " $8 }' ) "
+   grep -v report $f | grep -v '+++' | grep -v 'merge variable' |grep -v 'task=' > toto.$f
+   touch -d "$tmp"  toto.$f
+   mv toto.$f $f
+done
+
