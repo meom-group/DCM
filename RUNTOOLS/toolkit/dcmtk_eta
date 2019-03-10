@@ -14,19 +14,19 @@ usage() {
           echo
           echo "USAGE: $(basename $0)  [ -h | -help] [-j jobid] [-n name] [-u user] [-q queue] [-f ]" 
           echo
-          echo "   PURPOSE:"
+          echo "  PURPOSE:"
           echo "     This tools aims at producing the Estimated Time of Arrival (eta) for a running"
           echo "     job. It also provides usefull (or wacky!) real time information."
           echo 
-          echo "   OPTIONS:"
-          echo '       -h or -help : print this message '
-          echo '       -j jobid    : take jobid to look in the running table'
-          echo '       -s sessid   : take sessid  to look in the running table'
-          echo '                   : This is usefull if many instances of name are running'
-          echo '       -n name     : take name instead of nemo_machine'
-          echo '       -q queue    : take queue instead of nhm for queue name'
-          echo '       -u user     : specify login name of the owner of the job'
-          echo '       -f          : fast : do not display progress bar'
+          echo "  OPTIONS:"
+          echo '     -h or -help : print this message '
+          echo '     -j jobid    : take jobid to look in the running table'
+          echo '     -s sessid   : take sessid  to look in the running table'
+          echo '                 : This is usefull if many instances of name are running'
+          echo '     -n name     : take name instead of nemo_machine'
+          echo '     -q queue    : take queue instead of nhm for queue name'
+          echo '     -u user     : specify login name of the owner of the job'
+          echo '     -f          : fast : do not display progress bar'
           echo '   ' 
           exit 0
         }
@@ -149,10 +149,10 @@ sessid='R'
 fast=''
 
 case $HOST in 
-( ada     ) ; name='nemo_ada'      ; queue=''    ;;
-( jade    ) ; name='nemo_jade'     ; queue='nhm' ;;
-( occigen ) ; name='nemo_occigen'  ; queue=''    ;;
-( irene   ) ; name='nemo_irene'    ; queue=''    ;;
+( ada     )  name='nemo_ada'      ; queue=''    ;;
+( jade    )  name='nemo_jade'     ; queue='nhm' ;;
+( occigen )  name='nemo_occigen'  ; queue=''    ;;
+( irene   )  name='nemo_irene'    ; queue=''    ;;
 esac
 
 # Browse command line

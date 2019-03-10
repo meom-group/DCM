@@ -6,19 +6,38 @@
 #--------------------------------------------------------------
 #set -x
 #
+usage()  {
+   echo  
+   echo "USAGE:  $(basename $0) [-h] nemo_machine.o "
+   echo  
+   echo "  PURPOSE:"
+   echo "      This script Will scan the job outputfile and use the timing information to infer "
+   echo "      a prognostic about the elapsed time required for 1 year of run."
+   echo "      This command must be used in CTL where both logfiles and namelists are."
+   echo  
+   echo "  ARGUMENT:"
+   echo "      nemo_machine.o : A std output job file produce by DRAKKAR nemo"
+   echo  
+   echo "  OPTIONS:"
+   echo "      -h : Display this help message"
+   echo
+   exit 0
+         }
+
 difftime() { d2=$( echo $1 | awk '{print $3 *86400}')  ;  h2=$( echo $1 | awk '{print  $4}' | awk -F: '{ print $1*3600 + $2*50 + $3 }') ;
              d1=$( echo $2 | awk '{print $3 *86400}')  ;  h1=$( echo $2 | awk '{print  $4}' | awk -F: '{ print $1*3600 + $2*50 + $3 }') ;
              dt=$( echo 1 | awk '{print d2 - d1 + h2 -h1 }' d2=$d2 d1=$d1 h2=$h2 h1=$h1 ) ;  echo $dt ;}
 
 LookInNamelist()    { eval grep -e $1 namelist.${CONFCASE}     | sed -e 's/=/  = /' | awk ' {if ( $1 == str ) print $3 }' str=$1 ; }
 
-if [ $# = 0 ] ; then 
-   echo " USAGE:  $(basename $0) nemo_logfile.o "
-   echo "    Will scan the job outputfile and use the timing information to infer a prognostic"
-   echo "    about the elapsed time required for 1 year of run."
-   echo "    This command must be used in CTL where both logfiles and namelists are."
-   exit 0
-fi
+while getopts :h opt ; do
+   case $opt in
+     (h) usage ;;
+     (*) usage ;;
+   esac
+done
+
+shift $((OPTIND - 1 ))
 
 logfile=$1
 

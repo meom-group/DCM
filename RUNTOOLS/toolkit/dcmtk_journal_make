@@ -8,25 +8,27 @@
 #--------------------------------------------------------------
 
 usage() {
+     echo
      echo "USAGE: $(basename $0 ) [-h ] [-f ] [-c confcase ] [-n name ] [-u user] [-o fileout]"
      echo
      echo "  PURPOSE:"
-     echo "      This script create a wiki table (ReSTructured trac format) with the segments of run "
-     echo "      present in the local directory (job output). It uses the namelist in  order"
-     echo "      to retrieve important parameters of the run, to put in the table. Hence,"
-     echo "      this script must be run in CTL directory for regular usage. It prepares the column"
-     echo "      for the CPU usage. This column can be completed afterward with accounting information"
-     echo "      (see dcmtk_journal_cpu) "
+     echo "     This script create a wiki table (ReSTructured text trac format) with the segments of"
+     echo "     run present in the local directory (job output). It uses the namelist in  order"
+     echo "     to retrieve important parameters of the run, to put in the table. Hence,"
+     echo "     this script must be run in CTL directory for regular usage. It prepares the column"
+     echo "     for the CPU usage. This column can be completed afterward with accounting information"
+     echo "     (see dcmtk_journal_cpu) "
      echo
      echo "  OPTIONS:"
-     echo "      -h : help "
-     echo "      -f : force : do not check that you are in a CTL dir "
-     echo "      -n name : use name instead of nemo_<MACHINE>. <MACHINE> is inferred from hostname"
-     echo "             for irene, ada, occigen "
-     echo "      -c confcase : use confcase instead of CONFCASE deduced from CTL"
-     echo "                  : this is usefull with option -f "
-     echo "      -u user [default is $USER ]"
-     echo "      -o output file [ default is journal.wiki "
+     echo "     -h : help "
+     echo "     -f : force : do not check that you are in a CTL dir "
+     echo "     -n name : use name instead of nemo_<MACHINE>. <MACHINE> is inferred from hostname"
+     echo "            for irene, ada, occigen "
+     echo "     -c confcase : use confcase instead of CONFCASE deduced from CTL"
+     echo "                 : this is usefull with option -f "
+     echo "     -u user [default is $USER ]"
+     echo "     -o output file [ default is journal.wiki "
+     echo
      exit 0
         }
 

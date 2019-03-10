@@ -7,14 +7,22 @@
 #  $Id: chkstp 648 2014-01-24 06:34:29Z molines $
 #--------------------------------------------------------------
 usage() {
-     echo USAGE: $(basename $0) [-h] [-d delay ] 
-     echo "  PURPOSE: Display the evolution of time step to check if the run progresses"
-     echo "           smoothly. If run stop or too slow, a RED warning is dipslayed."
+     echo
+     echo "USAGE: $(basename $0) [-h] [-d delay ] "
+     echo
+     echo "  PURPOSE:"
+     echo "      Display the evolution of time step to check if the run progresses"
+     echo "      smoothly. If run stop or too slow, a RED warning is dipslayed."
+     echo
+     echo "  ARGUMENTS:"
+     echo "      No arguments. Default delay is $delay seconds."
+     echo
      echo "  OPTIONS:"
-     echo "      -h : this help page "
-     echo "      -d delay : specify a delay (s) between each check "
+     echo "     -h : this help page "
+     echo "     -d delay : specify a delay (s) between each check "
      echo "                default is " $delay " seconds."
      echo "                decimal numbers can be used (eg 0.5 for 1/2 seconds)"
+     echo
      exit 0
         }
 

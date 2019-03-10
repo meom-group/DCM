@@ -10,9 +10,20 @@
 #--------------------------------------------------------------
 
 usage() {
-    echo USAGE: $(basename $0) [-h] [list of directories]
+    echo
+    echo "USAGE: $(basename $0) [-h] [list of directories]"
+    echo
+    echo "  PURPOSE:"
+    echo "     Count the number of inodes in all the directories below the actual"
+    echo "     working directory. (All the sub directory tree is take into account.)"
+    echo "     This tool is very usefull to analyse places in your tree where there"
+    echo "     are too many files :) that may cause quota overflow."
+    echo
+    echo "  OPTIONS:"
     echo "     -h : print this message "
-    echo "     if no list of directories is given, all subdirs are taken into account"
+    echo "     list_of_directories: restrict the inodes counting to the directories"
+    echo "                          in the list."
+    echo
     exit 0
         }
 
@@ -27,6 +38,7 @@ while getopts :h  opt
 shift $(($OPTIND-1))
 
 dirs="*"
+
 if [ $# != 0 ] ; then dirs="$*" ; fi
 
 for f in $dirs ; do

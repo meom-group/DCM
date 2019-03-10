@@ -7,13 +7,20 @@
 #set -x
 
 usage() {
-      echo USAGE: $( basename $0 ) [-h ] [-n job.o rootname]
-      echo "   PURPOSE:  Scans all the nemo_occigen.o* files in the current directory and "
-      echo "       computes the running speed of the model during the first 180 timesteps "
-      echo "   OPTIONS: "
-      echo "   -h                : Display this help message"
-      echo "   -n job.o_rootname : Use rootname instead of nemo_occigen for the name of"
-      echo "                       the job output file."
+      echo
+      echo "USAGE: $( basename $0 ) [-h ] [-n job.o rootname]"
+      echo
+      echo "  PURPOSE:"
+      echo "      Scans all the nemo_occigen.o* files in the current directory and "
+      echo "      computes the running speed of the model during the first 180 timesteps "
+      echo
+      echo "  ARGUMENTS:"
+      echo "      No arguments, scan default nemo_occigen.o* file"
+      echo
+      echo "  OPTIONS: "
+      echo "    -h                : Display this help message"
+      echo "    -n job.o_rootname : Use rootname instead of nemo_occigen for the name of"
+      echo "                        the job output file."
       exit 0
         }
 

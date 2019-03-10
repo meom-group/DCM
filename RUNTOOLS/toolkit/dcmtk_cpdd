@@ -13,18 +13,27 @@
 #----------------------
 # Usage manual
 usage() {
-     echo USAGE: $(basename $0) [-h] 
-     echo "      -h : this help page "
-     echo "   This script is used to copy files from either a -S, -MEAN or -R "
-     echo "   directory, located on $DDIR to $SDIR "
+     echo
+     echo "USAGE: $(basename $0) [-h] "
+     echo 
+     echo "  PURPOSE:"
+     echo "     This script is used to copy files from either a -S, -MEAN or -R "
+     echo "     directory, located on $DDIR to $SDIR (mirroring)."
      echo "     For -S and -MEAN, it must be used in a 'year' subdirectory. "
-     echo "   The same directory will be copied on $SDIR. " 
-     echo "   If files already exist, they are just skipped."
+     echo "     The same directory will be copied on $SDIR. " 
+     echo "     If files already exist, they are just skipped."
+     echo "     Note that depending on the archiving system, mirroring is not"
+     echo "     necessarily the best choice as it does'nt reduce the number of"
+     echo "     used inodes on $SDIR file system."
      echo "   "
+     echo "  ARGUMENTS:"
      echo "     This script is used without any arguments, CONFIG and CASE are deduced"
-     echo "   from the directory name."
-     echo "   mcp script (multiple cp) uses this script (and its symetrical ddcp)"
-     echo "   Look at mcp -h for more details "
+     echo "     from the directory name.  mcp script (multiple cp) uses this script "
+     echo "     (and its symetrical ddcp).  Look at mcp -h for more details "
+     echo
+     echo "  OPTIONS:"
+     echo "      -h : Display this help page "
+     echo
      exit 0
         }
 

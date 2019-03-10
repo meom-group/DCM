@@ -1,9 +1,9 @@
 #!/bin/bash
 #set -x
 
-if [ $# = 0 ] ; then
+usage()   {
    echo
-   echo "USAGE: $(basename $0)   nemo.o1 nemo.o2 ..... minutes_max step_max "
+   echo "USAGE: $(basename $0)  [-h] nemo.o1 nemo.o2 ..... minutes_max step_max "
    echo
    echo "  PURPOSE:"
    echo "     This tools plot the number of time step as a function of time. It uses"
@@ -20,8 +20,9 @@ if [ $# = 0 ] ; then
    echo "     steps to consider (y axis). "
    echo
    echo "  HISTORY: this tool was formely called timeevol4.ksh (for oldies !)"
-   exit
-fi
+   echo
+   exit 0
+         }
 
 # update scan file in order to work in case of you are changing month during run: works if you are in a 28-days or 29-days February year
 # it doesn't work if you change year during the run
@@ -49,13 +50,22 @@ scan_file() {
           st = $1  
           t  = (A[$3]*24 + $4*24 + $6)*3600 + $7*60 + $8 + $9/1000  
           print (t-t0)/60 " " st-st0 }' 
-   echo " " }
+            }
 
 
 scan_filter() {
              cat $1 | grep -v '^task' | grep -v '^MIX' | grep -v NAREA | grep -v MXM | sed -e 's/ 60  / 120 /' | \
            sed -e 's/ :    / : \n /' | grep -v "On HOST r"  | grep ' 120 ' | grep -v runoff | grep -v Time | grep -v '^[1-9]' | grep -v '+++' 
             }
+
+while getopts :h opt ; do
+   case $opt in
+     (h) usage ;;
+     (*) usage ;;
+   esac
+done
+
+shift $((OPTIND - 1 ))
 
 narg=$#
 nfile=$(( narg - 2 ))  # last 2 arguments are xmax and ymax

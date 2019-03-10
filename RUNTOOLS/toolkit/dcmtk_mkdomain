@@ -3,22 +3,26 @@
 #set -vx
 
 usage() {
-      echo $(basename $0 ) xmin xmax ymin ymax -d DOM [-c coordinates_file] [ -h ]
-      echo "      " print the xml lines do be inserted in domain_ref.xml file
-      echo "   This version is for XIOS1 : deprecated and obsolete"
-      echo "   New version to be written for XIOS2 "
-      exit 0
+   echo
+   echo "USAGE: $(basename $0 ) -d DOM [-c coordinates_file] [ -h ] xmin xmax ymin ymax"
+   echo
+   echo "  PURPOSE:"
+   echo "     Print the xml lines do be inserted in domain_ref.xml file in order to create "
+   echo "     a new domain for XIOS output."
+   echo "     This version is for XIOS1 : deprecated and obsolete"
+   echo "     New version to be written for XIOS2 "
+   echo
+   echo "  ARGUMENTS:"
+   echo "     -d DOM : indicate a domain name for the xml file."
+   echo "     xmin xmax ymin ymax : position of the domain in geographical coordinates."
+   echo "                This 4 variable MUST be the last on the line."
+   echo
+   echo "  OPTIONS:"
+   echo "     -h : Display this help message."
+   echo "     -c coordinates_file: Use this coordinate file instead of default $coord."
+   echo
+   exit 0
         }
-
-if [ $# = 0 ]  ; then
-   usage
-fi
-
-xmin=$1 ; shift
-xmax=$1 ; shift
-ymin=$1 ; shift
-ymax=$1 ; shift
-
 
 coord=coordinates.nc
 while getopts :hc:d: opt; do
@@ -29,6 +33,12 @@ while getopts :hc:d: opt; do
   esac
 done
 
+shift $((OPTIND - 1 ))
+
+xmin=$1 ; shift
+xmax=$1 ; shift
+ymin=$1 ; shift
+ymax=$1 ; shift
 
  tmp=$(cdffindij $xmin $xmax $ymin $ymax -c $coord -p T  | tail -2 | head -1 )
  imin=$( echo $tmp | awk '{print $1}' )

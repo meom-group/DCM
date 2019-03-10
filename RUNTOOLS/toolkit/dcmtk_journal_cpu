@@ -14,21 +14,22 @@ usage() {
         echo
         echo "USAGE : $(basename $0 ) -w Journal_wiki.txt -c cpu_used.txt [-h] [-o output file] [-m machine ]"
         echo 
-        echo "   PURPOSE:"
-        echo "       Use accounting information hold in cpu_used.txt in order to finish the run's journal"
-        echo "       created by dcmtk_journal_make."
+        echo "  PURPOSE:"
+        echo "     Use accounting information hold in cpu_used.txt in order to finish the run's journal"
+        echo "     created by dcmtk_journal_make."
         echo
-        echo "   ARGUMENTS: (mandatory)"
-        echo "    -w Journal_wiki.txt  :  the name of the text file created from the wiki page"
-        echo "    -c cpu_used.txt      :  the name of the acounting file on HPC computer (see dcmtk_getcpu) "
+        echo "  ARGUMENTS: (mandatory)"
+        echo "     -w Journal_wiki.txt  :  the name of the text file created from the wiki page"
+        echo "     -c cpu_used.txt      :  the name of the acounting file on HPC computer (see dcmtk_getcpu) "
         echo  
-        echo "   OPTIONS:"
-        echo "    -h                   :  this help message "
-        echo "                         :  It can be obtained at https://reser.cines.fr/ with detailed option"
-        echo "    -o output file       :  specify the output file name ( optional, default is Journal_cpu.txt )"
-        echo "                         :  This file is then to be paste into the wiki, in place of the original table"
-        echo "    -m machine           :  Specify the machine you are working on [occigen]. ada is also suported"
-        echo "                          On ada, cpu_used_ada.txt file can be obtained with idrjar -d 01/01-nn/mm"
+        echo "  OPTIONS:"
+        echo "     -h                   :  this help message "
+        echo "                          :  It can be obtained at https://reser.cines.fr/ with detailed option"
+        echo "     -o output file       :  specify the output file name ( optional, default is Journal_cpu.txt )"
+        echo "                          :  This file is then to be paste into the wiki, in place of the original table"
+        echo "     -m machine           :  Specify the machine you are working on [occigen]. ada is also suported"
+        echo "                             On ada, cpu_used_ada.txt file can be obtained with idrjar -d 01/01-nn/mm"
+        echo
         exit
         }
 

@@ -5,6 +5,7 @@
 
 
 usage() {
+    echo
     echo "USAGE: $(basename $0) [-h] [list of directories]"
     echo
     echo "  PURPOSE:"
@@ -14,7 +15,8 @@ usage() {
     echo
     echo "  OPTIONS:"
     echo "     -h : print this message "
-    echo "     If no list of directories is given, all subdirs are taken into account"
+    echo "     list of directories: restrict action to the listed directories."
+    echo
     exit 0
         }
 

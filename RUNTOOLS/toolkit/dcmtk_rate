@@ -3,24 +3,27 @@
 #set -x
 
 usage() {
+      echo
       echo "USAGE: $( basename $0 ) [-h ] [-s istep ] [ -b nblock ] [ -f filename ] [ -m ] "
       echo "       [ -g ] [-t graphtype] [ -v ] [ -l ]"
       echo
       echo "  PURPOSE: "
-      echo "          Display the integration rate (step/minutes) computed from filename "
-      echo "          (drakkar nemo job standard output). The analysis is done by chunks "
-      echo "          of time steps, that are defined with the options."
+      echo "     Display the integration rate (step/minutes) computed from filename "
+      echo "     (drakkar nemo job standard output). The analysis is done by chunks "
+      echo "     of time steps, that are defined with the options."
+      echo
       echo "  OPTIONS:"
-      echo "   -h : this help message. "
-      echo "   -s istep : number of time step for the chunk of data to analyse [ $istep ]"
-      echo "   -b nblock : number of chunk of data to analyse [ $nblock ]"
-      echo "   -f filename : nemo_machine.oxxx file name to consider [ $filename ]"
-      echo "   -m : indicate mean and std of the computed performance rates"
-      echo "   -g : pipe results to graph "
-      echo "   -t graph output :  either X gif png ...[ $type ]"
-      echo "   -v : verbose extra informations (do not use with -g option)" 
-      echo "   -y ymin ymax :fix y axis scale to be between ymin and ymax "
-      echo "   -l : label title above verbose informations (do use with -v options)"
+      echo "     -h : Display this help message. "
+      echo "     -s istep : number of time step for the chunk of data to analyse [ $istep ]"
+      echo "     -b nblock : number of chunk of data to analyse [ $nblock ]"
+      echo "     -f filename : nemo_machine.oxxx file name to consider [ $filename ]"
+      echo "     -m : indicate mean and std of the computed performance rates"
+      echo "     -g : pipe results to graph "
+      echo "     -t graph output :  either X gif png ...[ $type ]"
+      echo "     -v : verbose extra informations (do not use with -g option)" 
+      echo "     -y ymin ymax :fix y axis scale to be between ymin and ymax "
+      echo "     -l : label title above verbose informations (do use with -v options)"
+      echo
       exit 0
         }
 

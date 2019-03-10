@@ -9,6 +9,7 @@
 # Functions for use in this script
 #-------------------------------------------------------------
 usage()  {
+   echo
    echo "USAGE: $(basename $0) [-h] [-f firstyear] [-l lastyear ]"
    echo
    echo "  PURPOSE:"
@@ -16,6 +17,7 @@ usage()  {
    echo "     It is clever enough to determine the direction of the tranfert"
    echo "     It uses dcmtk_cpdd or dcmtk_ddcp tools in an iterative way."
    echo "     It is now rather obsolete as data on SDIR are no more a mirror of WORKDIR."
+   echo "     $(basename $0) must be used in the CONFCASE-S or CONFCASE-MEAN directory"
    echo
    echo "  OPTIONS:"
    echo "      -h : this help page "
@@ -23,7 +25,6 @@ usage()  {
    echo "                     If not given take the first existing year"
    echo "      -l lastyear : specify the last year to transfer"
    echo "                     If not given take the last existing year"
-   echo "   $(basename $0) must be used in the CONFCASE-S or CONFCASE-MEAN directory"
    echo "   "
    exit 0
          }

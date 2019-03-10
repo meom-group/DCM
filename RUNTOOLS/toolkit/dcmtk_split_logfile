@@ -1,13 +1,32 @@
 #!/bin/bash
-  if [ $# = 0 ] ; then
-    echo "USAGE:  $(basename $0 ) nemo_occigne2.exxxx file"
+# split log files : usefull for multi segments job.
+
+usage()  {
+    echo
+    echo "USAGE:  $(basename $0 ) [-h] nemo_error_output_file"
     echo
     echo "  PURPOSE:"
     echo "     Split job.e and job.a when having a loop on segments within a single job."
     echo "     Ends up with individual job files (o and e) for each segment."
     echo "     Keep track of the date of the file."
-    exit
-  fi
+    echo
+    echo "  ARGUMENTS:"
+    echo "     nemo_error_output_file : the std error output file of a multi segment run."
+    echo
+    echo "  OPTIONS:"
+    echo "     -h : Display this usage message."
+    echo
+    exit 0
+         }
+
+while getopts :h opt ; do
+   case $opt in
+     (h) usage ;;
+     (*) usage ;;
+   esac
+done
+
+shift $((OPTIND - 1 ))
 
 loge=$1
 logo=$( echo $loge | sed -e 's/\.e/.o/')

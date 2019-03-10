@@ -5,14 +5,19 @@
 # if used with -v option also print the UNLIM line of the file
 
 usage() {
+       echo
        echo " USAGE : dcmtk_chkunlim [-h ] [-v] [-p pattern] "
-       echo "      scan the nc files in the current directory "
-       echo "     With no option, gives the name of corrupted files (UNLIMITED dim = 0 ) "
+       echo
+       echo "   PURPOSE:"
+       echo "       Scan the nc files in the current directory, and check if UNLIMITED "
+       echo "       dimension is different from 0."
+       echo "       With no option, gives the name of corrupted files (UNLIMITED dim = 0 ) "
        echo " "
        echo "   OPTIONS :"
        echo "      -h : print this usage message"
        echo "      -v : print the UNLIMITED line for all files"
        echo "      -p pattern : use pattern for filtering the files to scan "
+       echo " "
        exit 0
         }
 

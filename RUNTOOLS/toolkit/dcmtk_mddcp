@@ -9,16 +9,24 @@
 #  $Id: mddcp 17 2010-11-10 10:02:14Z molines $
 #--------------------------------------------------------------
 usage() {
-   echo USAGE: $(basename $0) [-h] 
-   echo "      -h : this help page "
-   echo "   $(basename $0) must be used in the CONFCASE-S or CONFCASE-MEAN directory"
-   echo "   All subdirectories are visited and files copied to $WORKDIR/CONFIG/..."
-   echo "   /data ---> /scratch "
-   echo "   "
+   echo
+   echo "USAGE: $(basename $0) [-h] "
+   echo
+   echo "  PURPOSE:"
+   echo "     Perform a mirroring of all the subdirectories of the current SDIR directory"
+   echo "     on WORKDIR. This script must be used in the SDIR's CONFCASE-S or CONFCASE-MEAN "
+   echo "     directory. All subdirectories are visited and files copied to WORKDIR/CONFIG/..."
+   echo
+   echo "  ARGUMENTS:"
+   echo "     No arguments for this script."
+   echo
+   echo "  OPTIONS:"
+   echo "     -h : Display this help page "
+   echo
    exit 0
         }
 
-while getops :h opt ; do
+while getopts :h opt ; do
    case $opt in 
      (h) usage ;;
      (*) usage ;;

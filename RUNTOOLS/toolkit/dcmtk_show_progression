@@ -1,6 +1,7 @@
 #!/bin/bash
 
 usage() {
+    echo
     echo "USAGE : $(basename $0) [-h] [-t plotdevice] [-p prefix] [-s suffix] [-o png file].. "
     echo "                       [-m ] "
     echo

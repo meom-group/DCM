@@ -7,9 +7,9 @@
 #  $Id: mkordre 637 2013-10-18 16:16:23Z molines $
 #--------------------------------------------------------------
 # Shell functions
-# check existence and eventually create directory
 usage() {
-      echo "USAGE: $(basename $0) [-h ] [ extra file types ]"
+      echo
+      echo "USAGE: $(basename $0) [-h ] [-a] [ extra file types ]"
       echo
       echo "  PURPOSE:"
       echo "     When having a bunch of files in a single directory, try to organize them"
@@ -29,9 +29,11 @@ usage() {
       echo "  OPTIONS:"
       echo "      -h : this help message "
       echo "      -a number of subgrid : in case of AGRIF runs, specify the number of subgrids "
+      echo 
       exit 0
         }
 
+# check existence and eventually create directory
 chkdir() { if [ ! -d $1 ] ; then mkdir $1 ; fi ; }
 
 

@@ -1,22 +1,27 @@
 #!/bin/bash
-if [ $# = 0 ] ; then
-    echo "USAGE : $(basename $0) [-n rootname of job.o] go "
-    echo "  "
-    echo " PURPOSE:"
+# script dealing with scalability experiment
+usage()  {
+    echo "USAGE : $(basename $0) [-h] [-n rootname of job.o] go "
+    echo 
+    echo "  PURPOSE:"
     echo "     Scan all the job output in current directory produced by scalability "
     echo "     experiment (e.g. nemo_occigen_10_20_180.o1234) and compute the rate (stp/mn)"
     echo "     for every job. In the present script, 3 windows of 100 step are used."
-    echo " ARGUMENTS :"
+    echo 
+    echo "  ARGUMENTS :"
     echo "     go or anything ! : without arguments, display the usage message."
-    echo " OPTION : "
+    echo 
+    echo "  OPTION : "
     echo "     [-n rootname of job.o] : default is nemo_occigen."
+    echo 
     exit 0
-fi
+         }
 
 rootname=nemo_occigen
 
-while getopts :n: opt ; do
+while getopts :hn: opt ; do
   case $opt in
+    (h) usage ;;
     (n) rootname=${OPTARG} ;;
     (*) dum=1 ;;
   esac

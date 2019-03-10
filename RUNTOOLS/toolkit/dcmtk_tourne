@@ -3,11 +3,33 @@
 # display a spining figure according to the rate of integration
 # as seen by time.step file
 
+usage()  {
+   echo
+   echo "USAGE: $(basename $0 ) [-h] "
+   echo
+   echo "   PURPOSE:"
+   echo "      Display a spinning star according to the progress of time.step"
+   echo "      This script must be run in the running directory, where time.step is."
+   echo
+   echo "   OPTIONS:"
+   echo "      -h : Display this help message"
+   echo
+   exit 0
+         }
+
 tourne() {
 echo -n  '-' ; printf " $* \r" ; sleep $wait
 echo  -n '\' ; printf " $* \r" ; sleep $wait
 echo -n  '|' ; printf " $* \r" ; sleep $wait
-echo  -n '/' ; printf " $* \r" ; sleep $wait ; }
+echo  -n '/' ; printf " $* \r" ; sleep $wait 
+         }
+
+while getopts :h opt ; do
+   case $opt in
+     (h) usage ;;
+     (*) usage ;;
+   esac
+done
 
 wait=0.25
 nb=0
