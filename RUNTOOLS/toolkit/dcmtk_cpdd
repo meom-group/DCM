@@ -31,7 +31,7 @@ usage() {
 # fastcp take 2 args .1 file name (local and remote)  2: remote directory.
 fastcp() {
 case $machine in
-  (jade | irene | occigen) 
+  ( irene | occigen) 
     if [ ! -f $2/$1 ] ; then
      dd bs=1024k if=$1 of=$2/$1
     fi ;;
@@ -50,7 +50,7 @@ esac
 # check existence of directory and create it if missing
 chkdir() { 
  case $machine in 
- ( jade | irene | occigen )
+ (  irene | occigen )
     mkdir -p $1 ;;
  (ada | adapp) 
     rsh ergon " mkdir -p $1 " ;;
@@ -91,7 +91,6 @@ hostname | grep occigen > /dev/null
 if [ $? == 0 ]                 ; then machine=occigen ; fi
 if [ $(hostname) == ada336   ] ; then machine=adapp ; fi
 if [ $(hostname) == ada337   ] ; then machine=ada   ; fi
-if [ $(hostname) == curie71  ] ; then machine=curie ; fi
 if [ $(hostname) == irene190 ] ; then machine=irene ; fi
 
 

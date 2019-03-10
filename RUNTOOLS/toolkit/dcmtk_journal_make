@@ -1,6 +1,6 @@
 #!/bin/bash
 # This script is used to produce a template for a Journal suitable for wiki editing
-# it must be run where nemo_jade.oxxxx files are, ie in the CTL dir of the OCNFCASE
+# it must be run where nemo_machine.oxxxx files are, ie in the CTL dir of the OCNFCASE
 #------------------------------------------------------------
 #  $Rev: 762 $
 #  $Date: 2015-02-26 09:35:35 +0100 (Thu, 26 Feb 2015) $

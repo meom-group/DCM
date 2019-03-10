@@ -14,7 +14,7 @@ usage() {
       echo "   -h : this help message. "
       echo "   -s istep : number of time step for the chunk of data to analyse [ $istep ]"
       echo "   -b nblock : number of chunk of data to analyse [ $nblock ]"
-      echo "   -f filename : nemo_jade.oxxx file name to consider [ $filename ]"
+      echo "   -f filename : nemo_machine.oxxx file name to consider [ $filename ]"
       echo "   -m : indicate mean and std of the computed performance rates"
       echo "   -g : pipe results to graph "
       echo "   -t graph output :  either X gif png ...[ $type ]"
@@ -155,7 +155,7 @@ if [ ! -f $filename ] ; then
   usage
 fi
 
-# filter the input file from task information (when running on curie with XIOS)
+# filter the input file from task information (when running on irene with XIOS)
 cat $filename | grep -v '^task' | grep -v '^MIX' | grep -v NAREA | grep -v 'WARN' > zzzztmp.o
 # note : with ensemble run, there are 1 line per member in the output file, for each step.
 #       linreg works fine but ...
