@@ -1,0 +1,82 @@
+#!/bin/bash
+#set -x
+
+if [ $# = 0 ] ; then
+   echo
+   echo "USAGE: $(basename $0)   nemo.o1 nemo.o2 ..... minutes_max step_max "
+   echo
+   echo "  PURPOSE:"
+   echo "     This tools plot the number of time step as a function of time. It uses"
+   echo "     the timing information produced by DRAKKAR nemogcm at each time step, and"
+   echo "     available in the standard output job file. As far as job.o is accessible"
+   echo "     during the execution of a run, this tools is usefull to monitor real time"
+   echo "     run performances. It often shows the problems that may occur !"
+   echo "     This tools can plot many experiments on the same frame, allowing for easy"
+   echo "     performance comparison."
+   echo
+   echo "  ARGUMENTS: "
+   echo "     The arguments consist of a list of std nemo job output files, followed"
+   echo "     by the maximum number of minutes to plot (x axis) and the maximum time"
+   echo "     steps to consider (y axis). "
+   echo
+   echo "  HISTORY: this tool was formely called timeevol4.ksh (for oldies !)"
+   exit
+fi
+
+# update scan file in order to work in case of you are changing month during run: works if you are in a 28-days or 29-days February year
+# it doesn't work if you change year during the run
+# scan_file takes as input lines such as :
+#    step  year   mon day  TZ  h  mm  ss ms
+#     $1    $2     $3  $4 $5  $6  $7  $8 $9
+#   44235  2014     9  23 120  5  51  14 921
+# array A[1-12] contains the number of elapsed days in the yr, the 1st of every month
+scan_file() {
+        scan_filter $1 | \
+   awk '{ if (NR == 1) { st0 = $1 ; ibis = 0 ; testyear = $2%4 ; if (testyear != 0) {ibis = 1} 
+                         A[1 ] = 0
+                         A[2 ] = A[1 ] + 31
+                         A[3 ] = A[2 ] + 28+ibis
+                         A[4 ] = A[3 ] + 31
+                         A[5 ] = A[4 ] + 30
+                         A[6 ] = A[5 ] + 31
+                         A[7 ] = A[6 ] + 30
+                         A[8 ] = A[7 ] + 31
+                         A[9 ] = A[8 ] + 31
+                         A[10] = A[9 ] + 30
+                         A[11] = A[10] + 31
+                         A[12] = A[11] + 30
+                         t0 = (A[$3]*24 + $4*24 + $6)*3600 + $7*60 + $8 + $9/1000  }
+          st = $1  
+          t  = (A[$3]*24 + $4*24 + $6)*3600 + $7*60 + $8 + $9/1000  
+          print (t-t0)/60 " " st-st0 }' 
+   echo " " }
+
+
+scan_filter() {
+             cat $1 | grep -v '^task' | grep -v '^MIX' | grep -v NAREA | grep -v MXM | sed -e 's/ 60  / 120 /' | \
+           sed -e 's/ :    / : \n /' | grep -v "On HOST r"  | grep ' 120 ' | grep -v runoff | grep -v Time | grep -v '^[1-9]' | grep -v '+++' 
+            }
+
+narg=$#
+nfile=$(( narg - 2 ))  # last 2 arguments are xmax and ymax
+
+\rm -f $WORKDIR/zzzzz
+joblst=""
+
+for arg in $(seq 1 $nfile ) ; do
+  echo $1 
+  file1=$1
+  jobid=${file1#*.o}
+
+  scan_file $file1 >> ${WORKDIR}/zzzzz
+  shift
+  joblst="$joblst $jobid"
+done
+
+  xmax=$1
+  ymax=$2
+  
+graph -C -L "$joblst" -T X  -x 0 $xmax -  -y 0 $ymax - -g 3  -X "Elapsed Time (mn)" -Y "Steps performed" ${WORKDIR}/zzzzz
+#graph -C -L "$joblst" -Tpng -x 0 $xmax -  -y 0 $ymax - -g 3  -X "Elapsed Time (mn)" -Y "Steps performed" ${WORKDIR}/zzzzz > zzzzz.png
+graph -C -L "$joblst" -Tgif -x 0 $xmax -  -y 0 $ymax - -g 3  -X "Elapsed Time (mn)" -Y "Steps performed" ${WORKDIR}/zzzzz > zzzzz.gif
+
