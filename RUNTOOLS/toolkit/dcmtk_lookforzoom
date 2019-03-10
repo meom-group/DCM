@@ -1,0 +1,113 @@
+#!/bin/bash
+# this script scan the iodef.xml file (or the one given in argument, look for enabled zoom and then
+# scan the domain_ref.xml file in order to retrieve the position imin imax jmin jmax for the zoomed box
+# output cat be made as a set of ncks commands which can be used to extract boxes from the global files.
+# It can also provide an overlay file, that can be used by chart in order to show the geographical position
+# of the boxes.
+
+
+usage()   {
+   echo
+   echo "USAGE: $(basename $0) [-h] [iodef.xml]"
+   echo
+   echo "  PURPOSE:"
+   echo "     This script scan the iodef.xml file (or the one given in argument, look for "
+   echo "     enabled zoom and then scan the domain_ref.xml file in order to retrieve the "
+   echo "     position imin imax jmin jmax for the zoomed box  output cat be made as a set"
+   echo "     of ncks commands which can be used to extract boxes from the global files."
+   echo "     It can also provide an overlay file, that can be used by chart in order to "
+   echo "     show the geographical position of the boxes with chart :) "
+   echo "     This version of the script works for XIOS-1 only (an update will come soon "
+   echo "     for XIOS-2."
+   echo
+   echo "  OPTIONS:"
+   echo "     -h : Display this help message"
+   echo "     iodef.xml : the name of a particular iodef.xml file, if not iodef.xml"
+   echo
+   exit 0
+          }
+
+
+while getopts :h opt ; do
+   case $opt in
+     (h) usage ;;
+     (*) usage ;;
+   esac
+done
+
+shift $((OPTIND - 1 ))
+
+iodef=$1
+
+if [ ! $iodef ] ; then
+   iodef="iodef.xml"
+fi
+
+domain="domain_def.xml"
+
+
+echo $iodef
+exit
+
+
+if [ ! -f $iodef ] ; then
+   echo "need the file "$iodef "in the current directory"
+   exit 1
+fi
+
+if [ ! -f $domain ] ; then
+   echo "need the file "$domain "in the current directory"
+   exit 1
+fi
+# 
+# Look for zoom in iodef
+lis_zoom=$( for f in $(  grep -i domain_ref $iodef | grep -vi grid ) ; do \
+                cmd=$(echo $f | grep domain_ref ) ; \
+                if [ $cmd ] ; then eval $cmd ; echo $domain_ref ;fi ;\
+            done )
+
+# look for zoom enabled 
+
+lis_ok=''
+for zoom in $lis_zoom ; do
+  grep -B 1 $zoom $iodef | head -1 | grep -iq 'enabled=".true."'
+  if [ $? = 0 ] ; then
+    lis_ok="$lis_ok $zoom"
+  fi
+done
+
+# now look for position of zoom in domain_ref.xml
+for zoom in $lis_ok ; do
+   tmp=$(grep -i $zoom $domain)
+    for f in $tmp ; do
+      cmd=$(echo $f | grep -v '<' | grep -v '>')
+      if [ $cmd ] ; then eval $cmd ; fi
+    done
+    zoom_iend=$(( zoom_ibegin + zoom_ni - 1 ))
+    zoom_jend=$(( zoom_jbegin + zoom_nj - 1 ))
+    n=$(( ${#zoom} - 1 ))
+    zoomid=${zoom:0:$n}
+    echo ncks -F -O -d x,$zoom_ibegin,$zoom_iend -d y,$zoom_jbegin,$zoom_jend coordinates.nc ${zoomid}_coordinates.nc
+done
+
+# now create overlay file
+rm overlay.dat
+for zoom in $lis_ok ; do
+   tmp=$(grep -i $zoom $domain)
+    for f in $tmp ; do
+      cmd=$(echo $f | grep -v '<' | grep -v '>')
+      if [ $cmd ] ; then eval $cmd ; fi
+    done
+    zoom_iend=$(( zoom_ibegin + zoom_ni - 1 ))
+    zoom_jend=$(( zoom_jbegin + zoom_nj - 1 ))
+    n=$(( ${#zoom} - 1 ))
+    zoomid=${zoom:0:$n}
+    echo '### '$zoomid >> overlay.dat
+    echo $zoom_ibegin $zoom_jbegin >> overlay.dat
+    echo $zoom_iend   $zoom_jbegin >> overlay.dat
+    echo $zoom_iend   $zoom_jend >> overlay.dat
+    echo $zoom_ibegin $zoom_jend >> overlay.dat
+    echo $zoom_ibegin $zoom_jbegin >> overlay.dat
+done
+
+
