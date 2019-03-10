@@ -1,0 +1,38 @@
+#!/bin/bash
+
+usage()   {
+   echo
+   echo "USAGE: $(basename $0)  [-h]  ocean.output "
+   echo
+   echo "  PURPOSE:"
+   echo "     This script decrypt an ocean.output file for max velocities, min SSH"
+   echo "     and produce a graph of these quantities vs step performed."
+   echo "     This is helpfull for monitoring model instability."
+   echo "     This tool is designed for NEMO release < 4.0. It is kept in dcmtk for memory"
+   echo "     and must be updated soon for NEMO4."
+   echo
+   echo "  ARGUMENT:"
+   echo "     ocean.output: the name of a particular ocean.ouput to check. It can be the"
+   echo "     the file corresponding to a running job."
+   echo
+   echo "  OPTIONS:"
+   echo "     -h : display this help message."
+   echo     
+   exit  0
+          }
+while getopts :h opt ; do
+   case $opt in
+     (h) usage ;;
+     (*) usage ;;
+   esac
+done
+
+shift $((OPTIND - 1 ))
+file=$1
+
+#export BITMAPSIZE=1024x1024
+
+ grep -e 'abs(U)'  $file | grep -v kt  | awk '{print $3/1000," ",$NF}' | graph -s -y 0 5.0 -Y 'Zonal velocity (m/s)' -X 'Timestep number (*1000)' -g 3 -L 'abs(U)' -T X -
+ grep -e 'SSS min' $file | awk '{print $3/1000," ",$NF}' | graph -s -Y 'SSS min (PSU)' -X 'Timestep number (*1000)' -g 3 -L 'SSS min ' -T X -
+ grep violation $file    | awk '{print NR," ",$NF}' | graph -s -y 0.5 3.3 -X 'Occurence number' -g 3 -L 'ice CFL value ' -T X -
+
