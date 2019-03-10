@@ -1,0 +1,350 @@
+#!/bin/bash
+# This script is used to produce an estimate of time for a runninf job
+
+#------------------------------------------------------------
+#  $Rev: 746 $
+#  $Date: 2015-01-16 00:28:47 +0100 (Fri, 16 Jan 2015) $
+#  $Id: eta.bash 746 2015-01-15 23:28:47Z molines $
+#--------------------------------------------------------------
+# REM1 : jade code is maintained. It uses pbs and can be used as template for
+#       other pbs based system.
+# REM2 : this tools needs some cleaning (dimg obsolete) and update for XIOS information
+
+usage() { 
+          echo
+          echo "USAGE: $(basename $0)  [ -h | -help] [-j jobid] [-n name] [-u user] [-q queue] [-f ]" 
+          echo
+          echo "   PURPOSE:"
+          echo "     This tools aims at producing the Estimated Time of Arrival (eta) for a running"
+          echo "     job. It also provides usefull (or wacky!) real time information."
+          echo 
+          echo "   OPTIONS:"
+          echo '       -h or -help : print this message '
+          echo '       -j jobid    : take jobid to look in the running table'
+          echo '       -s sessid   : take sessid  to look in the running table'
+          echo '                   : This is usefull if many instances of name are running'
+          echo '       -n name     : take name instead of nemo_machine'
+          echo '       -q queue    : take queue instead of nhm for queue name'
+          echo '       -u user     : specify login name of the owner of the job'
+          echo '       -f          : fast : do not display progress bar'
+          echo '   ' 
+          exit 0
+        }
+
+# function for text color
+set_color() {
+r="\033[31m"  # red
+g="\033[32m"  # green
+b="\033[34m"  # blue
+m="\033[35m"  # magenta
+k="\033[0m"   # black/reset
+            }
+
+mkline() {
+    printf "%s" '|'
+    for fois in 1 2 3  ; do
+    for c in $( seq 1 24 ) ; do
+      printf "%s" '-'
+    done
+      printf "%s" '|'
+    done
+    for c in $( seq 1 25 ) ; do
+      printf "%s" '-'
+    done
+    printf "|\n"
+        }
+
+mkbar() {
+    mkline
+    printf "%s" '|'
+    for c in $( seq 1 $1) ; do
+      printf "%s" '#'
+    done
+    for c in $( seq $(( $1 + 1 )) 100 ) ; do
+      printf "%s" ' '
+    done
+    printf "%s\n" '|'
+    mkline
+      }
+
+LookInNamelist()    { 
+   eval grep -e $1 namelist | tr -d \' | tr -d \"  \
+   | sed -e 's/=/  = /' \
+   | awk ' {if ( $1 == str ) print $3 }' str=$1 
+                    }
+
+chkhost()   {
+      case  $(hostname) in
+      (ada337 | ada336 ) HOST=ada     ;;
+      ( occigen*       ) HOST=occigen ;;
+      ( irene*         ) HOST=irene   ;;
+      ( *              ) HOST=occigen ;;
+      esac
+       }
+
+qstu() {
+      case $HOST in 
+      ( ada     )  llq -u $USER -f %id %jn %o %dq %dd %nh %st %c %h  | grep $name | grep -w $sessid ;;
+      ( jade    )  qstat -w -u $USER | grep $name | grep $queue | grep $sessid ;;
+      ( occigen | irene )  squeue -o "%.18i %.9P %.15j %.8u %.2t %.10M " -u $user  -n $name -h | grep $sessid ;;
+      esac
+       }
+
+get_elapsed_time ()  {
+      case $HOST in
+      ( jade )
+            qstat -f $jobid  | grep resources_used.walltime  | awk '{print $NF}' ;;
+      ( occigen | irene )
+        squeue -o "%.10M %.2t" -u $user -j $jobid -h | awk '{ if( $NF == "R" ) print $1 }' | \
+        awk -F: '{ if ( NF == 1 ) printf"00:00:%02d\n", $1 ; \
+                   if ( NF == 2 ) printf "00:%02d:%02d\n", $1,$2 ; \
+                   if ( NF == 3 ) print $0 }' |  \
+        awk -F- '{ if ( NF == 2 ) printf "%g:%s\n", $1*24+$2,substr($2,4) ; else print $0 }' ;;
+      ( ada  ) 
+            dispatch=$(llq -f %dd $jobid | head -3 | tail -1)
+            tmp1=" $(date +%Y) $(echo $dispatch | sed -e 's@/@ @' -e 's/:/ /') 00 "
+            
+            echo $tmp1 | awk '{ tmp=$1" "$2" " $3" " $4" " $5" " $6 " "; \
+                   s=systime(); s0=mktime( tmp ); \
+                   dif=s-s0-3600 ; print strftime("%H:%M:%S",dif) }' ;;
+      esac
+                     }
+
+get_confname_from_jobid () {
+      case $HOST in
+      ( jade )
+         jobdir=$(  qstat -f $1 | grep jobdir | awk '{print $NF}' )
+         tmp=$(cat $jobdir/$1.ER | grep 'TMPDIR=' | awk -F= '{ print $2}')
+         tmp=$( basename $tmp)
+         echo ${tmp#TMPDIR_} ;;
+#        qstat -f $1 | grep  Submit_arguments | awk '{print $NF}'            | awk -F_ '{ print $1}' ;;
+#         basename $PWD | awk -F_ '{print $NF}'
+         
+      ( ada )  
+         llq -l $1   | grep Executable | grep $USER | awk -F/ '{ print $NF }'| awk -F_ '{ print $1}' ;;
+      ( occigen | irene )
+         basename $(scontrol show job $jobid | grep Command | awk -F= '{ print $NF}') | awk -F_ '{print $1}' ;;
+      esac
+                           }
+
+get_max_time () {
+      case $HOST in
+      ( jade    ) qstu | grep $jobid | awk '{ print $9 }' | tail -1  ;;
+      ( ada     ) llq -m $jobid | grep -i 'Wall Clk Hard Limit' | awk '{ print $5}' ;;
+      ( occigen | irene ) squeue -o " %l" -j $jobid -h ;;
+
+      esac
+                }
+
+
+# look for HOST we are running on 
+chkhost
+
+#
+DDIR=${DDIR:=$WORKDIR}
+
+# init variables according to HOST
+jobid=''
+sessid='R'
+fast=''
+
+case $HOST in 
+( ada     ) ; name='nemo_ada'      ; queue=''    ;;
+( jade    ) ; name='nemo_jade'     ; queue='nhm' ;;
+( occigen ) ; name='nemo_occigen'  ; queue=''    ;;
+( irene   ) ; name='nemo_irene'    ; queue=''    ;;
+esac
+
+# Browse command line
+user=$USER
+
+while getopts :hj:s:n:q:f:u: opt ; do
+   case $opt in 
+    (h) usage ;;
+    (j) jobid=${OPTARG} ;;
+    (s) sessid=${OPTARG} ;;
+    (n) name=${OPTARG} ;;
+    (q) queue=${OPTARG} ;;
+    (f) fast='yes' ;;
+    (u) user=${OPTARG} ;;
+    (*) usage ;;
+   esac
+done
+
+# jobid given or deduced ? , set confname
+if [  $jobid ] ; then   # given
+        confname=$(get_confname_from_jobid $jobid )
+        tmpname=TMPDIR_$confname
+        tmpcurr=$(basename `pwd`)
+        if [ $tmpname != $tmpcurr ] ; then
+          echo 'the jobid you gave ( ' $jobid ' ) corresponds to ' $confname ' and you are in ' $tmpcurr
+          echo ' moving to ' $DDIR/$tmpname ' then !'
+          cd $DDIR/$tmpname
+        fi
+else                   # deduced
+ jobid=$(qstu | awk '{print $1 }' )
+
+ if [ ! $jobid ] ; then 
+   echo no job running corresponding to $name in queue $queue 
+   usage
+   exit 0
+ fi
+
+confname=$(get_confname_from_jobid $jobid )
+fi 
+
+jobnumber=$(tail -1 ${confname}.db | awk '{print $1}' )
+
+set_color  # initialize colors
+#clear
+echo
+echo "            ETA : Estimated Time for Arrival"
+echo "            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+printf "Job id     : $m%15s$k   Config : $m%20s$k \n" $jobid  $confname 
+
+elapsed=$(get_elapsed_time)
+max_time=$(get_max_time )
+#max_timedec=$( echo $max_time | awk -F: '{ print $1+$2/60}')
+max_timedec=$( echo $max_time | awk -F- '{ if ( NF == 2 ) { jour=$1 ; heure=$2 } else { jour=0; heure=$1 } ;\
+       hh=substr(heure,0,2) ; mm=substr(heure,4,2) ; ss=substr(heure,7,2) ;  print hh + mm/60 + ss/3600 + jour*24 }' )
+
+if [ -f time.step.001 ] ; then     # case of ensemble run. use time.step of member 1
+   rm time.step
+   ln -sf time.step.001 time.step 
+fi
+
+if [ ! -f time.step ] ; then
+   printf "$r 'Run is starting or is finished ... no available time.step file.$k\n'"
+   echo
+   exit
+fi
+
+step=$(cat time.step)
+tmp=$(tail -2 ${confname}*.db | head -1 | awk '{ printf "%08d", $4 }' )
+
+#year="$( printf "y%04dm%02dd%02d" ${tmp:0:4} ${tmp:4:2} ${tmp:6:2} )"
+year="$( printf "y%sm%02dd%02d" ${tmp:0:4} ${tmp:4:2} ${tmp:6:2} )"
+
+frststep=$(tail -1 *.db | awk '{ print $2 }' )
+
+rdt=$(    LookInNamelist rn_rdt   )
+nwrite=$( LookInNamelist nn_write )
+nwrite2=$( LookInNamelist nn_write2 )
+rwri=$( echo  $step $frststep $nwrite | awk '{ print ($1 - $2) / $3 }' )
+
+printf "job number : $b% 3d$k           start date : $b%20s$k\n" $jobnumber $year
+printf "write numb : $g%6.2f$k       " $rwri 
+
+if [ $fast ] ; then
+  lastdump=''
+else
+   dimgproc=$( LookInNamelist cn_dirout )
+   echo $dimgproc | grep -q XIOS
+   if [ $? = 0 ] ; then
+       xios=1
+   else
+       xios=0
+   fi
+   if [ $xios = 0 ] ; then 
+      tmp=$( ls -ftr1  $dimgproc/${confname}_2D_*dimgproc 2>/dev/null | tail -1 )
+      if [ $tmp ] ; then
+         printf "last output : $g%20s$k\n" $(echo ${tmp%.dimgproc} | awk -F_ '{ print $NF}')
+      else
+         printf "   $r no model output for now.$k\n"
+      fi
+   else
+   tmp=$( ls -ftr1  $dimgproc/${confname}_*gridT*_0000.nc 2>/dev/null | tail -1 )
+   if [ $tmp ] ; then
+      lastdump=$(echo ${tmp%.nc} | awk -F_ '{ print $4}' | awk -F- '{print $1}')
+      printf "last output : $g%20s$k\n" y${lastdump:0:4}m${lastdump:4:2}d${lastdump:6:2}
+   else
+      printf "   $r no model output for now.$k\n"
+   fi
+
+   fi
+if [ ${nwrite2:-0} != 0 ] ; then
+   dimgproc2=$( LookInNamelist cn_dirout2 )
+   tmp=$( ls -ftr1  $dimgproc2/${confname}_SSF_*dimgproc 2>/dev/null | tail -1 )
+   if [ $tmp ] ; then
+      printf "                           ssf output : $g%20s$k\n" $(echo ${tmp%.dimgproc} | awk -F_ '{ print $NF}')
+   else
+      printf "                             $r no SSF output for now.$k\n"
+   fi
+fi
+fi
+echo
+
+#convert date  hh:mm:ss in hh,hhh
+hhdd0=$(date +%H:%M:%S | awk -F: '{ print $1+$2/60.+$3/3600.}')
+
+laststep=$(tail -1 *.db | awk '{ print $3 }' )
+
+c1=$b
+if [ -f znitend.txt ] ; then  # change nitend by its real value
+   newval=$(cat znitend.txt)
+   nit000=$frststep
+   nitend=$laststep
+   # newnitend is computed as in NEMO
+   laststep=$( echo $nit000 $newval $nwrite | awk '{ print $1 - 1 + int( ( $2 - $1 ) / $3 +1 ) * $3 }')
+   printf "$r nitend corrected on the fly$k\n"
+   printf " nitend : $r%8d$k   [ prev :$b%8d$k ]\n" $laststep $nitend
+   c1=$r
+fi
+   printf "  nit000       kt   nitend \n"
+   printf "$b%8d$k$g%10d$k$c1%8d$k   Time Step : $b% 5.0f$k s\n" $frststep $step $laststep $rdt
+echo " "
+
+nstep=$( echo $laststep $frststep | awk '{ print $1 - $2 +1 }' )
+istep=$( echo     $step $frststep | awk '{ print $1 - $2 +1 }' )
+rstep=$( echo $laststep $step     | awk '{ print $1 - $2 +1 }' )
+
+rday=$(echo $istep $rdt | awk '{ istep=$1; rdt=$2 ;print int(istep*rdt/86400.) }' )
+tday=$(echo $nstep $rdt | awk '{ istep=$1; rdt=$2 ;print int(istep*rdt/86400.) }' )
+dmiss=$(( tday  - rday  ))
+smiss=$(( nstep - istep ))
+
+#convert elapsed  hh:mm:ss in hh,hhh
+hhddd=$(echo $elapsed | awk -F: '{ print $1+$2/60.+$3/3600.}')
+
+etedec=$(echo $hhddd $istep $nstep | awk '{ print $1/$2*$3 }' ) 
+
+hh=$( echo $etedec | awk '{print int($1)}' )
+mm=$( echo $etedec | awk '{ hh=int($1) ; printf "%02d" , int( ($1 -hh ) * 60 ) }' )
+ss=$( echo $etedec | awk '{ hh=int($1) ; mm=int( ($1 -hh ) * 60 ) ; printf "%02d" , int( ( ($1 -hh ) * 60 - mm )*60 ) }' )
+ete=$hh:$mm:$ss
+
+eta=$(echo $hhddd $istep $rstep | awk '{ print $1/$2*$3 }' ) 
+hta=$(echo $hhdd0 $eta | awk '{ print $1 + $2 }' )
+hh=$( echo $eta | awk '{print int($1)}' )
+hha=$( echo $hta | awk '{print int($1)}' )
+if (( $hha >= 24 )) ; then hha=$(( hha - 24 )) ; fi
+mm=$( echo $eta | awk '{ hh=int($1) ; printf "%02d" , int( ($1 -hh ) * 60 ) }' )
+mma=$( echo $hta | awk '{ hh=int($1) ; printf "%02d" , int( ($1 -hh ) * 60 ) }' )
+eta=$hh:$mm
+hta=$hha:$mma
+
+stpmn=$( echo $istep $hhddd | awk '{ print $1/$2/60.}')
+
+printf " step done      days     Elapsed time    TimeStep/mn \n"
+printf "$g%10d$k    [ $g% 3d$k d]  $g%9s$k         [ $g%3d$k ]\n" $istep $rday $elapsed $stpmn
+echo
+printf " total steps    days     Estimated time   Max Queue Time\n"
+
+if (( $etedec < $max_timedec  )) ; then 
+   c=$b ; tmp=" < $max_time"
+else
+   c=$r ; tmp=" > $max_time"
+fi
+printf "$c1%10d$k    [ $c1% 3d$k d]  $g%9s$k        [ $c%11s$k ]\n" $nstep $tday $ete "$tmp"
+echo
+percent=$( echo $istep $nstep | awk '{printf "%4.2f ", $1/$2*100}' )
+ipercent=$( echo $percent | awk '{print int($1)}' )
+printf "    E.T.A.       Time      \% done    Missing     Missing steps\n"
+printf "$g% 9s$k  [$g % 9s$k ]$g%8.2f$k \%  [$g% 4d$k days]      $g%6d$k\n" $eta $hta $percent $dmiss $smiss
+echo
+
+if [ ! $fast ] ; then
+  mkbar $ipercent
+fi
+
+
