@@ -1,0 +1,157 @@
+#!/bin/bash
+
+# This script is an adaptative way of mkjournal.ksh for the case of scalability tests
+# it is used to produce a template for a Journal suitable for wiki editing
+# it must be run where nemo_occigen.oxxxx files are, ie in the CTL dir of the CONFCASE
+#------------------------------------------------------------
+#  $Rev: 763 $
+#  $Date: 2015-02-26 09:39:35 +0100 (Thu, 26 Feb 2015) $
+#  $Id: mkjournal_scal.bash 763 2015-02-26 08:39:35Z molines $
+#--------------------------------------------------------------
+
+usage() {
+     echo
+     echo "USAGE: $(basename $0 ) [-h ] [-f ] [-c confcase ] [-n name ]"
+     echo
+     echo "   PURPOSE:"
+     echo "      This tool is a variant of dcmtk_journal_make, where additional"
+     echo "      information is saved, in order to build a relevant wiki page for"
+     echo "      DRAKKAR scalability experiment. It is normally uses in a CTL directory"
+     echo "      from which a scalability experiment was performed."
+     echo "      The output of this tool is using ReSTructured text wiki formating, working"
+     echo "      with trac. In the near future, this tool will be extended to produce markdown"
+     echo "      file."
+     echo 
+     echo "   OPTIONS:"
+     echo "      -h : Display this help message."
+     echo "      -f : force execution without checking  that you are in a CTL dir "
+     echo "      -n name : pass alternative rootname instead of nemo_occigen"
+     echo "      -c confcase : use confcase instead of CONFCASE deduced from CTL"
+     echo "                  : this is usefull with option -f "
+     echo "      This script must be run in CTL directory"
+     echo 
+     exit 0
+        }
+
+name=nemo_occigen
+force=''
+CONFCASE=''
+
+while getopts :hfn:c: opt ; do
+   case $opt in 
+     (h) usage ;;
+     (f) force=1 ;;
+     (n) name=${OPTARG} ;;
+     (c) CONFCASE=${OPTARG} ;;
+     (*) usage ;;
+   esac
+done
+
+tmp=$(pwd) 
+
+echo $CONFCASE
+
+if [ ! $force ] ; then
+  if [ $(basename $tmp) != CTL ] ; then
+     echo ERROR: you must be in a CTL directory to run $(basename $0 )
+     usage
+  else
+    tmp=${tmp%/CTL} ; CONFCASE=$( basename $tmp)
+  fi
+else
+  if [ ! $CONFCASE ] ; then
+    echo 'you must specify confcase with -c in case of force option (-f ) '
+    usage
+  fi
+fi
+
+CONFIG=$( echo $CONFCASE | awk -F- '{print $1}' )
+SWDIR=$WORKDIR/${CONFIG}/${CONFCASE}-S
+
+wikiheader()  {  \
+cat << eof > journal.wiki
+{{{
+#!rst
+
+**$CONFCASE** Journal of the runs performed on Jade
+
+.. list-table::
+   :widths: 10 10 12 6 6 6 6 6 6 6 6 6 6 40
+   :header-rows: 1
+
+   * - **nit000**
+     - **nitend**
+     - **Date**
+     - **jpi**
+     - **jpj**
+     - **jpk**
+     - **jpni**
+     - **jpnj**
+     - **NPROC**
+     - **NNODES**
+     - **jobid**
+     - **CPU(h)**
+     - **rdt**
+     - **comments**
+
+eof
+
+echo   ; } 
+
+wikiformat()  {  \
+cat << eof >> journal.wiki
+
+   * - $nit000
+     - $nitend
+     - $fecha
+     - $jpi
+     - $jpj
+     - $jpk
+     - $jpni
+     - $jpnj
+     - $nbproc
+     - $nbnodes
+     - $jobid
+     - ${jobid}_CPU
+     - ${rdt%.}
+     - $error
+eof
+
+echo   ; }
+
+wikiclose() { cat << eof >> journal.wiki
+}}}
+eof
+
+    echo     ; }
+
+
+ wikiheader
+for g in  $(ls -t $name.e*)  ; do
+  jobid=${g#$name.e}
+  f=$name.o$jobid
+
+  nbproc=$( cat $g | grep NB_NPROC | awk '{ print $5}' )
+  nbnodes=$( cat $g | grep NB_NODES | awk '{ print $5}' )
+  jpi=$( cat $g | grep JPI | awk '{ print $5}' )
+  jpj=$( cat $g | grep JPJ | awk '{ print $5}' )
+  jpk=$( cat $g | grep JPK | awk '{ print $5}' )
+  tag=$( cat $g | grep Identificator | awk '{print $4}' )
+  jpni=$( echo $tag | awk -F_ '{print $1}' )
+  jpnj=$( cat $g | grep Identificator | awk -F_ '{print $2}' )
+  rdt=$( cat $g | grep rdt= | head -1 | awk -F= '{print $2}'  )
+  nit000=$( cat $g | grep nit000 | head -1 | awk -F= '{print $2}'  )
+  nitend=$( cat $g | grep nitend | head -1 | awk -F= '{print $2}'  )
+  
+   nit000=${nit000:=''}
+   nitend=${nitend:=''}
+   rdt=${rdt:=''}
+   fecha=$(ls -l $g | awk '{print $6 " " $7}' )
+  wikiformat 
+  unset nit000 nitend rdt error
+done
+
+wikiclose
+
+
+
