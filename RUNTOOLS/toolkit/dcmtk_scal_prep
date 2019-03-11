@@ -3,27 +3,27 @@
 #
 
 usage()  {
+   echo
    echo "USAGE : $(basename $0 ) [-h] [-l layout_file] [-h] [-m minproc] [-M maxproc] [-s proc_step]"
    echo
    echo "  PURPOSE:"
-   echo "    This tool is part of the process for setting up a scalability experiment."
-   echo "    It assumes that you have already run the MPP_PREP tool for defining all the"
-   echo "    possible processor layout for your experiment. It will screen the resulting"
-   echo "    file, narrowing the results to a specific range of cores. In addition, it will"
-   echo "    call a python script that produces a job file to be submitted for all the "
-   echo "    decomposition to test. At this point, the python tools assumes that the target"
-   echo "    machine is occigen (SLURM batch system). Hence, the job file may require some"
-   echo "    editing (batch header part) to fit your HPC system."
-   echo "    Due to the interaction with MPP_PREP it is likely a good choice to run this tool"
-   echo "    where you have the MPP_PREP results, in particular with the screen.sh script."
+   echo "     This tool is part of the process for setting up a scalability experiment."
+   echo "     It assumes that you have already run the MPP_PREP tool for defining all the"
+   echo "     file, narrowing the results to a specific range of cores. In addition, it will"
+   echo "     call a python script that produces a job file to be submitted for all the "
+   echo "     decomposition to test. At this point, the python tools assumes that the target"
+   echo "     machine is occigen (SLURM batch system). Hence, the job file may require some"
+   echo "     editing (batch header part) to fit your HPC system."
+   echo "     Due to the interaction with MPP_PREP it is likely a good choice to run this tool"
+   echo "     where you have the MPP_PREP results, in particular with the screen.sh script."
    echo
    echo "  OPTIONS:"
-   echo "    -h : Display this help message."
-   echo "    -l layout_file : Pass the name of the layout file produced by MPP_PREP  procedure."
+   echo "     -h : Display this help message."
+   echo "     -l layout_file : Pass the name of the layout file produced by MPP_PREP  procedure."
    echo "           Default is $cf_layout"
-   echo "    -m minproc : Gives the minimum number of core you want to test. Default=$minproc "
-   echo "    -M maxproc : Gives the maximum number of core you want to test. Default=$maxproc"
-   echo "    -s proc_step : Gives the core step for scaning the core range.  Default=$stpproc"
+   echo "     -m minproc : Gives the minimum number of core you want to test. Default=$minproc "
+   echo "     -M maxproc : Gives the maximum number of core you want to test. Default=$maxproc"
+   echo "     -s proc_step : Gives the core step for scaning the core range.  Default=$stpproc"
    echo 
    exit
          }

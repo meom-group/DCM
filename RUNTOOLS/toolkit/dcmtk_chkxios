@@ -2,21 +2,21 @@
 
 usage() {
      echo
-     echo "   USAGE : $( basename $0 ) -c [ -h ] [ -m ]"
+     echo "USAGE : $( basename $0 ) -c [ -h ] [ -m ]"
      echo
-     echo "     PURPOSE : "
-     echo "         Check files produced when using XIOS. Check that the number of"
-     echo "         subdomain files agrees with the number indicated within the file."
-     echo "         This script must be run into the directory where all splitted"
-     echo "         files are, in particular the _0000.nc files. "
-     echo "         This script is supporting ensemble runs."
-     echo "          "
-     echo "     ARGUMENTS :"
-     echo "         -c : launch check. (With no arguments the help message is printed)."
-     echo "          "
-     echo "     OPTIONS : "
-     echo "         -h : print this help message"
-     echo "         -m : migrate faulty set of files to local SAVE directory"
+     echo "  PURPOSE : "
+     echo "      Check files produced when using XIOS. Check that the number of"
+     echo "      subdomain files agrees with the number indicated within the file."
+     echo "      This script must be run into the directory where all splitted"
+     echo "      files are, in particular the _0000.nc files. "
+     echo "      This script is supporting ensemble runs."
+     echo "       "
+     echo "  ARGUMENTS :"
+     echo "      -c : launch check. (With no arguments the help message is printed)."
+     echo "       "
+     echo "  OPTIONS : "
+     echo "      -h : print this help message"
+     echo "      -m : migrate faulty set of files to local SAVE directory"
      echo 
      exit 0
         }

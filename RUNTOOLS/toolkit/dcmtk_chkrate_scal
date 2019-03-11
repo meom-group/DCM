@@ -1,6 +1,7 @@
 #!/bin/bash
 # script dealing with scalability experiment
 usage()  {
+    echo 
     echo "USAGE : $(basename $0) [-h] [-n rootname of job.o] go "
     echo 
     echo "  PURPOSE:"

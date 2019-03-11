@@ -3,6 +3,28 @@
 # The goal is to reduce the size of this job.o erasing useless information.
 # Restore the date of the original file
 # MACHINE is supposed to be in the environment
+usage() {
+   echo
+   echo "USAGE: $(basename $0) [-h]"
+   echo
+   echo "  PURPOSE:"
+   echo "     The goal is to reduce the size of this job.o erasing useless "
+   echo "     information. Restore the date of the original file.  MACHINE is "
+   echo "     supposed to be in the environment."
+   echo
+   echo "  OPTIONS:"
+   echo "     -h : Display this help message."
+   echo " "
+   exit 0
+        }
+
+while getopts :h: opt ; do
+   case $opt in
+     (h) usage ;;
+     (*) usage ;;
+   esac
+done
+
 logfile=nemo_$MACHINE
 
 
