@@ -58,7 +58,7 @@ def parse(argv,name):
       elif opt in ("-x", "--xios_min_cores"):
          nxios_min = arg
 
-def mkrun()
+def mkrun():
    # get current dir path
    cwd = os.getcwd()
    # set output path
