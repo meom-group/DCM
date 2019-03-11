@@ -1,0 +1,62 @@
+#!/bin/ksh
+#------------------------------------------------------------
+#  $Rev$
+#  $Date$
+#  $Id$
+#--------------------------------------------------------------
+#set -x
+siz() { ls -l $1  | awk '{ print $5}'  ; }
+
+first=$(ls -l | head -2 | tail -1 | awk '{print $NF}' )
+tag0=$(echo ${first%.nc} | awk -F_ '{ print $2}' )
+
+# determine the type of files for this tag
+list=''
+for f in *_${tag0}_*nc ; do
+  list="$list $( echo ${f%.nc} | awk -F_ '{ print $NF}' ) "
+done
+
+echo "Check if 5-day or annual means (${tag0}) are OK for typlist:"
+echo $list
+
+
+# works for 5-day mean and annual mean
+# now chek if there is a file of the same type with different size than tag0
+#check for 5day average files
+for typ in $list ; do
+ # look for reference size
+ siz0=$( siz *${tag0}_${typ}.nc  )
+ echo $siz0 $typ $tag0
+ for f in *_${typ}.nc ; do
+   sizf=$( siz $f )
+   if (( sizf != siz0 )) ; then
+      echo problem for file $f $sizf " != " $siz0
+   fi
+ done
+done
+
+# And monthly mean if necessary
+if [ -f *_${tag0}m01_*nc ] ; then
+
+list=''
+
+for f in *_${tag0}m01_*nc ; do
+  list="$list $( echo ${f%.nc} | awk -F_ '{ print $NF}' ) "
+done
+
+echo "Check if monthly means (${tag0}m01) are OK for typlist:"
+echo $list
+
+for typ in $list ; do
+ # look for reference size
+ siz0=$( siz *${tag0}m01_${typ}.nc  )
+ echo $siz0 $typ
+ for f in *_${tag0}m??_${typ}.nc ; do
+   sizf=$( siz $f )
+   if (( sizf != siz0 )) ; then
+      echo problem for file $f $sizf " != " $siz0
+   fi
+ done
+done
+
+fi

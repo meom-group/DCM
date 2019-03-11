@@ -1,0 +1,26 @@
+#!/bin/ksh
+
+CONFIG=EORCA12.L75
+CASE=MJMgd16
+
+CONFIG_CASE=${CONFIG}-${CASE}
+
+ENSEMBLE=0
+ENSEMBLE_START=-1
+ENSEMBLE_END=-1
+
+if [ $ENSEMBLE = 1 ] ; then
+  for member in $(seq $ENSEMBLE_START $ENSEMBLE_END ) ; do
+    mmm=$(printf ".%03d" $member )
+    MCASE=${CASE}$mmm
+    MCONFIG_CASE=${CONFIG}-${MCASE}
+    cd $DDIR/${CONFIG}/${MCONFIG_CASE}-S    ; nohup mcp & 
+    cd $DDIR/${CONFIG}/${MCONFIG_CASE}-MEAN ; nohup mcp &
+  done
+    cd $DDIR/${CONFIG}/${CONFIG_CASE}-R    ; nohup cpdd &  # no members in R dir
+else
+  cd $DDIR/${CONFIG}/${CONFIG_CASE}-S    ; nohup mcp &
+  cd $DDIR/${CONFIG}/${CONFIG_CASE}-MEAN ; nohup mcp &
+#  cd $DDIR/${CONFIG}/${CONFIG_CASE}-R    ; nohup cpdd &
+fi
+
