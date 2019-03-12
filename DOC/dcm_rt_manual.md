@@ -74,6 +74,35 @@
     * `XML/*.xml`
 
  1. Edit template files :
+    * **`includefile.sh`**: This file is essentially used for setting up the path of some key directories, through environement variables. These variables have a name starting with F_ for directories on the archiving system (`SDIR`), and with P_ for the directories on the production system. At present, it is recommended to work mainly with the production machine (because the archiving system on HPC, is likely not a mirror of the production machine, as it used to be). Nevertheless, up to now we maintain this double path system: The running script uses special functions for retrieving files on the `TMPDIR` area, looking first on the production machine, and then on the archiving system if not found.  Most of the default setting may work if you follow a strict building of DCM. However, you still have some freedom to chose paths for forcing files, weight files, XIOS lib etc... Comments in the script are hopefully clear enough to describe the different environment variables.
+
+      Additionally, it allows the correspondance between hard coded file name within NEMO and the corresponding file in the real world. Actually, only a few hard coded names remains in NEMO4. Most of the file names are now passed to NEMO through a namelist variable. In the `includefile.sh` on a same line you have the world name on the left and the corresponding NEMO name on the left.  Script comments may help for understanding who is who...
+
+      Last but not least, the variable `MAXSUB` defined at the end of the file is there for automatic re-submission: Segments of job will be chained until `MAXSUB` segments are performed. ( See `<CONFIG>-<CASE>.db` below).
+    * **`<CONFIG>-<CASE>_<MACHINE>.sh`** : This is the 'job' file that will be submitted to the HPC batch system. Therefore it starts with a header corresponding to the batch system directives. This is why it is 'machine' dependent. 
+
+      The remaining par of this script is the same on any system. It needs editing for the following:
+
+      ```
+      # Following numbers must be consistant with the header of this job
+        export NB_NPROC=3150    # number of cores used for NEMO
+        export NB_NPROC_IOS=34  # number of cores used for xios (number of xios_server.exe)
+        export NB_NCORE_DP=0    # activate depopulated core computation for XIOS. If not 0, RUN_DP is
+                                # the number of cores used by XIOS on each exclusive node.
+      # Rebuild process 
+        export MERGE=0          # 0 = on the fly rebuild, 1 = dedicated job
+        export NB_NPROC_MER=231 # number of cores used for rebuild on the fly  (1/node is a good choice)
+        export NB_NNODE_MER=20  # number of nodes used for rebuild in dedicated job (MERGE=0). One instance of rebuild per node will be used.
+        export WALL_CLK_MER=3:00:00   # wall clock time for batch rebuild
+      ```
+
+      Although the comments are self explanatory, some additional information on the rebuild process may be of interest ! In DRAKKAR, we advocate for using `XIOS` in detached mode (*i.e.* using the `xios_server.exe`) and with the `multiple_file` protocol (in oposition to `one_file` protocol), hence requiring a rebuild process. The reasons for this choice are two-fold: The rebuild process is used (i) to create netcdf4/hdf5 files with chunking and deflation (file size can be divided by 3 or 4 !) and (ii) to 'fill the holes' in `nav_lon nav_lat` corresponding to eliminated land processors in the NEMO computation; this latter point avoid having incohent mapping variables (on land).  Depending on the size of the domain, on the available computer resources etc... it may be of interest to launch the rebuild 'on the fly', meaning in the same job than NEMO, or to launch a dedicated job for the rebuild process. The choice is made by the value of the `MERGE` variables, and the requested number of core for the rebuild process must be defined, setting up the *ad hoc* variables. In both cases, DCM uses a DRAKKAR made rebuild tool (`REBUILD_MPP tool`) which work in parallel. More information about this tool, in the appendix of this manual.
+    * **`run_nemo.sh`** : This script requires very few editing if any. It is the model launcher that submit the job. It is usefull to have it at hand in CTL, as in some cases or tests, you may want to add extra statements in the workflow. (Such as copiing a non standard file to the `TMPDIR` for instance). Once all is correctly setup, `./run_nemo.sh` is the command that you will perform in order to start a production segment.
+    * **`<CONFIG>-<CASE>.db`** : This file is automatically updated by the main running script. It holds information about the initial and last step of a job segment, as well as the date of the end of a segment. It just requires initialization (the first line of the file). In the template there are 3 values : Segment number, first model step, last model step of the segment. It is likely that the last step of the segment must be adjusted (depending on the model time step and length of the segment to perform). 
+    * **`namelists`** : 
+    * **`xml files`** :
+
+
  1. Run the code
 
     ```
@@ -95,3 +124,6 @@
 
   With this command you will populate the new empty CTL with a valid set of files identical to the ones for \<CONFIG\>-\<CASE\>, but the the correct names.  Then you need to adjust the namelists, and possibly the xml files. 
 > Note that if the CTL where you want to clone is not empty, no cloning will be done (in order to preserve possibly important settings!).
+
+## Appendix
+### REBUILD_MPP tool:
