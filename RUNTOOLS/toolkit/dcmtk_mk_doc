@@ -1,0 +1,60 @@
+#!/bin/bash
+# Automatically produce the dcm toolkit manual from the usage message of each tools
+# The result is on a markdown file.
+# class = @Miscellaneous tools@
+
+usage()  {
+   echo
+   echo "USAGE: $(basename $0) [-h] -o OUT-md_file "
+   echo
+   echo "   PURPOSE:"
+   echo "      Scan the dcmtk_* scripts and sort then regarding the class it belongs to."
+   echo "      Then output the usage message and build a md file."
+   echo 
+   echo "   ARGUMENTS:"
+   echo "      -o OUT-md_file: Specify the output markdown file."
+   echo
+   echo "   OPTIONS:"
+   echo "      -h : Display this help message."
+   echo
+   exit 0
+          }
+
+mdfile='none'
+while getopts :ho: opt ; do
+   case $opt in
+     (h) usage ;;
+     (o) mdfile=${OPTARG} ;;
+     (*) usage ;;
+   esac
+done
+
+if [ $mdfile = 'none' ] ; then
+   usage
+fi
+
+cd $RUNTOOLS/toolkit
+# look for classes
+oIFS=$IFS ; IFS=$'\n'
+IFS=','
+classes=( $(grep class dcmtk_* | grep '@' | grep -v '~' | grep -v grep | sort -k4,4 -k1,1 | awk -F@ '{printf "%s,\n", $2  }' | sort -u) )
+IFS=$'\n'
+
+nclass=${#classes[@]}
+rm -f $mdfile
+for i in $(seq 0 $(( nclass -2 )) ) ; do
+   IFS=$'\n'
+   echo  "##" ${classes[$i]} >> $mdfile
+#  IFS=','
+   cmd="grep -e '$( echo ${classes[$i]} )' dcmtk_*"
+   tools=$(eval $cmd | awk -F: '{print $1}' )
+   for tool in $tools ; do
+     echo "### ["$tool"](../RUNTOOLS/toolkit/"$tool")" >> $mdfile
+     echo '  ```' >> $mdfile
+   ./$tool -h >> $mdfile
+     echo '  ```' >> $mdfile
+
+   done
+done
+
+   
