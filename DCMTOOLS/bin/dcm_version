@@ -14,7 +14,7 @@ ita="\033[3m"
 und="\033[4m"
 str="\033[9m"
             }
-
+export LANG=C  # for svn message to be parsed correctly
 set_color
 echo "========================================================="
 printf " Actual $bld${r}DCM$k version is: $bld$r%s$k \n"  $( basename $(dirname $HOMEDCM ) )
@@ -39,11 +39,12 @@ printf "Actual $bld${r}NEMOREF$k revision is : \n"
 svn info $REFDIR| grep -e URL -e Revision -e 'Last Changed Rev' -e 'Last Changed Date'
 echo "========================================================="
 
-actual_url=$(svn info $REFDIR| grep -e URL | awk '{print $2}' )
+actual_url=$(svn info $REFDIR| grep -e URL | awk '{print $2}' | head -1 )
 actual_rev=$(svn info $REFDIR| grep -e Revision | awk '{print $2}' )
 
 supported_url=$( cat $HOMEDCM/NEMOREF/getnemoref.sh | grep svn | grep -v '#' | awk '{print $5}')
 supported_rev=$( cat $HOMEDCM/NEMOREF/getnemoref.sh | grep svn | grep -v '#' | awk '{print $4}')
+
 
 if [ $actual_url != $supported_url ] ; then
    printf "$bld$r WARNING: Actual NEMO4 URL is not in phase with DCM $k \n"
