@@ -4,7 +4,7 @@ FC = gfortran
 
 BINDIR = ../../bin
 
-VPATH = $(BINDIR)
+#VPATH = $(BINDIR)
 
 all: linreg datfinyyyy
 
@@ -19,3 +19,4 @@ clean:
 
 install : all
 	mv linreg datfinyyyy $(BINDIR)
+	cd $(BINDIR) ; ln -sf $(RUNTOOLS)/toolkit/dcmtk_* ./

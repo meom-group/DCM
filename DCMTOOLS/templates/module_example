@@ -47,6 +47,7 @@ setenv          CUSDIR2         ${alter_path}/DRAKKAR/NEMO4
 setenv          RUNTOOLS        $::env(DEVGIT)/DCM_$version/RUNTOOLS
 
 prepend-path    PATH            ${base_path}/bin
+prepend-path    PATH            $::env(DEVGIT)/DCM_$version/RUNTOOLS/bin
 
 #
 if {[module-info mode load]==1} {
