@@ -42,6 +42,25 @@ IFS=$'\n'
 
 nclass=${#classes[@]}
 rm -f $mdfile
+# write header and Forewords
+
+cat << eof > $mdfile
+# DCM toolkit
+## Forewords
+  After many years of run production, many 'small' scripts or programs were 
+developped in order to help the run production. Even if 'small' they appear 
+to be quite usefull ! We collect them into DCM toolkit for sharing and easier 
+maintenance. In the following, a brief description of the toolkit is given, 
+with an intent of classification by category. All scripts belonging to DCM toolkit
+have a name starting with dcmtk_ . They are located in RUNTOOLS/toolkit directory.
+Before use, there are some f90 programs to be compiled and installed in toolkit/src/.
+(A Makefile is provided and no particular library is needed). \`make install\` copy the
+binaries in RUNTOOLS/bin which is in the PATH, when using DCM.
+
+  All dcmtk tools have the \`-h \`option to display usage instructions. The document
+that you are actually readind was created with \`dcmtk_mk_doc -o HOMEDCM/../DOC/dcm_toolkit.md\`
+eof
+
 for i in $(seq 0 $(( nclass -2 )) ) ; do
    IFS=$'\n'
    echo  "##" ${classes[$i]} >> $mdfile
