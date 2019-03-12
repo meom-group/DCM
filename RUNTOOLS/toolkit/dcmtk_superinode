@@ -2,7 +2,7 @@
 # This script give the number of files in subdirectories.
 # If the list of directories is not specified as arguments
 # (wildcards allowed), all the subdir are taken into consideration
-
+# class = @File management tools@
 
 usage() {
     echo

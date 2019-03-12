@@ -1,11 +1,7 @@
 #!/bin/bash
 # This script is used to produce an estimate of time for a runninf job
+# class = @Run progression tools@
 
-#------------------------------------------------------------
-#  $Rev: 746 $
-#  $Date: 2015-01-16 00:28:47 +0100 (Fri, 16 Jan 2015) $
-#  $Id: eta.bash 746 2015-01-15 23:28:47Z molines $
-#--------------------------------------------------------------
 # REM1 : jade code is maintained. It uses pbs and can be used as template for
 #       other pbs based system.
 # REM2 : this tools needs some cleaning (dimg obsolete) and update for XIOS information

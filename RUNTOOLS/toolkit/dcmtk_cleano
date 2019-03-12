@@ -3,6 +3,8 @@
 # The goal is to reduce the size of this job.o erasing useless information.
 # Restore the date of the original file
 # MACHINE is supposed to be in the environment
+# class = @File management tools@
+
 usage() {
    echo
    echo "USAGE: $(basename $0) [-h]"

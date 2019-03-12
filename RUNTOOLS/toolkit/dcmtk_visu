@@ -1,4 +1,7 @@
 #!/bin/bash
+# Visualize Umax SSmin etc... to check eventual premices of explosion. But presently limited to
+#  nemo < 4 ( To be updated)
+# class = @Run progression tools@
 
 usage()   {
    echo

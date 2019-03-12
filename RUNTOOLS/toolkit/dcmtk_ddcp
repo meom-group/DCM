@@ -4,11 +4,8 @@
 # it must be used in specific directories, either
 # CONFIG-CASE-S/yyyy , CONFIG-CASE-MEAN/yyyy or CONFIG-CASE-R.
 # It create the equivalent directory on $DDIR
-#------------------------------------------------------------
-#  $Rev: 672 $
-#  $Date: 2014-07-01 22:03:47 +0200 (Tue, 01 Jul 2014) $
-#  $Id: ddcp 672 2014-07-01 20:03:47Z molines $
-#--------------------------------------------------------------
+# class = @File management tools@
+
 # Function definitions
 #----------------------
 # Usage manual

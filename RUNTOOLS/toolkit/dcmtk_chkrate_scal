@@ -1,5 +1,7 @@
 #!/bin/bash
 # script dealing with scalability experiment
+# class = @Scalability experiment tools@
+
 usage()  {
     echo 
     echo "USAGE : $(basename $0) [-h] [-n rootname of job.o] go "

@@ -2,12 +2,8 @@
 # This script is used to perform an update of file from /scratch to /data
 # if some files are removed from scratch
 # It is a wrapper to ddcp and scan all the years in a directory
+# class = @File management tools@
 
-#------------------------------------------------------------
-#  $Rev: 17 $
-#  $Date: 2010-11-10 11:02:14 +0100 (Wed, 10 Nov 2010) $
-#  $Id: mcpdd 17 2010-11-10 10:02:14Z molines $
-#--------------------------------------------------------------
 usage() {
    echo
    echo "USAGE: $(basename $0) [-h] "

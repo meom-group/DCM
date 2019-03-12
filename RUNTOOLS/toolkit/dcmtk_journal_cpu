@@ -3,12 +3,7 @@
 # it requires 2 files for input :
 #              1: a text copy of the wiki page ( option -w )
 #              2: a text extraction of the cpu used on HPC ( option -c )
-#------------------------------------------------------------
-#  $Rev: 763 $
-#  $Date: 2015-02-26 09:39:35 +0100 (Thu, 26 Feb 2015) $
-#  $Id: add_cpu_2_journal.bash 763 2015-02-26 08:39:35Z molines $
-#--------------------------------------------------------------
-##################################################################################
+# class = @Run management tools@
 
 usage() {
         echo

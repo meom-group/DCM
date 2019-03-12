@@ -1,5 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+# class = @Scalability experiment tools@
+
 """
 Created on Sun Jun 25 19:18:08 2017
 
@@ -10,6 +12,7 @@ import os
 import numpy as np
 import pandas as pd
 import glob
+import sys, getopt
 def usage(name):
    print ' '
    print 'USAGE: '+name+' -h  -n <script_name> -c  <cores>  -x <nxios_min>'

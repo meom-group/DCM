@@ -1,6 +1,6 @@
 #!/bin/bash
-
-#set -vx
+# Create xml code ( XIOS 1) for including new domains in domain_def.xml
+# class = @XIOS browse tools@
 
 usage() {
    echo

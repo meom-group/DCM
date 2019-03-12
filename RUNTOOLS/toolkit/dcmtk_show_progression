@@ -1,4 +1,6 @@
 #!/bin/bash
+# show how fast a bunch of files is copied to a file system.
+# class = @Run progression tools@
 
 usage() {
     echo

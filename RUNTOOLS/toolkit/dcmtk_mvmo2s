@@ -1,6 +1,8 @@
 #!/bin/bash
 # dcmtk_mvmo2s : move mooring to S directory
 # in $DDIR/CONFIG/CONFCASE-S/freq/MOORINGS/YEAR
+# class = @File management tools@
+
 usage() {
    echo
    echo "USAGE : $(basename $0)  segment_number [-h] "

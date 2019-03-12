@@ -1,11 +1,8 @@
 #!/bin/bash
 # this script is used to migrate files in their respective year directory
 # it must be used in a -S directory
-#------------------------------------------------------------
-#  $Rev: 637 $
-#  $Date: 2013-10-18 18:16:23 +0200 (Fri, 18 Oct 2013) $
-#  $Id: mkordre 637 2013-10-18 16:16:23Z molines $
-#--------------------------------------------------------------
+# class = @File management tools@
+
 # Shell functions
 usage() {
       echo

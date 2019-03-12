@@ -1,10 +1,8 @@
 #!/bin/bash
 # This script is used to perform file transfert between /data and /scratch.
 # It is clever enough to determine the direction of the tranfert
-#------------------------------------------------------------
-#  $Rev: 647 $
-#  $Date: 2014-01-22 20:04:19 +0100 (Wed, 22 Jan 2014) $
-#  $Id: mcp 647 2014-01-22 19:04:19Z molines $
+# class = @File management tools@
+
 #--------------------------------------------------------------
 # Functions for use in this script
 #-------------------------------------------------------------

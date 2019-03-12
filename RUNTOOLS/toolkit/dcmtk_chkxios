@@ -1,5 +1,6 @@
 #!/bin/bash
-
+# Check integrity of XIOS output before recombination
+# class = @File management tools@
 usage() {
      echo
      echo "USAGE : $( basename $0 ) -c [ -h ] [ -m ]"

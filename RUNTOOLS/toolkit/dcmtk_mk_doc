@@ -51,7 +51,11 @@ for i in $(seq 0 $(( nclass -2 )) ) ; do
    for tool in $tools ; do
      echo "### ["$tool"](../RUNTOOLS/toolkit/"$tool")" >> $mdfile
      echo '  ```' >> $mdfile
-   ./$tool -h >> $mdfile
+     if [ ${tool#*.} = 'py' ] ; then
+        python ./$tool -h >> $mdfile
+     else
+       ./$tool -h >> $mdfile
+     fi
      echo '  ```' >> $mdfile
 
    done

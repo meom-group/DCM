@@ -1,12 +1,6 @@
 #!/bin/bash
 # script to look for missing files between 2 directories
-
-#------------------------------------------------------------
-#  $Rev: 671 $
-#  $Date: 2014-06-26 07:28:08 +0200 (Thu, 26 Jun 2014) $
-#  $Id: chkmissing 671 2014-06-26 05:28:08Z molines $
-#--------------------------------------------------------------
-
+# class = @File management tools@
 
 usage() {
   echo

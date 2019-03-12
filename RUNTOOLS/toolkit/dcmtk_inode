@@ -2,12 +2,7 @@
 # this script give the number of files in subdirectories.
 # If the list of directories is not specified as arguments
 # (wildcards allowed), all the subdir are taken into consideration
-
-#------------------------------------------------------------
-#  $Rev: 353 $
-#  $Date: 2011-12-07 21:57:43 +0100 (Wed, 07 Dec 2011) $
-#  $Id: inode.bash 353 2011-12-07 20:57:43Z molines $
-#--------------------------------------------------------------
+# class = @File management tools@
 
 usage() {
     echo

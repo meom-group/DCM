@@ -1,5 +1,6 @@
 #!/bin/bash
 # split log files : usefull for multi segments job.
+# class = @Run management tools@
 
 usage()  {
     echo

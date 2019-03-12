@@ -1,6 +1,6 @@
 #!/bin/bash
-
-#set -x
+# core tool for determining the integration rate from DRAKKAR nemo_xxx.o job output
+# class = @Run performance tools@
 
 usage() {
       echo

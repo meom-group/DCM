@@ -1,5 +1,6 @@
 #!/bin/bash
-#set -x
+# Plot the time evolution of the computed steps.
+# class = @Run progression tools@
 
 usage()   {
    echo

@@ -1,10 +1,7 @@
 #!/bin/bash
-#------------------------------------------------------------
-#  $Rev: 763 $
-#  $Date: 2015-02-26 09:39:35 +0100 (Thu, 26 Feb 2015) $
-#  $Id: linreg.bash 763 2015-02-26 08:39:35Z molines $
-#--------------------------------------------------------------
-#set -x
+# Give the integration rate (stp/min) for the first 180 step of a run
+# from a DRAKKAR nemo_xxx.o job output
+# class = @Run performance tools@
 
 usage() {
       echo

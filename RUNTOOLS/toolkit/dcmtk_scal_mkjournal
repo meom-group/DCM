@@ -3,11 +3,7 @@
 # This script is an adaptative way of mkjournal.ksh for the case of scalability tests
 # it is used to produce a template for a Journal suitable for wiki editing
 # it must be run where nemo_occigen.oxxxx files are, ie in the CTL dir of the CONFCASE
-#------------------------------------------------------------
-#  $Rev: 763 $
-#  $Date: 2015-02-26 09:39:35 +0100 (Thu, 26 Feb 2015) $
-#  $Id: mkjournal_scal.bash 763 2015-02-26 08:39:35Z molines $
-#--------------------------------------------------------------
+# class = @Scalability experiment tools@
 
 usage() {
      echo

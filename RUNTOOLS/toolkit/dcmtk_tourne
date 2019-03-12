@@ -2,6 +2,7 @@
 
 # display a spining figure according to the rate of integration
 # as seen by time.step file
+# class = @Run progression tools@
 
 usage()  {
    echo

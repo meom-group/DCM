@@ -3,6 +3,7 @@
 # this script establish the list of nc files with bad problems ( time dimension is 0 )
 # it must ne run in any directory containing nc files
 # if used with -v option also print the UNLIM line of the file
+# class = @File management tools@
 
 usage() {
        echo

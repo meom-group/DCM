@@ -4,7 +4,7 @@
 # output cat be made as a set of ncks commands which can be used to extract boxes from the global files.
 # It can also provide an overlay file, that can be used by chart in order to show the geographical position
 # of the boxes.
-
+# class = @XIOS browse tools@
 
 usage()   {
    echo

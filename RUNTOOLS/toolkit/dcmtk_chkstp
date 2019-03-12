@@ -1,11 +1,8 @@
 #!/bin/bash
 
 # This script is used to check time.step in a runing directory
-#------------------------------------------------------------
-#  $Rev: 648 $
-#  $Date: 2014-01-24 07:34:29 +0100 (Fri, 24 Jan 2014) $
-#  $Id: chkstp 648 2014-01-24 06:34:29Z molines $
-#--------------------------------------------------------------
+# class = @Run progression tools@
+
 usage() {
      echo
      echo "USAGE: $(basename $0) [-h] [-d delay ] "

@@ -1,6 +1,7 @@
 #!/bin/bash
 # This tool is part of the process for setting up a scalability experiment.
-#
+# class = @Scalability experiment tools@
+
 
 usage()  {
    echo
