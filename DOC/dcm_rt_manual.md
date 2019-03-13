@@ -3,7 +3,7 @@
 
   If you read this manual is that you probably have successfully installed and compiled a NEMO configuration, using DCM ! (to make it short you have a `nemo4.exe` in the `$PDIR/RUN_<CONFIG>/<CONFIG>-<CASE>/EXE/` directory, corresponding to your settings (code and cpp keys)). Ideally you are now only missing some runtime files to make your first run (and independently of using DCM or not ):  
  * the **namelist** files (for ocean, ice, passive tracers etc...)
-    - Since NEMO_3.6, NEMO uses 2 levels of namelists: `namelist_ref` where all variables are defined with default values (in general corresponding to ORCA2 setting), and `namelist_cfg` which only re-define values changed with respect to the reference. Although it make sense, we found that having those 2 levels files (though never have the full set of parameters in a single file) is not convenient and probably a source of error. In DCM, we choose to maintain a single namelist (having all the variables in it, like `namelist_ref`) with the right parameters for the working configuration. This choice is transparent to NEMO as we just copy the *ad-hoc* `namelist_ref` to  `namelist_cfg`. 
+    - Since NEMO_3.6, NEMO uses 2 levels of namelists: `namelist_ref` where all variables are defined with default values (in general corresponding to ORCA2 setting), and `namelist_cfg` which only re-define values changed with respect to the reference. Although it make sense, we found that having those 2 levels files (though never have the full set of parameters in a single file) is not convenient and probably a source of error. In DCM, we choose to maintain a single namelist (having all the variables in it, like `namelist_ref`) with the right parameters for the working configuration. This choice is transparent to NEMO as we just copy the *ad hoc* `namelist_ref` to  `namelist_cfg`. 
     - Reference namelist (usefull to know about all the parameters) can be found in the `cfgs/SHARED` sub directory.
     - Namelists are a very clever and comfortable means to set parameters in NEMO, but it is really critical to double check the namelist parameters, as it is quite easy to make mistakes !
     - When using DRAKKAR modifications of the code, and in case a namelist block is envolved, DRAKKAR code redefine an additional namelist block for its own parameters. The DRAKKAR namelist block has the same name as the standard one, but with `_drk` appended (*e.g* `&namlbc` (std) and `&namlbc_drk` (DRAKKAR parameters). Doing so, a namelist setup can be run with standard NEMO code as well as with DRAKKAR modificated code.
@@ -44,7 +44,7 @@
 
  1. **Prepare the RUNTOOLS** ( to be done once ):
 
-    The main production script [`nemo4.sh`](../RUNTOOLS/lib/nemo4.sh), is valid for any system. The portability through different systems is achieved by using bash functions instead of machine dependent command. Let take an example to make it clear: for instance, the command used to submit a job on a batch system depends on the scheduler you are using; it may be `qsub`, `llsubmit`, `sbatch` .... In the main script a generic funcion `submit` is used in place of all the variant. Then `submit` is defined within a function file depending on the machine. Before using the main script, this specific function file is sourced so that the *ad hoc* command for submission will be used. 
+    The main production script [`nemo4.sh`](../RUNTOOLS/lib/nemo4.sh), is valid for any system. The portability through different systems is achieved by using bash functions instead of machine dependent command. Let take an example to make it clear: for instance, the command used to submit a job on a batch system depends on the scheduler you are using; it may be `qsub`, `llsubmit`, `sbatch` .... In the main script a generic function `submit` is used in place of all the variant. Then `submit` is defined within a function file depending on the machine. Before using the main script, this specific function file is sourced so that the *ad hoc* command for submission will be used. 
 
     In order to be fully generic, the name of the functions file is hard coded as `function_4.sh`. Hence, preparing the RUNTOOLS is limited to make a link pointing to the *ad hoc* functions file for your machine:
     
@@ -97,12 +97,12 @@
       ```
 
       Although the comments are self explanatory, some additional information on the rebuild process may be of interest ! In DRAKKAR, we advocate for using `XIOS` in detached mode (*i.e.* using the `xios_server.exe`) and with the `multiple_file` protocol (in oposition to `one_file` protocol), hence requiring a rebuild process. The reasons for this choice are two-fold: The rebuild process is used (i) to create netcdf4/hdf5 files with chunking and deflation (file size can be divided by 3 or 4 !) and (ii) to 'fill the holes' in `nav_lon nav_lat` corresponding to eliminated land processors in the NEMO computation; this latter point avoid having incohent mapping variables (on land).  Depending on the size of the domain, on the available computer resources etc... it may be of interest to launch the rebuild 'on the fly', meaning in the same job than NEMO, or to launch a dedicated job for the rebuild process. The choice is made by the value of the `MERGE` variables, and the requested number of core for the rebuild process must be defined, setting up the *ad hoc* variables. In both cases, DCM uses a DRAKKAR made rebuild tool (`REBUILD_MPP tool`) which work in parallel. More information about this tool, in the appendix of this manual.
-    * **`run_nemo.sh`** : This script requires very few editing if any. It is the model launcher that submit the job. It is usefull to have it at hand in CTL, as in some cases or tests, you may want to add extra statements in the workflow. (Such as copiing a non standard file to the `TMPDIR` for instance). Once all is correctly setup, `./run_nemo.sh` is the command that you will perform in order to start a production segment.
+    * **`run_nemo.sh`** : This script requires very few editing if any. It is the model launcher that submit the job. It is usefull to have it at hand in CTL, as in some cases or tests, you may want to add extra statements in the workflow. (Such as copying a non standard file to the `TMPDIR` for instance). Once all is correctly setup, `./run_nemo.sh` is the command that you will perform in order to start a production segment.
     * **`<CONFIG>-<CASE>.db`** : This file is automatically updated by the main running script. It holds information about the initial and last step of a job segment, as well as the date of the end of a segment. It just requires initialization (the first line of the file). In the template there are 3 values : Segment number, first model step, last model step of the segment. It is likely that the last step of the segment must be adjusted (depending on the model time step and length of the segment to perform). 
-    * **`namelists`** : 
-    * **`xml files`** :
+    * **`namelists`** : The template namelists are copied in CTL/NAMELIST. Remember that with DCM, we manage only a full namelist, *i.e.* a namelist similar to namelist_ref, where all the parameters correspond to the actual `<CONFIG>-<CASE>`. Once carefully checked, the operational namelists (ocean, ice, top etc... ) should be copied or moved to CTL/, with the name `namelist_<CONFIG>-<CASE>`. The main running script will duplicate it into namelist_ref and namelist_cfg for NEMO compliance.
 
-
+      DRAKKAR code possibly uses extra variables in the namelists. In this case, a new namelist block is created, instead of modifying a standard namelist block. The DRAKKAR related block use the standard name with `_drk` appended. When using DCM, some namelist variables are updated during the run process. They appear in the namelists as `<KEY_WORD>`. Keep them carefully when editing the template namelist. (*i.e.* `<NN_NO>`,`<NIT000>`,`<NITEND>` etc...; for these particular 3 variables, the running script use the `<CONFIG>-<CASE>.db` information to set them correctly). 
+    * **`xml files`** : Templates namelist are located in CTL/XML directory. The ones you need should be copied or moved to CTL/. Likely `domain_def_nemo.xml`, `field_def_*.xml` and `grid_def_nemo.xml` can be used as they are, for classical use. (You may need to edit them if you add new sub-domains, or new variables to output, but this is yet for advanced users !). `iodef.xml` is also likely not to be modified although it is the `xios_server.exe` input file, because it includes `context_nemo.xml` where the user modification may take place.
  1. Run the code
 
     ```
@@ -127,3 +127,47 @@
 
 ## Appendix
 ### REBUILD_MPP tool:
+  In order to compile this rebuild tool (allowing parallel rebuild), the best way is  the following:
+
+```
+    cd $UDIR/CONFIG_<CONFIG>-<CASE>
+    dcm_mktools -n REBUILD_MPP -m <ARCH> -c <CONFIG>-<CASE>
+```
+
+where `<ARCH>` is the same used for compiling NEMO (see MACHINE in the makefile *e.g.* X64_OCCIGEN2 ). At the end of the compilation, a message indicates where you can find the executables. Go there and copy/move all the .exe files into `$WORKDIR/bin` (*i.e.* a directory in your PATH). There are many executables according to the scheme of parallelization, but they have all the same user interface, and in the DCM running script, `mergefile_mpp4.exe` is used as standard (and user can use it blindly !). Just for information, usage of mergefile series is :
+
+   ```
+   usage :  mergefile_mpp4.exe -F | -f <file*>_0000.nc  [-c coordinate_file ] ...
+           [ -d output_directory] [ -r ] [-nc3] [-v]
+       
+      PURPOSE :
+          This program recombine splitted netcd files into a single global file.
+       
+      ARGUMENTS :
+         use either one of the follwing ( not both) :
+         -F : takes all possible _0000.nc files in current directory
+            This option has been introduced to overrid shell limitations 
+            regarding the length of the arguments.
+        or :
+         -f <file*>_0000.nc : list of full name of rank 0 <file*> to be rebuild (deprecated).
+       
+      OPTIONS :
+         -c coordinates file : Use coordinate file to patch nav_lon,nav_lat
+               where there are land processors
+         -d output_dir       : Specify the output directory
+         -r  : Rename output file following DRAKKAR rules. Imply that the output
+               directory for each file is <freq>_OUTPUT (<freq> is 1d, 5d ... )
+               (-r option supersedes the -d option.) 
+         -nc3: Create netcdf3 files instead of default netcdf4 
+         -v  : Verbose, more informations on output
+       
+      REQUIRED FILES :
+         none
+       
+      OUTPUT : 
+        netcdf files : <file>_merg.nc, unless -r option is used.
+        variables    : same than in <file>_0000.nc file
+       
+      SEE ALSO :
+       rebuild_nemo, splitfile 
+   ```
