@@ -37,7 +37,7 @@
 
   Where `XIOS_CORES` is the number of cores dedicated to XIOS, and `NEMO4_CORES` is the number of cores dedicated to NEMO4. This statement launch 2 executables with the MPMD (Multiple Program Multiple Data) paradigm. 
 
-  This general overview of how to run a NEMO configuration is valid even if you do not use DCM. DCM's runtools offer an environement for automatization of most of the task required for run production.  It is  a collection of scripts, handling all the machinery required to produce a long simulation (chaining elementary segments of run), dealing with the model output, restart files etc...  Although it works even for simple configurations (such as test cases or idealized cases), it is primarily designed for complex realistic cases (which explains the relative complexity of the tools).
+  This general overview of how to run a NEMO configuration is valid even if you do not use DCM. DCM's runtools offer an environment for automatization of most of the task required for run production.  It is  a collection of scripts, handling all the machinery required to produce a long simulation (chaining elementary segments of run), dealing with the model output, restart files etc...  Although it works even for simple configurations (such as test cases or idealized cases), it is primarily designed for complex realistic cases (which explains the relative complexity of the tools).
 
 ## Starting with DCM's runtools:
   When you did `dcm_mkconfdir_local` for preparing your configuration, both `EXE` and `CTL` directories were created in `$PDIR/RUN_<CONFIG>/<CONFIG>-<CASE>`. In `EXE` you already know that you have `nemo4.exe` and `CPP.keys` for your configuration. All the management of the run will be done from `CTL` (standing for 'control'). 
@@ -74,14 +74,14 @@
     * `XML/*.xml`
 
  1. Edit template files :
-    * **`includefile.sh`**: This file is essentially used for setting up the path of some key directories, through environement variables. These variables have a name starting with F_ for directories on the archiving system (`SDIR`), and with P_ for the directories on the production system. At present, it is recommended to work mainly with the production machine (because the archiving system on HPC, is likely not a mirror of the production machine, as it used to be). Nevertheless, up to now we maintain this double path system: The running script uses special functions for retrieving files on the `TMPDIR` area, looking first on the production machine, and then on the archiving system if not found.  Most of the default setting may work if you follow a strict building of DCM. However, you still have some freedom to chose paths for forcing files, weight files, XIOS lib etc... Comments in the script are hopefully clear enough to describe the different environment variables.
+    * **`includefile.sh`**: This file is essentially used for setting up the path of some key directories, through environment variables. These variables have a name starting with F_ for directories on the archiving system (`SDIR`), and with P_ for the directories on the production system. At present, it is recommended to work mainly with the production machine (because the archiving system on HPC, is likely not a mirror of the production machine, as it used to be). Nevertheless, up to now we maintain this double path system: The running script uses special functions for retrieving files on the `TMPDIR` area, looking first on the production machine, and then on the archiving system if not found.  Most of the default setting may work if you follow a strict building of DCM. However, you still have some freedom to chose paths for forcing files, weight files, XIOS lib etc... Comments in the script are hopefully clear enough to describe the different environment variables.
 
-      Additionally, it allows the correspondance between hard coded file name within NEMO and the corresponding file in the real world. Actually, only a few hard coded names remains in NEMO4. Most of the file names are now passed to NEMO through a namelist variable. In the `includefile.sh` on a same line you have the world name on the left and the corresponding NEMO name on the left.  Script comments may help for understanding who is who...
+      Additionally, it allows the correspondance between hard coded file names within NEMO and the corresponding file in the real world. Actually, only a few hard coded names remains in NEMO4. Most of the file names are now passed to NEMO through a namelist variable. In the `includefile.sh` on a same line you have the world name on the left and the corresponding NEMO name on the right.  Script comments may help for understanding who is who...
 
       Last but not least, the variable `MAXSUB` defined at the end of the file is there for automatic re-submission: Segments of job will be chained until `MAXSUB` segments are performed. ( See `<CONFIG>-<CASE>.db` below).
     * **`<CONFIG>-<CASE>_<MACHINE>.sh`** : This is the 'job' file that will be submitted to the HPC batch system. Therefore it starts with a header corresponding to the batch system directives. This is why it is 'machine' dependent. 
 
-      The remaining par of this script is the same on any system. It needs editing for the following:
+      The remaining part of this script is the same on any system. It needs editing for the following:
 
       ```
       # Following numbers must be consistant with the header of this job
@@ -102,14 +102,66 @@
     * **`namelists`** : The template namelists are copied in CTL/NAMELIST. Remember that with DCM, we manage only a full namelist, *i.e.* a namelist similar to namelist_ref, where all the parameters correspond to the actual `<CONFIG>-<CASE>`. Once carefully checked, the operational namelists (ocean, ice, top etc... ) should be copied or moved to CTL/, with the name `namelist_<CONFIG>-<CASE>`. The main running script will duplicate it into namelist_ref and namelist_cfg for NEMO compliance.
 
       DRAKKAR code possibly uses extra variables in the namelists. In this case, a new namelist block is created, instead of modifying a standard namelist block. The DRAKKAR related block use the standard name with `_drk` appended. When using DCM, some namelist variables are updated during the run process. They appear in the namelists as `<KEY_WORD>`. Keep them carefully when editing the template namelist. (*i.e.* `<NN_NO>`,`<NIT000>`,`<NITEND>` etc...; for these particular 3 variables, the running script use the `<CONFIG>-<CASE>.db` information to set them correctly). 
-    * **`xml files`** : Templates namelist are located in CTL/XML directory. The ones you need should be copied or moved to CTL/. Likely `domain_def_nemo.xml`, `field_def_*.xml` and `grid_def_nemo.xml` can be used as they are, for classical use. (You may need to edit them if you add new sub-domains, or new variables to output, but this is yet for advanced users !). `iodef.xml` is also likely not to be modified although it is the `xios_server.exe` input file, because it includes `context_nemo.xml` where the user modification may take place.
+    * **`xml files`** : Templates xml files are located in CTL/XML directory. The ones you need should be copied or moved to CTL/.  As already explained in the forewords of this manual, XIOS only needs `iodef.xml` file. However, all the other xml files are included at different levels, as shown in the following tree:
+
+      ```
+                                                           __
+      iodef.xml                                            __|  check using_server : true
+         |                                                 __
+         |___ context_nemo.xml                             __|  only keep the needed file_def !
+                          |                                __
+                          |_______ field_def_nemo-oce.xml    |
+                          |_______ field_def_nemo-ice.xml    | (no edit required for
+                          |_______ field_def_nemo-pisces.xml |     standard use)
+                          |_______ field_def_nemo-.....xml __|
+                          |                                 
+                          |                                __
+                          |_______ file_def_nemo-oce.xml     |
+                          |_______ file_def_nemo-ice.xml     |  NEED editing for your choices
+                          |_______ file_def_nemo-pisces.xml  |  
+                          |_______ file_def_nemo-.....xml  __|
+                          |
+                          |
+                          |                                __
+                          |_______ domain_def_nemo.xml     __|  no edit required for std use
+                          |
+                          |                                __
+                          |_______ grid_def_nemo.xml       __|  no edit required for std use
+      ```
+
+
+      As shown on the graph above, major editing is only required in the `file_def_nemo-*.xml`. And in `context_nemo.xml` you should keep only the `file_def_nemo-*.xml` required by your setting (*e.g.* : if you do not use the ice model, you must not have `file_def_nemo-ice.xml` sourced in `context_nemo.xml`).
+
+      Note the `file_def*xml` files used in DRAKKAR implements some changes with respect to the standard NEMO:
+        *  `<file_definition\>` xml tag  is changed to (for example):
+
+           ```
+           <file_definition type="multiple_file" name="<OUTDIR>/@expname@_@freq@" sync_freq="1d" min_digits="4">
+           ```
+
+           `<OUTDIR>` is a `<KEY_WORD>` that will be changed to `$DDIR/<CONFIG>-<CASE>-XIOS.<seg>` in order to have the XIOS output in a separate directory for each production segment.
+
+        * Global attributes in the output netcdf files are used, having for each file definition:
+
+          ```
+             <variable name="start_date"       type="int"><NDATE0>    </variable>
+             <variable name="output_frequency" type="string">1h       </variable>
+             <variable name="CONFIG"           type="string"><CONFIG> </variable>
+             <variable name="CASE"             type="string"><CASE>   </variable>
+          ```
+          Here again, the `<KEY_WORD>` will be replaced by their value at run-time. These global attributes are used in the [DRAKKAR monitoring tools (DMONTOOLS)](https://github.com/meom-group/DMONTOOLS).
+
+      `domain_def_nemo.xml` requires editing only if you add new sub-domains for output.  
+      `field_def_nemo-*.xml` requires editing if you want to add extra variables in the already long list of possible variables to output. New variables should have a corresponding call to iom_put in the NEMO code.
  1. Run the code
 
     ```
     ./run_nemo.sh
     ```
 
-    And that's it !
+    And that's it ! 
+
+    In order to help the management of a run, small tools were developped. They are now collected in the DCM toolkit. See the [DCM toolkit manual](./dcm_toolkit.md) for description and use of the toolkit.
  1. Post processing the output : see [dedicated manual](./dcm_post_process.md) describing hints for post processing
 
 ## Cloning an existing configuration:
