@@ -34,7 +34,7 @@
 &namrun        !   parameters of the run
 !-----------------------------------------------------------------------
    nn_no         =   <NN_NO>         !  job number
-   cn_exp        =   <CONFIG>-<CASE>   !  experience name 
+   cn_exp        =   <CONFCASE>      !  experience name 
    nn_it000      =    <NIT000>       !  first time step
    nn_itend      =    <NITEND>       !  last  time step
    nn_date0      =  19920101         !  initial calendar date yymmdd (used if nrstdt=1)

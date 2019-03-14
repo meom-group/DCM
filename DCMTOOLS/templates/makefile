@@ -347,6 +347,7 @@ else
 	@cd $(PDIR)/RUN_$(CONFIG)/$(CONFIG)-$(CASE)/CTL/XML ; cp $(HOMEDCM)/DRAKKAR/NEMO4/cfgs/SHARED/*xml ./
 	@cd $(PDIR)/RUN_$(CONFIG)/$(CONFIG)-$(CASE)/CTL/NAMELIST ; cp $(HOMEDCM)/NEMOREF/NEMO4/cfgs/SHARED/namelist* ./
 	@cd $(PDIR)/RUN_$(CONFIG)/$(CONFIG)-$(CASE)/CTL/NAMELIST ; cp $(HOMEDCM)/DRAKKAR/NEMO4/cfgs/SHARED/namelist* ./
+	@cd $(PDIR)/RUN_$(CONFIG)/$(CONFIG)-$(CASE)/CTL/NAMELIST ; sed -e "s/<CONFCASE>/$(CONFIG)-$(CASE)/"  namelist_ref > ztmp ; mv ztmp namelist_ref
 endif
 
 cleansvn:
