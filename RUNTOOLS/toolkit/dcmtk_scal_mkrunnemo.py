@@ -39,7 +39,7 @@ def usage(name):
    print ' '
    sys.exit()
 
-def parse(argv,name):
+def set_default():
    global script
    global nc
    global nxios_min
@@ -47,6 +47,8 @@ def parse(argv,name):
    script = './run_nemo_occigen_scal.sh'
    nc = 28
    nxios_min = 5
+
+def parse(argv,name):
 
    try:
       opts, args = getopt.getopt(argv,"hn:c:x",["help","scal_script=","cores_per_node=","xios_min_cores="])
@@ -67,11 +69,6 @@ def mkrun():
    cwd = os.getcwd()
    # set output path
    outpath = './'
-   # script name
-   # script = './run_nemo_occigen_scal.sh'
-
-   #nc = 28 # number of cores per node
-   #nxios_min=5
 
    file_name = [] # log files
    file_name += glob.glob(cwd + '/log_*')
@@ -105,6 +102,7 @@ def mkrun():
    out.close()
 
 if __name__ == "__main__":
+   set_default()
    if len(sys.argv) == 1:
       usage(sys.argv[0])
    parse(sys.argv[1:],os.path.basename(sys.argv[0]) )
