@@ -248,6 +248,7 @@ else
 	@cp $(CONFIG)-$(CASE)_cfgs.txt $(COMPIL_DIR)/cfgs/ref_cfgs.txt
 endif
 	@dcm_cpp2fcm > $(COMPIL_DIR)/cfgs/$(CONFIG)-$(CASE)/cpp_$(CONFIG)-$(CASE).fcm
+	@echo  ./makenemo -r $(CONFIG)-$(CASE) -m $(MACHINE)  -j0
 	@cd $(COMPIL_DIR) ;  ./makenemo -r $(CONFIG)-$(CASE) -m $(MACHINE)  -j0
 
 WORK:
