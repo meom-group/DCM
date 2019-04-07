@@ -168,6 +168,37 @@ Where \<code.F90\> is a NEMO fortran module (for instance `nemogcm.F90`). This c
 
  At the end of this step, if no error are encountered at compile time, a link called `nemo4.exe` is created in `$PDIR/RUN_<CONFIG>/<CONFIG>-<CASE>/EXE/` directory, and a copy of `CPP.keys` is also put there (for the runtime processing), and you are done with code compilation.
 
+## Compiling a NEMO REFERENCE CASE:
+
+  NEMO system team maintains a reduced number of reference configuration covering almost all the NEMO capailities.  In NEMO4(@rev 10650 ! ) there are 10 reference configuration:
+
+```
+AGRIF_DEMO
+AMM12
+C1D_PAPA
+GYRE_BFM
+GYRE_PISCES
+ORCA2_ICE_PISCES
+ORCA2_OFF_PISCES
+ORCA2_OFF_TRC
+ORCA2_SAS_ICE
+SPITZ12
+```
+
+ In order to build a reference configuration just follow the steps (*e.g.* build GYRE_PISCES in GYRE-tst) :
+   1. dcm_mkcondir_local GYRE-tst  
+   1. ``` cd $UDIR/CONFIG_GYRE/GYRE-tst```
+   1. edit `makefile` as previously for the basic things and :
+       * set NEMO_REFERENCE_CASE to one of the official references (see above)
+   1. prepare the reference configuration:
+       * `make nemo_reference_case` : This will copy the official setup at the right  place (CPP.keys, cfg files etc ... )
+   1. Compile the code
+       * `make install `
+       * ` make`
+  
+
+ 
+
 ## Cloning and modifying an already existing configuration:
 
   Actually, it very often happens that you already have a working `CONFIG-CASE` experiment and that you just want to clone as a starting point for further experiments.  DCM allows to do so very easily. 
