@@ -170,7 +170,7 @@ Where \<code.F90\> is a NEMO fortran module (for instance `nemogcm.F90`). This c
 
 ## Compiling a NEMO REFERENCE CASE:
 
-  NEMO system team maintains a reduced number of reference configuration covering almost all the NEMO capailities.  In NEMO4(@rev 10650 ! ) there are 10 reference configuration:
+  NEMO system team maintains a reduced number of reference configurations covering almost all the NEMO capabilities.  In NEMO4(@rev 10650 ! ) there are 10 reference configurations:
 
 ```
 AGRIF_DEMO
@@ -189,12 +189,12 @@ SPITZ12
    1. dcm_mkcondir_local GYRE-tst  
    1. ``` cd $UDIR/CONFIG_GYRE/GYRE-tst```
    1. edit `makefile` as previously for the basic things and :
-       * set NEMO_REFERENCE_CASE to one of the official references (see above)
+       * set NEMO_REF_CASE to one of the official references (see above)
    1. prepare the reference configuration:
-       * `make nemo_reference_case` : This will copy the official setup at the right  place (CPP.keys, cfg files etc ... )
+       * `make nemo_ref_case` : This will copy the official setup at the right  place (CPP.keys, cfg files etc ... )
    1. Compile the code
        * `make install `
-       * ` make`
+       * `make`
   
 
  
