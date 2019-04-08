@@ -218,9 +218,9 @@ WAD
    1. dcm_mkcondir_local WAD-tst  
    1. ``` cd $UDIR/CONFIG_WAS/WAD-tst```
    1. edit `makefile` as previously for the basic things and :
-       * set NEMO_TEST_CASE to one of the official NEMO test cases (see above)
+       * set TEST_CASE to one of the official NEMO test cases (see above)
    1. prepare the reference configuration:
-       * `make nemo_test_case` : This will copy the official setup at the right  place (CPP.keys, cfg files etc ... )
+       * `make test_case` : This will copy the official setup at the right  place (CPP.keys, cfg files etc ... )
    1. Compile the code
        * `make install `
        * `make`
