@@ -197,6 +197,33 @@ SPITZ12
        * `make`
   
 
+## Compiling a NEMO TEST CASE:
+
+  NEMO system team maintains a reduced number of test cases, coresponding to simplified model configuration. These test cases are intented to illustrate theoretical concept or a specific parameterization.  In NEMO4(@rev 10650 ! ) there are 10 test cases.
+
+```
+BENCH
+CANAL
+ICE_ADV1D
+ICE_ADV2D
+ICE_AGRIF
+ISOMIP
+LOCK_EXCHANGE
+OVERFLOW
+VORTEX
+WAD
+```
+
+ In order to build a NEMO test case, just follow the steps (*e.g.* build WAD  in WAD-tst) :
+   1. dcm_mkcondir_local WAD-tst  
+   1. ``` cd $UDIR/CONFIG_WAS/WAD-tst```
+   1. edit `makefile` as previously for the basic things and :
+       * set NEMO_TEST_CASE to one of the official NEMO test cases (see above)
+   1. prepare the reference configuration:
+       * `make nemo_test_case` : This will copy the official setup at the right  place (CPP.keys, cfg files etc ... )
+   1. Compile the code
+       * `make install `
+       * `make`
  
 
 ## Cloning and modifying an already existing configuration:
