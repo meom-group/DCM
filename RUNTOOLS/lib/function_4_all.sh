@@ -91,7 +91,7 @@ getinitdmp()        {
      fi
      # damping files (TRADMP is set in nemo4.sh)
      if [ $TRADMP = 1 ] ; then
-        tmp=$(LookInNamelist ln_tsd_tradmp namelist namtsd_drk) ; tmp=$(normalize $tmp )
+        tmp=$(LookInNamelist ln_tsd_dmp namelist namtsd_drk) ; tmp=$(normalize $tmp )
         if [ $tmp = T ] ; then 
           filter='| grep -v sn_tem_ini | grep -v sn_sal_ini'  # at this level always filter ini files
           blk=namtsd_drk ;  getfiles  $blk $P_DTA_DIR $F_DTA_DIR 
@@ -130,7 +130,7 @@ getshlat2d()        {
      filter=''
      tmp=$(LookInNamelist ln_shlat2d namelist namlbc_drk) ; tmp=$(normalize $tmp )
      if [ $tmp = T ] ; then
-       blk=namlbc ;  getfiles $blk $P_DTA_DIR $F_DTA_DIR
+       blk=namlbc_drk ;  getfiles $blk $P_DTA_DIR $F_DTA_DIR
      fi
                     }
 # ---
