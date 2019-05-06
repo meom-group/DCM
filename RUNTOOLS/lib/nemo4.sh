@@ -167,6 +167,7 @@ else
 fi
 
 sed -e "s/<NN_NO>/$no/" \
+    -e "s/<CONFCASE>/$CONFIG_CASE/" \
     -e "s/<NIT000>/$nit000/" \
     -e "s/<NITEND>/$nitend/" \
     -e "s/<RESTART>/$restart_flag/" \
