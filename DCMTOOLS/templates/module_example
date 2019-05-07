@@ -14,10 +14,10 @@
 ################################################################################
 
 proc ModulesHelp { } {
-        global version
+        global base_version
 
         puts stderr "\t------------------------------------------------"
-        puts stderr "\tLoading the DCM $version environment "
+        puts stderr "\tLoading the DCM $base_version environment "
         puts stderr "\t------------------------------------------------\n"
 }
 
@@ -26,13 +26,16 @@ conflict DCM
 conflict NEMODRAK
 
 # for Tcl script use only
-set             version         4.0
-set             base_path       $::env(DEVGIT)/DCM_$version/DCMTOOLS
+set             base_version    4.0
+set             base_path       $::env(DEVGIT)/DCM_${base_version}/DCMTOOLS
 setenv          HOMEDCM         $base_path
 # REFDIR is the reference NEMO  directory
 setenv          REFDIR          ${base_path}/NEMOREF/NEMO4
 # CUSDIR is the DRAKKAR customized directory
 setenv          CUSDIR          ${base_path}/DRAKKAR/NEMO4
+
+
+
 #### define the equivalent variables HOMEDCM2, REFDIR2, CUSDIR2 for an alternative version ( alter_version)
 ####  This is used in advanced comparison tools
 set             alter_version   4.0
@@ -43,8 +46,11 @@ setenv          REFDIR2         ${alter_path}/NEMOREF/NEMO4
 # CUSDIR is the DRAKKAR customized directory
 setenv          CUSDIR2         ${alter_path}/DRAKKAR/NEMO4
 
+
+
+
 # RUNTOOLS is the associated RUNTOOL for this DCM version
-set             runtool_path    $::env(DEVGIT)/DCM_$version/RUNTOOLS
+set             runtool_path    $::env(DEVGIT)/DCM_${base_version}/RUNTOOLS
 setenv          RUNTOOLS        ${runtool_path}
 
 prepend-path    PATH            ${base_path}/bin
