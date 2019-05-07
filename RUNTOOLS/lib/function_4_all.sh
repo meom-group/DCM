@@ -1349,7 +1349,7 @@ for member in \$(seq  $ENSEMBLE_START $ENSEMBLE_END ) ; do
    . $RUNTOOLS/function_4_all.sh
    . $RUNTOOLS/function_4.sh
    cd $DDIR/${CONFIG_CASE}-DIMGPROC.$ext/\$nnn
-   ln -sf ../coordinates.nc ./
+   ln -sf ../$CN_DOMCFG ./
    cp ../namelistio .
    cat namelistio | sed -e "s;${CONFIG_CASE};${CONFIG_CASE}\$mmm;g" > znamio
    mv znamio namelistio
@@ -1392,7 +1392,7 @@ DDIR=\${DDIR:-\$CDIR}
 
 cd  \$DDIR/${CONFIG_CASE}-DIMGPROC.$ext/5D
 cp $P_UTL_DIR/bin/build_nc_mpp .
-cp $DDIR/TMPDIR_${CONFCASE}/coordinates.nc ./
+cp $DDIR/TMPDIR_${CONFCASE}/$CN_DOMCFG ./
 cp $DDIR/TMPDIR_${CONFCASE}/namelistio ./namtmp
 cat namtmp | sed 's/ln_mld=.false./ln_mld=.true./' > namelistio
 
@@ -1470,7 +1470,7 @@ cd $DDIR/${CONFCASE}-DIMGPROC.\$job/SSF
 cp $P_UTL_DIR/bin/build_nc_mpp ./
 cp $P_UTL_DIR/bin/build_nc_mpp2 ./
 cp $P_UTL_DIR/bin/build_nc ./
-cp $DDIR/TMPDIR_${CONFCASE}/coordinates.nc ./
+cp $DDIR/TMPDIR_${CONFCASE}/$CN_DOMCFG ./
 
 liste=''
 for f in *_SSF_*.dimgproc ; do
@@ -1631,7 +1631,7 @@ for member in \$(seq  $ENSEMBLE_START $ENSEMBLE_END ) ; do
    cd $DDIR/${CONFIG_CASE}-XIOS.$ext/\$nnn
    ln -sf $P_UTL_DIR/bin/rebuild_nemo .
    ln -sf $P_UTL_DIR/bin/rebuild_nemo.exe .
-   ln -sf ../coordinates.nc ./
+   ln -sf ../$CN_DOMCFG ./
 
    for freq in 1ts 1h 1d 5d ; do
       mkdir @{freq}_OUTPUT
@@ -1687,13 +1687,13 @@ eof
             nnn=\$(getmember_extension \$member nodot)
             ln -sf \$zXIOS/\$nnn/${CONFIG_CASE}*.nc ./
          done
-         ln -sf  \$zXIOS/coordinates.nc ./
+         ln -sf  \$zXIOS/$CN_DOMCFG ./
          ln -sf $MERGE_EXEC ./
          getlst0000 24000
          idxmax=\$(( \${#lst0000[@]} - 1 )) #  index max in the list, starting from 0
 
          for idx in \$( seq 0 \$idxmax ) ; do
-             runcode_u $NB_NPROC_MER ./\$mergeprog -f \${lst0000[\$idx]} -c coordinates.nc -r
+             runcode_u $NB_NPROC_MER ./\$mergeprog -f \${lst0000[\$idx]} -c $CN_DOMCFG -r
          done
          \rm *.nc  # in WKDIR
 eof
@@ -1716,7 +1716,7 @@ eof
          mergeprog=$(basename $MERGE_EXEC )
          cd \$zXIOS
          ln -sf $MERGE_EXEC ./
-             runcode $NB_NPROC_MER ./\$mergeprog -F -c coordinates.nc -r
+             runcode $NB_NPROC_MER ./\$mergeprog -F -c $CN_DOMCFG -r
 eof
   copy $1 $P_CTL_DIR
             }
@@ -1743,7 +1743,7 @@ mergefiles()  {
          idxmax=$(( ${#lst0000[@]} - 1 )) #  index max in the list, starting from 0
          
          for idx in $( seq 0 $idxmax ) ; do 
-            runcode_u $NB_NPROC_MER ./$mergeprog -f ${lst0000[$idx]} -c coordinates.nc -r 
+            runcode_u $NB_NPROC_MER ./$mergeprog -f ${lst0000[$idx]} -c $CN_DOMCFG -r 
          done
 
          date
@@ -1760,12 +1760,12 @@ mergefiles_ens_orig()  {
             mmm=.$nnn
             cd $DDIR/${CONFIG_CASE}-XIOS.$ext/$nnn
             ln -sf $MERGE_EXEC ./
-            ln -sf ../coordinates.nc ./
+            ln -sf ../$CN_DOMCFG ./
             echo -n "   MEMBER ", $member " : " ; date
             getlst0000 24000
             idxmax=$(( ${#lst0000[@]} - 1 )) #  index max in the list, starting from 0
             for idx in $( seq 0 $idxmax ) ; do 
-               runcode_u $NB_NPROC_MER ./$mergeprog -f ${lst0000[$idx]} -c coordinates.nc -r 
+               runcode_u $NB_NPROC_MER ./$mergeprog -f ${lst0000[$idx]} -c $CN_DOMCFG -r 
             done
          done
 
@@ -1788,13 +1788,13 @@ mergefiles_ens()  {
             mmm=.$nnn
             ln -sf $zXIOS/$nnn/${CONFIG_CASE}*.nc ./
          done
-         ln -sf  $zXIOS/coordinates.nc ./
+         ln -sf  $zXIOS/$CN_DOMCFG ./
          ln -sf $MERGE_EXEC ./
          getlst0000 24000
          idxmax=$(( ${#lst0000[@]} - 1 )) #  index max in the list, starting from 0
 
          for idx in $( seq 0 $idxmax ) ; do
-             runcode_u $NB_NPROC_MER ./$mergeprog -f ${lst0000[$idx]} -c coordinates.nc -r
+             runcode_u $NB_NPROC_MER ./$mergeprog -f ${lst0000[$idx]} -c $CN_DOMCFG -r
          done
          \rm *.nc  # in WKDIR
          cd $TMPDIR  # for the remnant of the script
@@ -1822,7 +1822,7 @@ mk_post_process()  {
 
           cd \$DDIR/\${CONFIG_CASE}-XIOS.\$ext/\$nnn
           if [ \$nnn ] ; then
-             ln -sf ../coordinates.nc ./
+             ln -sf ../$CN_DOMCFG ./
              ln -sf ../*xml ./
           fi
           for zoomid in \$lis_zoomid ; do
@@ -1838,7 +1838,7 @@ chmod 755 $1
 #   correct nav_lon,nav_lat for masked land domain ( ini_mpp2)
 # also used for one_file output for regional zoom. In this latter case, the call is made with the zoomid
 post_process_one_file()  {
-         if [ $# = 1 ] ; then zoomid=$1 ; zcoord=${zoomid}_coordinates.nc ; else zoomid=  ; zcoord="coordinates.nc"  ; fi
+         if [ $# = 1 ] ; then zoomid=$1 ; zcoord=${zoomid}_coordinates.nc ; else zoomid=  ; zcoord="$CN_DOMCFG"  ; fi
 
          DDIR=${DDIR:-$CDIR}
          ls -ld WRK.* > /dev/null 2>&1
@@ -1867,7 +1867,7 @@ post_process_one_file()  {
          # check that nav_lonlat.nc files are here...
          for ztyp in T U V ; do
            if [ ! -f  $WORKDIR/${CONFIG}_Sections/${CONFIG}_${zoomid}nav_lonlat_$ztyp.nc ] ; then
-             # build then from coordinates.nc file
+             # build then from $CN_DOMCFG file
              mk_nav_lonlat $zcoord  $zoomid
              mv ${CONFIG}_${zoomid}nav_lonlat_$ztyp.nc  $WORKDIR/${CONFIG}_Sections/
            fi 
@@ -1955,10 +1955,10 @@ rename_out() {
              }
 # ---
 # mk_nav_lonlat is a function that build 3 files having nav_lon, and nav_lat (2D files) for U V T points
-#    It takes the information from coordinates.nc file, and need to rename glamx, gphix to nav_lon,nav_lat
+#    It takes the information from $CN_DOMCFG file, and need to rename glamx, gphix to nav_lon,nav_lat
 #    it also reduce the nav_lon, nav_lat variables to 2D (x,y) and transform then to float as in XIOS files.
 mk_nav_lonlat()   {
-    if [ $# -gt 0 ] ; then coord=$1  ; else  coord="coordinates.nc" ; fi
+    if [ $# -gt 0 ] ; then coord=$1  ; else  coord="$CN_DOMCFG" ; fi
     if [ $# = 2   ] ; then zoomid=$2 ; else  zoomid=                ; fi
     # some coordinates file have an unlimited dimensions other no ...
     unlim=''
@@ -2020,7 +2020,7 @@ mk_zoom_coord() {
 
     zoomcoord=${zoomid}_coordinates.nc
     if [ ! -f $zoomcoord ] ; then
-        ncks -F -O -d x,$zoom_ibegin,$zoom_iend -d y,$zoom_jbegin,$zoom_jend coordinates.nc ${zoomcoord}
+        ncks -F -O -d x,$zoom_ibegin,$zoom_iend -d y,$zoom_jbegin,$zoom_jend $CN_DOMCFG ${zoomcoord}
     fi
                 }
 

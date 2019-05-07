@@ -1230,7 +1230,8 @@ case $STOP_FLAG in
     if [ $XIOS = 1 ] ; then
         echo ' [6.1] Process the rebuild of nc file from XIOS files '
         echo ' ========================================================='
-        cp coordinates.nc $DDIR/${CONFIG_CASE}-${DIROUText}.$ext/
+
+        cp $CN_DOMCFG  $DDIR/${CONFIG_CASE}-${DIROUText}.$ext/
         cp iodef.xml domain_def.xml $DDIR/${CONFIG_CASE}-${DIROUText}.$ext/
    
         if [ $DIAPTR = 1 ] ; then  # process diaptr files (one_file mode). Only rename
