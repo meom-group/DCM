@@ -1094,6 +1094,9 @@ case $STOP_FLAG in
     echo "   ***  Run OK"
     echo ' [5.2] rename  the restart files'
     echo ' ==============================='
+    if [ $RST_READY = 1 ] ; then
+       echo "   *** Restart files are ready from NEMO ..."
+    else
     for member in  $(seq $ENSEMBLE_START $ENSEMBLE_END) ; do
         mmm=$(getmember_extension $member)
         nnn=$(getmember_extension $member nodot)
@@ -1159,6 +1162,7 @@ case $STOP_FLAG in
         fi
 
     done      # loop on members
+    fi   # RST_READY
 
     date
     echo ' [5.3] Update the CONFIG_CASE.db file'

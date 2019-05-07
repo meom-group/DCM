@@ -673,9 +673,7 @@ renamerst() {
  # in case of multiple restarts during the year
  znitend=$(LookInNamelist nn_itend  namelist)
  znitend=$( printf "%08d" $znitend )
- # extension differ according to DIMGOUT / XIOS flag
- if [ $XIOS    = 1 ] ; then filext='nc'   ; zcore0=0000 ; fi
- if [ $DIMGOUT = 1 ] ; then filext='dimg' ; zcore0=0001 ; fi
+ filext='nc'
 
  # Loop on cores for current member [ renamerst is called in the member loop, mmm is known ]
  set -x   # avoid very long list of statements in the log file
@@ -804,8 +802,7 @@ mktarrst() {  echo "   *** making tar restart file for ${1}$3 "
  # ... build tar files of size < MAXTARSIZ (in bytes)
  MAXTARSIZ=40000000000
  set +x   # avoid very long list of file
- if [ $XIOS    = 1 ] ; then filext='nc' ; fi
- if [ $DIMGOUT = 1 ] ; then filext='dimg' ; fi
+ filext='nc'
  cd $zrstdir
  if [ $RST_READY = 1 ] ; then
     lscmd="/bin/ls -l  ${1%.*}-${ext}${mmm}_[[:digit:]]*[[:digit:]].${filext}"
@@ -853,20 +850,19 @@ cd -
 #   The submit script, then launch the execution in parallel of the secondary scripts (as many cores as members).
 mksavrst() {
 
-mk_batch_hdr --name ${1%%.*} --par --wallclock 2:00:00 --cores $ENSEMBLE_SIZE --cluster hpt --account $ACCOUNT --adapp --queue $QUEUE > $1
+mk_batch_hdr --name ${1%%.*} --par --wallclock 0:20:00 --cores $ENSEMBLE_SIZE --cluster hpt --account $ACCOUNT --adapp --queue $QUEUE > $1
 
 cat << eof >> $1    # Submit script name given as argument
  set -x
  cd $TMPDIR
  . ./includefile.sh
- . $RUNTOOLS/function_4_all.sh
- . $RUNTOOLS/function_4.sh
+ . $RUNTOOLS/lib/function_4_all.sh
+ . $RUNTOOLS/lib/function_4.sh
  srcbash # just in case
- # set local variables as in nemo3.4 (calling script)
+ # set local variables as in nemo4.sh (calling script)
  ext=$ext
  AGRIF=$AGRIF
  XIOS=$XIOS
- DIMGOUT=$DIMGOUT
  RST_DIRS=$RST_DIRS
  nst_lst="${agrif_pref[@]} "
 
@@ -878,159 +874,24 @@ cat << eof >> $1    # Submit script name given as argument
    if [ \$RST_DIRS = 1 ] ; then zrstdir=$DDIR/${CN_DIRRST}.\$ext/\$nnn ; fi
    # create secondary scripts to be submitted in // trhough the members
    # $ to be maintained in the final script are replaces by @, then automatic edition
-   # replace the @ by $ [ this is necessary because we are at the second level od script
+   # replace the @ by $ [ this is necessary because we are at the second level of script
    # creation !
    cat << eof1 > ztmp
 #!/bin/bash
    set -x
    . ./includefile.sh
-   . $RUNTOOLS/function_4_all.sh
-   . $RUNTOOLS/function_4.sh
+   . $RUNTOOLS/lib/function_4_all.sh
+   . $RUNTOOLS/lib/function_4.sh
 
    # set local variables as in nemo3.4 (calling script)
    ext=$ext
    AGRIF=$AGRIF
    XIOS=$XIOS
-   DIMGOUT=$DIMGOUT
    nst_lst="${agrif_pref[@]} "
    mmm=\$mmm
    zrstdir=\$zrstdir
-
-   # O C E A N
-   # *********
-   OCE_RST_IN=@(LookInNamelist cn_ocerst_in namelist_oce.$ext)\$mmm
-   OCE_RST_OUT=@(LookInNamelist cn_ocerst_out namelist_oce.$ext)\$mmm
-
-   mktarrst @OCE_RST_IN @OCE_RST_OUT _oce_v2
-
-   # send them on DATA space
-   cd \$P_R_DIR
-   for f in @{OCE_RST_OUT}_oce_v2.\$ext.tar.*  ; do
-      expatrie_res @f \$F_R_DIR @f \$P_R_DIR
-   done
-   if [ $AGRIF = 1 ] ; then
-     for idx in \$nst_lst ; do 
-       for f in @{idx}_@{OCE_RST_OUT}_oce_v2.\$ext.tar.*  ; do
-          expatrie_res @f \$F_R_DIR @f \$P_R_DIR
-       done
-     done
-   fi
-   cd $TMPDIR
-
-   # I C E
-   # *****
-   if [ $ICE = 1 ] ; then
-     ICE_RST_IN=@(LookInNamelist cn_icerst_in namelist_ice.$ext)\$mmm
-     ICE_RST_OUT=@(LookInNamelist cn_icerst_out namelist_ice.$ext)\$mmm
-
-     mktarrst @ICE_RST_IN @ICE_RST_OUT _v2
-
-   # send them on DATA space
-    cd \$P_R_DIR
-    for f in @{ICE_RST_OUT}_v2.\$ext.tar.*  ; do
-       expatrie_res @f \$F_R_DIR @f \$P_R_DIR
-    done
-    if [ $AGRIF = 1 ] ; then
-    for idx in \$nst_lst ; do 
-      for f in @{idx}_@{ICE_RST_OUT}_v2.\$ext.tar.*  ; do
-         expatrie_res @f \$F_R_DIR @f \$P_R_DIR
-      done
-    done
-    fi
-   fi
-   cd $TMPDIR
-
-   # P A S S I V E   T R A C E R S
-   # *****************************
-   if [ $TOP = 1 ] ; then
-     TRC_RST_IN=@(LookInNamelist   cn_trcrst_in namelist_top.$ext)\$mmm
-     TRC_RST_OUT=@(LookInNamelist cn_trcrst_out namelist_top.$ext)\$mmm
-
-     mktarrst @TRC_RST_IN @TRC_RST_OUT _v2
-  
-    # send them on  DATA space
-    cd \$P_R_DIR
-    for f in @{TRC_RST_OUT}_v2.\$ext.tar.*  ; do
-      expatrie_res @f \$F_R_DIR @f \$P_R_DIR
-    done
-    if [ $AGRIF = 1 ] ; then
-      for idx in \$nst_lst ; do 
-        for f in @{idx}_@{TRC_RST_OUT}_v2.\$ext.tar.*  ; do
-           expatrie_res @f \$F_R_DIR @f \$P_R_DIR
-        done
-      done
-    fi
-   fi
-   cd $TMPDIR
-  
-   # T R D  M L D
-   # ************
-   if [ $TRDMLD = 1 ] ; then
-      TRD_RST_IN=@(LookInNamelist cn_trdrst_in namelist_oce.$ext)\$mmm
-      TRD_RST_OUT=@(LookInNamelist cn_trdrst_out namelist_oce.$ext)\$mmm
-  
-      mktarrst @TRD_RST_IN @TRD_RST_OUT _v2
-  
-      # send them on  DATA space
-      cd \$P_R_DIR
-      for f in @{TRD_RST_OUT}_v2.\$ext.tar.*  ; do
-         expatrie_res @f \$F_R_DIR @f \$P_R_DIR
-      done
-      if [ $AGRIF = 1 ] ; then
-         for idx in \$nst_lst ; do 
-            for f in @{idx}_@{TRD_RST_OUT}_v2.\$ext.tar.*  ; do
-               expatrie_res @f \$F_R_DIR @f \$P_R_DIR
-            done
-         done
-     fi
-     cd $TMPDIR
-   fi
-
-   # S T O 
-   # *****
-   if [ $STO = 1 ] ; then
-      STO_RST_IN=@(LookInNamelist cn_storst_in namelist_oce.$ext)\$mmm
-      STO_RST_OUT=@(LookInNamelist cn_storst_out namelist_oce.$ext)\$mmm
-      mktarrst @STO_RST_IN @STO_RST_OUT _v2
-  
-      # send them on  DATA space
-      cd \$P_R_DIR
-      for f in @{STO_RST_OUT}_v2.\$ext.tar.*  ; do
-         expatrie_res @f \$F_R_DIR @f \$P_R_DIR
-      done
-     if [ $AGRIF = 1 ] ; then
-        for idx in \$nst_lst ; do 
-           for f in @{idx}_@{STO_RST_OUT}_v2.\$ext.tar.*  ; do
-              expatrie_res @f \$F_R_DIR @f \$P_R_DIR
-           done
-        done
-     fi
-     cd $TMPDIR
-   fi
-
-   # I C B 
-   # *****
-   if [ $ICB = 1 ] ; then
-      ICB_RST_IN=restart_icebergs\$mmm
-      ICB_RST_OUT=icebergs_restart\$mmm
-      mktarrst @ICB_RST_IN @ICB_RST_OUT _v2
-  
-      # send them on  DATA space
-      cd \$P_R_DIR
-      for f in @{ICB_RST_OUT}_v2.\$ext.tar.*  ; do
-         expatrie_res @f \$F_R_DIR @f \$P_R_DIR
-      done
-     if [ $AGRIF = 1 ] ; then
-        for idx in \$nst_lst ; do 
-           for f in @{idx}_@{ICB_RST_OUT}_v2.\$ext.tar.*  ; do
-              expatrie_res @f \$F_R_DIR @f \$P_R_DIR
-           done
-        done
-     fi
-     cd $TMPDIR
-   fi
-
-   touch RST_DONE\${mmm}.\$ext
+   cd $DDIR
+   tar cf $F_R_DIR/${CONFIG_CASE}\${mmm}-RST.$ext.tar ${CONFIG_CASE}-RST.$ext/\$mmm
 eof1
    cat ztmp | sed -e 's/@/\$/g' > ./$1\${mmm}.sh    # change @ into \$ and create script for current member
    chmod 755 ./$1\${mmm}.sh                         # made it executable
@@ -1063,14 +924,13 @@ cat << eof >> $1    # Submit script name given as argument
  set -x
  cd $TMPDIR
  . ./includefile.sh
- . $RUNTOOLS/function_4_all.sh
- . $RUNTOOLS/function_4.sh
+ . $RUNTOOLS/lib/function_4_all.sh
+ . $RUNTOOLS/lib/function_4.sh
  srcbash # just in case
  # set local variables as in nemo3.4 (calling script)
  ext=$ext
  AGRIF=$AGRIF
  XIOS=$XIOS
- DIMGOUT=$DIMGOUT
  RST_DIRS=$RST_DIRS
  nst_lst="${agrif_pref[@]} "
 
@@ -1088,14 +948,13 @@ cat << eof >> $1    # Submit script name given as argument
 #!/bin/bash
    set -x
    . ./includefile.sh
-   . $RUNTOOLS/function_4_all.sh
-   . $RUNTOOLS/function_4.sh
+   . $RUNTOOLS/lib/function_4_all.sh
+   . $RUNTOOLS/lib/function_4.sh
 
    # set local variables as in nemo3.4 (calling script)
    ext=$ext
    AGRIF=$AGRIF
    XIOS=$XIOS
-   DIMGOUT=$DIMGOUT
    nst_lst="${agrif_pref[@]} "
    mmm=\$mmm
    zrstdir=\$zrstdir
@@ -1255,247 +1114,6 @@ eof
               }
 # --- 
 
-# function for recombining nc file : it creates a script to be launched by submit
-mkbuildnc() {
-mk_batch_hdr --name ${1%%.*} --par --cores 5 --nodes 1 --wallclock 5:00:00  \
-             --account $ACCOUNT --cluster hpt  --memory 3.5gb --queue $QUEUE > $1
-cat << eof >> $1
-
-if [ \$SLURM_NTASKS ] ; then NPROC=\$SLURM_NTASKS ; fi
-
-set -x
-. $RUNTOOLS/function_4_all.sh
-. $RUNTOOLS/function_4.sh
-srcbash
-CONFIG=$CONFIG
-CONFIG_CASE=${CONFIG_CASE}
-DDIR=\${DDIR:-\$CDIR}
-
-# if second argument present represent agrif nest number
-idx=${2-0}
-if [ \$idx = 0 ] ; then 
-   pref=''
-else
-   pref=\${idx}_
-fi
-
-cd  \$DDIR/${CONFIG_CASE}-DIMGPROC.$ext
-if [ ! -f build_nc_mpp ] ; then cp $P_UTL_DIR/bin/build_nc_mpp . ; fi
-if [ ! -f build_nc_mpp2 ] ; then cp $P_UTL_DIR/bin/build_nc_mpp2 . ; fi
-
-taglist=''
-for f in \$pref\${CONFIG}*_2D_*dimgproc ; do
-  tmp=\${f%.dimgproc} ; tag=\$( echo \$tmp | awk -F_ '{ print \$NF}' )
-  if [ ! -f \${pref}${CONFIG_CASE}_\${tag}_gridT.nc ] ; then
-  taglist="\$taglist \$tag"
-  fi
-done
-ntags=\$(echo \$taglist | wc -w )
-echo \$ntags time tags to process.
-
-runcode \$NPROC ./build_nc_mpp -namlist \${pref}namelistio \$taglist
-
-# patch for GJM88ubs 
-#for f in ${CONFIG}*.nc ; do
-#  modiftime $f
-#done
-
-save_nc \$CONFIG \$CONFIG_CASE \$taglist 
-eof
-
-  # copy the script to P_CTL_DIR from where it will be launched by submit
-  copy $1 $P_CTL_DIR
-             }
-# ---
-# function for recombining nc file for ensemble run : it creates a script to be launched by submit
-mkbuildncens() {
-mk_batch_hdr --name ${1%%.*} --par --cores $ENSEMBLE_SIZE --nodes 1 --wallclock 1:00:00  \
-             --account $ACCOUNT --cluster hpt  --queue $QUEUE > $1
-cat << eof >> $1
-
-if [ \$SLURM_NTASKS ] ; then NPROC=\$SLURM_NTASKS ; fi
-
-set -x
-. $RUNTOOLS/function_4_all.sh
-. $RUNTOOLS/function_4.sh
-srcbash
-CONFIG=$CONFIG
-CONFIG_CASE=${CONFIG_CASE}
-DDIR=\${DDIR:-\$CDIR}
-
-# if second argument present represent agrif nest number
-idx=${2-0}
-if [ \$idx = 0 ] ; then 
-   pref=''
-else
-   pref=\${idx}_
-fi
-
-cd  \$DDIR/${CONFIG_CASE}-DIMGPROC.$ext
-if [ ! -f build_nc_mpp  ] ; then cp $P_UTL_DIR/bin/build_nc_mpp  . ; fi
-if [ ! -f build_nc_mpp2 ] ; then cp $P_UTL_DIR/bin/build_nc_mpp2 . ; fi
-if [ ! -f build_nc      ] ; then cp $P_UTL_DIR/bin/build_nc      . ; fi
-cd $TMPDIR
-
-mpmd_arg=""
-for member in \$(seq  $ENSEMBLE_START $ENSEMBLE_END ) ; do
-   nnn=\$(getmember_extension \$member nodot)
-   mmm=.\$nnn
-   # create a script per member to be launched in parallel
-   # use @ as template for $
-   cat << eof1 > zbnce
-#!/bin/bash
-   set -x
-   . $RUNTOOLS/function_4_all.sh
-   . $RUNTOOLS/function_4.sh
-   cd $DDIR/${CONFIG_CASE}-DIMGPROC.$ext/\$nnn
-   ln -sf ../$CN_DOMCFG ./
-   cp ../namelistio .
-   cat namelistio | sed -e "s;${CONFIG_CASE};${CONFIG_CASE}\$mmm;g" > znamio
-   mv znamio namelistio
-   taglist=''
-   for f in @pref${CONFIG}*_2D_*dimgproc ; do
-       tmp=@{f%.dimgproc} ; tag=@( echo @tmp | awk -F_ '{ print @NF}' )
-       if [ ! -f @{pref}${CONFIG_CASE}\${mmm}_@{tag}_gridT.nc ] ; then
-          taglist="@taglist @tag"
-       fi
-   done
-   ../build_nc -namlist @{pref}namelistio @taglist
-eof1
-   cat zbnce | sed -e 's/@/\$/g' > ./$1\${mmm}.sh    # change @ into \$ and create script for current member
-   chmod 755 ./$1\${mmm}.sh                         # made it executabl  
-   mpmd_arg="\$mpmd_arg 1 ./$1\${mmm}.sh"           # prepare the command line for runcode function
-
-done # members
-   pwd
-   runcode_mpmd \$mpmd_arg
-eof
-
-  # copy the script to P_CTL_DIR from where it will be launched by submit
-  copy $1 $P_CTL_DIR
-             }
-# ---
-# function for recombining nc file : it creates a script to be launched by submit
-mkbuild_5d() {
-mk_batch_hdr --name ${1%%.*} --par --cores 32 --nodes 4 --wallclock 4:00:00  --account $ACCOUNT --cluster hpt  --queue $QUEUE > $1
-cat << eof >>  $1
-
-if [ \$SLURM_NTASKS ] ; then NPROC=\$SLURM_NTASKS ; fi
-
-set -x
-. $RUNTOOLS/function_4_all.sh
-. $RUNTOOLS/function_4.sh
-srcbash
-CONFIG=$CONFIG
-CONFIG_CASE=${CONFIG_CASE}
-DDIR=\${DDIR:-\$CDIR}
-
-cd  \$DDIR/${CONFIG_CASE}-DIMGPROC.$ext/5D
-cp $P_UTL_DIR/bin/build_nc_mpp .
-cp $DDIR/TMPDIR_${CONFCASE}/$CN_DOMCFG ./
-cp $DDIR/TMPDIR_${CONFCASE}/namelistio ./namtmp
-cat namtmp | sed 's/ln_mld=.false./ln_mld=.true./' > namelistio
-
-taglist=''
-for f in *_2D_*dimgproc ; do
-  tmp=\${f%.dimgproc} ; tag=\$( echo \$tmp | awk -F_ '{ print \$3}' )
-  if [ ! -f ${CONFIG_CASE}_\${tag}_gridT.nc ] ; then
-  taglist="\$taglist \$tag"
-  fi
-done
-#echo \$taglist
-ntags=\$(echo \$taglist | wc -w )
-echo \$ntags time tags to process.
-runcode \$NPROC ./build_nc_mpp \$taglist
-
-save_nc \$CONFIG \$CONFIG_CASE \$taglist 
-eof
-
-  # copy the script to P_CTL_DIR from where it will be launched by submit
-  copy $1 $P_CTL_DIR
-             }
-# ---
-
-# function for recombining nc file : it creates a script to be launched by submit
-mkbuildnc_daily() {
-mk_batch_hdr --name ${1%%.*} --par --cores 5 --nodes 1 --wallclock 1:00:00  --account $ACCOUNT --cluster hpt  --queue $QUEUE > $1
-cat << eof >> $1
-
-if [ \$SLURM_NTASKS ] ; then NPROC=\$SLURM_NTASKS ; fi
-
-set -x
-. $RUNTOOLS/function_4_all.sh
-. $RUNTOOLS/function_4.sh
-srcbash
-DDIR=\${DDIR:-\$CDIR}
-cd  \$DDIR/${CONFIG_CASE}-DIMGPROC.$ext/DAILY
-cp $P_UTL_DIR/bin/build_nc_mpp_daily .
-
-taglist=''
-tmp=\$( ls -1 | grep Tdaily | tail -1 )
-lastdom=\${tmp##*.}
-for f in *Tdaily*.\$lastdom ; do
-  tmp=\${f%.dimgproc.\$lastdom} ; tag=\$( echo \$tmp | awk -F_ '{ print \$3}' )
-  if [ ! -f ${CONFIG_CASE}ker_\${tag}_gridT.nc ] ; then
-  taglist="\$taglist \$tag"
-  fi
-done
-
-echo \$taglist
-runcode \$NPROC ./build_nc_mpp_daily \$taglist
-eof
-
-  # copy the script to P_CTL_DIR from where it will be launched by submit
-  copy $1 $P_CTL_DIR
-             }
-#--
-
-mkbuild_ssf()      {
-mk_batch_hdr --name ${1%%.*} --par --cores 8--nodes 1 --wallclock 1:00:00  --account $ACCOUNT --cluster hpt  --queue $QUEUE > $1
-cat << eof >> $1
-set -x
-. $RUNTOOLS/function_4_all.sh
-. $RUNTOOLS/function_4.sh
-srcbash
-
-CONFIG=$CONFIG
-CASE=$CASE
-CONFCASE=${CONFIG}-${CASE}
-DDIR=\${DDIR:-\$CDIR}
-
-job=$ext
-
-
-cd $DDIR/${CONFCASE}-DIMGPROC.\$job/SSF
-cp $P_UTL_DIR/bin/build_nc_mpp ./
-cp $P_UTL_DIR/bin/build_nc_mpp2 ./
-cp $P_UTL_DIR/bin/build_nc ./
-cp $DDIR/TMPDIR_${CONFCASE}/$CN_DOMCFG ./
-
-liste=''
-for f in *_SSF_*.dimgproc ; do
-   tag=\$( echo \${f%.dimgproc} | awk -F_ '{print \$NF}' )
-   liste="\$liste \$tag"
-done
-
-cat << eof2 > namelist_ssf
-&namexper
- CEXPER = '$CONFCASE'
- ln_dimgnnn=.false.
- ! rdtwr =  1.
-/
- &namchoice
- ln_ssf=.true.
-/
-eof2
-
-runcode \$NPROC ./build_nc_mpp2 -namlist namelist_ssf  \$liste
-eof
-
-  # copy the script to P_CTL_DIR from where it will be launched by submit
-  copy $1 $P_CTL_DIR
-                   }
-
 mkbuild_mesh_mask() { 
 mk_batch_hdr --name ${1%%.*} --seq --cores 1 --nodes 1 --wallclock 1:00:00  --account $ACCOUNT --cluster hpt  --queue $QUEUE > $1
 cat << eof >> $1
@@ -1504,8 +1122,8 @@ set -x
  . ./includefile.sh
 DDIR=\${DDIR:-\$CDIR}
 cd \$DDIR/TMPDIR_${CONFIG_CASE}
-. $RUNTOOLS/function_4.sh
-. $RUNTOOLS/function_4_all.sh
+. $RUNTOOLS/lib/function_4.sh
+. $RUNTOOLS/lib/function_4_all.sh
 srcbash
 
 # if second argument present represent agrif nest number
@@ -1572,8 +1190,8 @@ cd $DDIR/\${CONFIG_CASE}-XIOS.$ext
 ln -sf $P_UTL_DIR/bin/rebuild_nemo .
 ln -sf $P_UTL_DIR/bin/rebuild_nemo.exe .
 
-. $RUNTOOLS/function_4_all.sh
-. $RUNTOOLS/function_4.sh
+. $RUNTOOLS/lib/function_4_all.sh
+. $RUNTOOLS/lib/function_4.sh
 
 
 for freq in 1ts 1h 1d 5d ; do
@@ -1617,8 +1235,8 @@ CONFIG=$CONFIG
 CONFIG_CASE=${CONFIG_CASE}
 DDIR=\${DDIR:-\$CDIR}
 
-. $RUNTOOLS/function_4.sh
-. $RUNTOOLS/function_4_all.sh
+. $RUNTOOLS/lib/function_4.sh
+. $RUNTOOLS/lib/function_4_all.sh
 
 cd $TMPDIR
 mpmd_arg=""
@@ -1668,49 +1286,14 @@ eof
 
 # Prepare a script for merging files (using mergeproc- off-line).
 # this script is valid for both ensemble and non ensemble run
-  mkbuild_merge_obsolete() {
-  mk_batch_hdr --name ${1%%.*} --cores $NB_NPROC_MER --wallclock 3:00:00  \
-             --account $ACCOUNT --cluster hpt  --adapp --queue $QUEUE \
-             --nodes $NB_NNODE_MER --constraint=BDW28 --option '--exclusive' > $1
-       echo "  *** building merging script "
-       cat  << eof >> $1
-      . $RUNTOOLS/function_4.sh
-      . $RUNTOOLS/function_4_all.sh
-         DDIR=${DDIR:-$CDIR}
-         zXIOS=$DDIR/${CONFIG_CASE}-XIOS.$ext
-         WKDIR=\$zXIOS/WRK.$$
-         mkdir -p \$WKDIR
-         cd \$WKDIR
-         mergeprog=$(basename $MERGE_EXEC )
-         # link all files in all member in a single dir
-         for member in \$(seq  $ENSEMBLE_START $ENSEMBLE_END ) ; do
-            nnn=\$(getmember_extension \$member nodot)
-            ln -sf \$zXIOS/\$nnn/${CONFIG_CASE}*.nc ./
-         done
-         ln -sf  \$zXIOS/$CN_DOMCFG ./
-         ln -sf $MERGE_EXEC ./
-         getlst0000 24000
-         idxmax=\$(( \${#lst0000[@]} - 1 )) #  index max in the list, starting from 0
-
-         for idx in \$( seq 0 \$idxmax ) ; do
-             runcode_u $NB_NPROC_MER ./\$mergeprog -f \${lst0000[\$idx]} -c $CN_DOMCFG -r
-         done
-         \rm *.nc  # in WKDIR
-eof
-  copy $1 $P_CTL_DIR
-            }
-# ---
-
-# Prepare a script for merging files (using mergeproc- off-line).
-# this script is valid for both ensemble and non ensemble run
   mkbuild_merge() {
   mk_batch_hdr --name ${1%%.*} --cores $NB_NPROC_MER --wallclock $WALL_CLK_MER \
              --account $ACCOUNT --cluster hpt  --adapp --queue $QUEUE \
              --nodes $NB_NNODE_MER --constraint=$CONSTRAI_MER --option '--exclusive' > $1
        echo "  *** building merging script "
        cat  << eof >> $1
-      . $RUNTOOLS/function_4.sh
-      . $RUNTOOLS/function_4_all.sh
+      . $RUNTOOLS/lib/function_4.sh
+      . $RUNTOOLS/lib/function_4_all.sh
          DDIR=${DDIR:-$CDIR}
          zXIOS=$DDIR/${CONFIG_CASE}-XIOS.$ext
          mergeprog=$(basename $MERGE_EXEC )
@@ -1750,29 +1333,7 @@ mergefiles()  {
          cd $TMPDIR  # for the remnant of the script
               }
 # ---
-# Merge splitted netcdf files (produced by XIOS or standard NEMO output, on the fly
-#  (idem as mergfile but for ensemble runs )
-mergefiles_ens_orig()  {
-         DDIR=${DDIR:-$CDIR}
-         mergeprog=$(basename $MERGE_EXEC )
-         for member in $(seq  $ENSEMBLE_START $ENSEMBLE_END ) ; do
-            nnn=$(getmember_extension $member nodot)
-            mmm=.$nnn
-            cd $DDIR/${CONFIG_CASE}-XIOS.$ext/$nnn
-            ln -sf $MERGE_EXEC ./
-            ln -sf ../$CN_DOMCFG ./
-            echo -n "   MEMBER ", $member " : " ; date
-            getlst0000 24000
-            idxmax=$(( ${#lst0000[@]} - 1 )) #  index max in the list, starting from 0
-            for idx in $( seq 0 $idxmax ) ; do 
-               runcode_u $NB_NPROC_MER ./$mergeprog -f ${lst0000[$idx]} -c $CN_DOMCFG -r 
-            done
-         done
 
-         cd $TMPDIR  # for the remnant of the script
-              }
-
-# ---
 # Merge splitted netcdf files (produced by XIOS or standard NEMO output, on the fly
 #  (idem as mergfile but for ensemble runs )
 mergefiles_ens()  {
@@ -1806,7 +1367,7 @@ mk_post_process()  {
 #!/bin/bash
 # automatically created post_processing script from
 # function mk_post_process in function_4_all.sh
-          . $RUNTOOLS/function_4_all.sh
+          . $RUNTOOLS/lib/function_4_all.sh
           CONFIG=$CONFIG
           DDIR=$DDIR
           CONFIG_CASE=$CONFIG_CASE
