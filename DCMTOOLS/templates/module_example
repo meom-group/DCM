@@ -44,10 +44,11 @@ setenv          REFDIR2         ${alter_path}/NEMOREF/NEMO4
 setenv          CUSDIR2         ${alter_path}/DRAKKAR/NEMO4
 
 # RUNTOOLS is the associated RUNTOOL for this DCM version
-setenv          RUNTOOLS        $::env(DEVGIT)/DCM_$version/RUNTOOLS
+set             runtool_path    $::env(DEVGIT)/DCM_$version/RUNTOOLS
+setenv          RUNTOOLS        ${runtool_path}
 
 prepend-path    PATH            ${base_path}/bin
-prepend-path    PATH            $::env(DEVGIT)/DCM_$version/RUNTOOLS/bin
+prepend-path    PATH            ${runtool_path}/toolkit
 
 #
 if {[module-info mode load]==1} {
