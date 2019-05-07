@@ -1,4 +1,5 @@
 #!/bin/bash
+# class = @File management tools@
 
 usage() {
    echo
