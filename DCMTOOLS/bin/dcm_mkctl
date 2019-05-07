@@ -1,32 +1,52 @@
 #!/bin/bash
-#
-#  mkclt script :
+#  dcm_mkctl script :
 #  This script is used to create populate the CTL dir on production machine
 #
-#  It retrieves CONFIG and CASE from the actual directory (CTL) and copy/edit script in RUNTOOLS/TEMPLATE/
+#  It retrieves CONFIG and CASE from the actual directory (CTL) and copy/edit script in RUNTOOLS/templates
 #    - run_nemo_<machine>.ksh
 #    - CONFCASE_<machine>.ksh
 #    - includefile.ksh
+# class = @Preparation tools@
 
 usage() {
-            echo 'usage : dcm_mkctl [-n] [-m machine ] -c CONFIG-CASE'
-            echo '  or  : dcm_mkctl [-n] [-m machine ] -a'
-            echo '        with -a CONFIG and CASE are taken from the actual directory'
-            echo '        in this latter case, the command must be issued from CTL dir'
-            echo '  or  : mkctl -h  : print this help message and exit.'
-            echo '  when -n option is used, no action is done but command are shown'
-            echo '  [-m machine ] default machine is occigen '
-            echo '      Available :  ada irene occigen '
-            exit 1   
+   echo
+   echo "USAGE : $(basename $0) [-h] [-n] [-m machine ] -c CONFIG-CASE"
+   echo "  or  : $(basename $0) [-h] [-n] [-m machine ] -a"
+   echo
+   echo "  PURPOSE: "
+   echo "     Populate an empty CTL directory with all required files (templates)"
+   echo "     All the template files MUST be edited to fit your <CONFIG>-<CASE> "
+   echo "     This script does nothing if the targer CTL dir is not empty!."
+   echo
+   echo "  ARGUMENTS:"
+   echo "     One of :"
+   echo "     -c CONFIG-CASE : create and populate a CTL directory."
+   echo "     -a : infer CONFIG-CASE from the local dir, assuming that you already"
+   echo "         are in a CTL directory."
+   echo
+   echo "  OPTIONS:"
+   echo "    -h : print this help message and exit."
+   echo "    -n : execute a dry run to see whqt will be done "
+   echo "    -m : specify a supported machine for installing CTL"
+   echo "         Supported machines are : occigen, ada, irene"
+   echo "         Default is occigen."
+   echo
+   exit 0   
         }
 
-     
+# Defaults values
 CONFCASE=''
 cmd=''
 INCLUDEFILE=includefile_4.sh
 machine=occigen
 ver=4
 dryrun=''
+
+if [ $# = 0 ] ; then 
+   usage
+fi
+
+# command parser
 while getopts :hnam:c: opt ; do
    case $opt in 
      (h) usage ;;
@@ -43,7 +63,6 @@ while getopts :hnam:c: opt ; do
      (*) ;;
     esac
 done
-shift $(($OPTIND-1))
 
 if [ ! $CONFCASE ] ; then usage ; fi 
 
@@ -55,16 +74,15 @@ echo CASE   = $CASE
 
 INCLUDEFILE=includefile_4.sh
 
-
 if [ ! $PDIR ] ; then
   echo PDIR environement not set. 
-  exit
+  exit 1
 fi
 
 if [ ! $RUNTOOLS ] ; then
   echo RUNTOOLS environement not set. 
   echo "    It is normaly done when you load the DCM module"
-  exit
+  exit 2
 fi
 
 
@@ -77,7 +95,7 @@ nfile=$( ls | wc -l )
 if [ $nfile != 0 ] ; then
    echo dcm_mkctl can be used only for EMPTY CTL directories !
    usage
-   exit !
+   exit 3
 fi
 cd -
 
@@ -102,14 +120,36 @@ for f in CONFCASE_${machine}.sh $INCLUDEFILE run_nemo.sh ; do
 done
 cd $CTLDIR
 
+# cleaning in CTL, create template .db
   $cmd mv includefile_4.sh includefile.sh  
   $cmd cat << eof > ${CONFIG}-${CASE}.db
 1 1 100
 eof
 
-echo runtools script have been copied to $CTLDIR
+mkdir -p NAMELIST XML
+
+cd $HOMEDCM/DRAKKAR/NEMO4/cfgs/CONFIG-CASE/EXPREF
+
+for f in namelist_* ; do
+   cat $f | sed -e "s/<CONFCASE>/${CONFIG}-${CASE}/g " > $CTLDIR/NAMELIST/${f%_ref}.${CONFIG}-${CASE}
+done
+
+for f in *.xml ; do
+   cat $f | sed -e "s/<CASE>/$CASE/g" -e "s/<CONFIG>/$CONFIG/g" > $CTLDIR/XML/$f
+done
+
+
+echo Run time files have been copied to $CTLDIR
+echo namelist and xml file are copied in NAMELIST and XML sub-directories, respectively.
 echo Please edit and check carefully the following scripts :
 echo "        - ${CONFIG}-${CASE}_${machine}.sh"
 echo "        - includefile.sh"
 echo "        - run_nemo.sh"
 echo "        - ${CONFIG}-${CASE}.db"
+echo
+echo " namelist can be taken from NAMELIST (do it manually). "
+echo "   It is very important to double check the values given to parameters in the namelists !"
+echo ""
+echo " xml files can be taken from XML. You need to adjust them to your needs."
+echo "   Basically, the customization is to be done in context_nemo.xml and file_def_nemo-xxx.xml " 
+echo 
