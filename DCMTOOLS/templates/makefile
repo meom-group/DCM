@@ -344,11 +344,17 @@ ifeq ($(REFONLY),'yes')
 	@cd $(PDIR)/RUN_$(CONFIG)/$(CONFIG)-$(CASE)/CTL/XML ; cp $(HOMEDCM)/NEMOREF/NEMO4/cfgs/SHARED/*xml ./
 	@cd $(PDIR)/RUN_$(CONFIG)/$(CONFIG)-$(CASE)/CTL/NAMELIST ; cp $(HOMEDCM)/NEMOREF/NEMO4/cfgs/SHARED/namelist* ./
 else
-	@cd $(PDIR)/RUN_$(CONFIG)/$(CONFIG)-$(CASE)/CTL/XML ; cp $(HOMEDCM)/NEMOREF/NEMO4/cfgs/SHARED/*xml ./
-	@cd $(PDIR)/RUN_$(CONFIG)/$(CONFIG)-$(CASE)/CTL/XML ; cp $(HOMEDCM)/DRAKKAR/NEMO4/cfgs/SHARED/*xml ./
+	@cd $(PDIR)/RUN_$(CONFIG)/$(CONFIG)-$(CASE)/CTL/XML ; cp $(HOMEDCM)/NEMOREF/NEMO4/cfgs/SHARED/*.xml ./
+	@cd $(PDIR)/RUN_$(CONFIG)/$(CONFIG)-$(CASE)/CTL/XML ; cp $(HOMEDCM)/DRAKKAR/NEMO4/cfgs/CONFIG-CASE/EXPREF/*.xml ./
 	@cd $(PDIR)/RUN_$(CONFIG)/$(CONFIG)-$(CASE)/CTL/NAMELIST ; cp $(HOMEDCM)/NEMOREF/NEMO4/cfgs/SHARED/namelist* ./
-	@cd $(PDIR)/RUN_$(CONFIG)/$(CONFIG)-$(CASE)/CTL/NAMELIST ; cp $(HOMEDCM)/DRAKKAR/NEMO4/cfgs/SHARED/namelist* ./
-	@cd $(PDIR)/RUN_$(CONFIG)/$(CONFIG)-$(CASE)/CTL/NAMELIST ; sed -e "s/<CONFCASE>/$(CONFIG)-$(CASE)/"  namelist_ref > ztmp ; mv ztmp namelist_ref
+	@cd $(PDIR)/RUN_$(CONFIG)/$(CONFIG)-$(CASE)/CTL/NAMELIST ; cp $(HOMEDCM)/DRAKKAR/NEMO4/cfgs/CONFIG-CASE/EXPREF/namelist* ./
+	@cd $(PDIR)/RUN_$(CONFIG)/$(CONFIG)-$(CASE)/CTL/NAMELIST ; \
+           sed -e "s/<CONFCASE>/$(CONFIG)-$(CASE)/"  namelist_ref > ztmp ; \
+           mv ztmp namelist.$(CONFIG)-$(CASE)
+	@-cd $(PDIR)/RUN_$(CONFIG)/$(CONFIG)-$(CASE)/CTL/NAMELIST ; \
+           sed -e "s/<CONFCASE>/$(CONFIG)-$(CASE)/"  namelist_ice_ref > ztmp ; \
+           mv ztmp namelist_ice.$(CONFIG)-$(CASE)
+	@cd $(PDIR)/RUN_$(CONFIG)/$(CONFIG)-$(CASE)/CTL/NAMELIST ; rm -f namelist*_ref 
 endif
 
 cleansvn:
