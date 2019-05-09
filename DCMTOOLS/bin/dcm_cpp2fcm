@@ -1,5 +1,10 @@
 #!/bin/bash
-# This script transform a cppkey list in an ascii file to a cpp.fcm compliant string
+# dcm_cpp2fcm : 
+# This script transform a cppkey list in an ascii file to a cpp.fcm compliant string.
+# Internaly used in makefile
+# class = @DCM core functions@
+
+
 if [ ! -f CPP.keys ] ; then 
   echo "Missing CPP.keys in this config"
   exit
