@@ -155,7 +155,7 @@ echo '--------------------------------------------------'
 echo " [2.1]  ocean namelist"
 echo " ====================="
 
-## exchange wildcards with the correc info from db
+## exchange <wildcards>  with the correct info from db
 no=`tail -1 $CONFIG_CASE.db | awk '{print $1}' `
 nit000=`tail -1 $CONFIG_CASE.db | awk '{print $2}' `
 nitend=`tail -1 $CONFIG_CASE.db | awk '{print $3}' `
