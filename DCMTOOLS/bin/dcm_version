@@ -1,5 +1,25 @@
 #!/bin/bash
+# dcm_version
+# Display the actual version of DCM as pointed by $HOMEDCM
+# display some revision information about this version
+# class = @DCM settings@
 
+usage() {
+   echo
+   echo "USAGE : $(basename $0) [-h] "
+   echo
+   echo "  PURPOSE: "
+   echo "     Display the actual version of DCM as pointed by \$HOMEDCM"
+   echo "     Display additional revision information on the DCM components."
+   echo
+   echo "  ARGUMENTS:"
+   echo "     none "
+   echo
+   echo "  OPTIONS:"
+   echo "    -h : print this help message and exit."
+   echo
+   exit 0
+        }
 # function for text color
 set_color() {
 r="\033[31m"  # red
@@ -14,6 +34,15 @@ ita="\033[3m"
 und="\033[4m"
 str="\033[9m"
             }
+# command parser
+while getopts :h opt ; do
+   case $opt in
+     (h) usage ;;
+     (*) usage ;;
+    esac
+done
+
+
 export LANG=C  # for svn message to be parsed correctly
 set_color
 echo "========================================================="

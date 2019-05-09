@@ -1,0 +1,80 @@
+#!/bin/bash
+# Automatically produce the dcm manual from the usage message of each dcm tools
+# The result is on a markdown file.
+# class = @Miscellaneous tools@
+
+usage()  {
+   echo
+   echo "USAGE: $(basename $0) [-h] -o OUT-md_file "
+   echo
+   echo "   PURPOSE:"
+   echo "      Scan the dcm_* scripts and sort them regarding the class it belongs to."
+   echo "      Then output the usage message and build a md file."
+   echo "      Note that the produced md_file is intended to be read from the DCM's doc dir."
+   echo 
+   echo "   ARGUMENTS:"
+   echo "      -o OUT-md_file: Specify the output markdown file."
+   echo
+   echo "   OPTIONS:"
+   echo "      -h : Display this help message."
+   echo
+   exit 0
+          }
+
+mdfile='none'
+while getopts :ho: opt ; do
+   case $opt in
+     (h) usage ;;
+     (o) mdfile=${OPTARG} ;;
+     (*) usage ;;
+   esac
+done
+
+if [ $mdfile = 'none' ] ; then
+   usage
+fi
+
+cd $HOMEDCM/bin/
+# look for classes
+oIFS=$IFS ; IFS=$'\n'
+IFS=','
+classes=( $(grep class dcm_* | grep '@' | grep -v '~' | grep -v grep | sort -k4,4 -k1,1 | awk -F@ '{printf "%s,\n", $2  }' | sort -u) )
+IFS=$'\n'
+
+nclass=${#classes[@]}
+rm -f $mdfile
+# write header and Forewords
+
+cat << eof > $mdfile
+# DCM tools for code management.
+## Forewords
+  As part of the DCM, a series of small bash scripts were written in order to help the code management
+and to facilitate the user experience with DCM. This manual is automatically edited from the \`USAGE\` 
+messages that any dcm tool provides when using \`-h\` option. It is the results of \`dcm_mk_doc\` tool. 
+In order to make this manual more readable, an intent of classification by categories is done.
+
+ All scripts belonging to DCM tools have a name starting with \`dcm_\` which makes then easy to find when 
+the automatic completion is used. They are located in the \`$HOMEDCM/bin\` directory.
+
+eof
+
+for i in $(seq 0 $(( nclass -2 )) ) ; do
+   IFS=$'\n'
+   echo  "##" ${classes[$i]} >> $mdfile
+#  IFS=','
+   cmd="grep -e '$( echo ${classes[$i]} )' dcm_*"
+   tools=$(eval $cmd | awk -F: '{print $1}' )
+   for tool in $tools ; do
+     echo "### ["$tool"](../bin/"$tool")" >> $mdfile
+     echo '  ```' >> $mdfile
+     if [ ${tool#*.} = 'py' ] ; then
+        python ./$tool -h >> $mdfile
+     else
+       ./$tool -h >> $mdfile
+     fi
+     echo '  ```' >> $mdfile
+
+   done
+done
+
+   

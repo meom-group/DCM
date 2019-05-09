@@ -1,20 +1,38 @@
 #!/bin/bash
-# $Rev: 413 $ 
-# $Id: chcase 413 2010-12-14 09:22:10Z forge $ 
-# $Date: 2010-12-14 10:22:10 +0100 (Tue, 14 Dec 2010) $
-# 
+# dcm_chcase :
 # A usefull tool to change the CASE of a pre-existing configuration, especially
 # in CTL directories.  See also chconfig to change the CONFIG part of the name
+# class = @Preparation tools@
 
 usage() {
-   echo "USAGE : chcase oldcase newcase"
-   echo " "
-   echo "PURPOSE :  A usefull tool to change the CASE of a pre-existing "
-   echo "           configuration, especially in CTL directories.  "
-   echo "           See also chconfig to change the CONFIG part of the name."
+   echo
+   echo "USAGE : $(basename $0) [-h] <OLD-case> <NEW-cas>"
+   echo
+   echo "  PURPOSE: "
+   echo "     A usefull tool to change the CASE of a pre-existing "
+   echo "     configuration, especially in CTL directories.  "
+   echo "     See also chconfig to change the CONFIG part of the name."
+   echo "     These tools are  used internally by dcm_clone_ctl."
+   echo
+   echo "  ARGUMENTS:"
+   echo "    <OLD-case> : case name  to be changed" 
+   echo "    <NEW-case> : name of the actual target case"
+   echo
+   echo "  OPTIONS:"
+   echo "    -h : print this help message and exit."
+   echo
    exit 0
         }
 
+# command parser
+while getopts :h opt ; do
+   case $opt in
+     (h) usage ;;
+     (*) ;;
+    esac
+done
+
+shift $(($OPTIND-1)) 
 if [ $# != 2 ] ; then usage ; fi
 
  old=$1

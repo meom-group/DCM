@@ -1,17 +1,31 @@
 #!/bin/bash
 #  dcm_clone_ctl script :
 #  This script is used to clone an existing CTL into the local one
-#
+# class = @Preparation tools@
+
+
 usage() {
-            echo 'usage : dcm_clone_clt [-h]  -c from_CONFIG-CASE'
-            echo '   This script must be launch from the new empty CTL. It will'
-            echo ' copy the relevant files from 'from_CONFIG-CASE' to this directory.'
-            echo ' CONFIG and CASE will be changed to the new config.'
-            echo '  After this cloning, it is your responsability to edit the files'
-            echo 'in order to fit your needs !'
-            exit 1   
+   echo
+   echo "USAGE : $(basename $0) [-h]  -c CONFIG-CASE"
+   echo
+   echo "  PURPOSE: "
+   echo "      Clone an existing CTL directory from a previous config into the current"
+   echo "     directory. This command must be issued from an empty CTL directory."
+   echo
+   echo "      After this cloning it is your reponsability to edit the files in order"
+   echo "     to fit your needs!"
+   echo
+   echo "  ARGUMENTS:"
+   echo "     -c CONFIG-CASE : Reference configuration to clone from."
+   echo
+   echo "  OPTIONS:"
+   echo "    -h : print this help message and exit."
+   echo
+   exit 0
         }
+
 CONFCASE=''
+
 while getopts :hc: opt ; do
    case $opt in 
      (h) usage ;;
@@ -41,7 +55,7 @@ fi
 nfile=$( ls | wc -l)
 if [ $nfile != 0 ] ; then
    echo you MUST run this script in an empty CTL directory !
-   exit 1
+   exit 2
 fi
 tmp=$(pwd)
 NEWCONFCASE=$(basename $(dirname $tmp) )
@@ -59,10 +73,3 @@ if [ $NEWCONFIG != $CONFIG ] ; then
 fi
 
   dcm_chcase $CASE $NEWCASE
-
-
-
-
-
-
-

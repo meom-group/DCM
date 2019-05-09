@@ -43,9 +43,6 @@ machine=occigen
 ver=4
 dryrun=''
 
-if [ $# = 0 ] ; then 
-   usage
-fi
 
 # command parser
 while getopts :hnam:c: opt ; do
@@ -66,6 +63,7 @@ while getopts :hnam:c: opt ; do
 done
 
 if [ ! $CONFCASE ] ; then usage ; fi 
+
 
 CONFIG=${CONFCASE%-*}
 CASE=${CONFCASE#*-}
