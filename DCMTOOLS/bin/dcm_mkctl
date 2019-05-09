@@ -17,6 +17,7 @@ usage() {
    echo "     Populate an empty CTL directory with all required files (templates)"
    echo "     All the template files MUST be edited to fit your <CONFIG>-<CASE> "
    echo "     This script does nothing if the targer CTL dir is not empty!."
+   echo "     This scipt is used by make ctl in the CONFIG directory."
    echo
    echo "  ARGUMENTS:"
    echo "     One of :"
@@ -26,7 +27,7 @@ usage() {
    echo
    echo "  OPTIONS:"
    echo "    -h : print this help message and exit."
-   echo "    -n : execute a dry run to see whqt will be done "
+   echo "    -n : execute a dry run to see what will be done "
    echo "    -m : specify a supported machine for installing CTL"
    echo "         Supported machines are : occigen, ada, irene"
    echo "         Default is occigen."
@@ -126,17 +127,17 @@ cd $CTLDIR
 1 1 100
 eof
 
-mkdir -p NAMELIST XML
+#mkdir -p NAMELIST XML
 
-cd $HOMEDCM/DRAKKAR/NEMO4/cfgs/CONFIG-CASE/EXPREF
+#cd $HOMEDCM/DRAKKAR/NEMO4/cfgs/CONFIG-CASE/EXPREF
 
-for f in namelist_* ; do
-   cat $f | sed -e "s/<CONFCASE>/${CONFIG}-${CASE}/g " > $CTLDIR/NAMELIST/${f%_ref}.${CONFIG}-${CASE}
-done
+#for f in namelist_* ; do
+#   cat $f | sed -e "s/<CONFCASE>/${CONFIG}-${CASE}/g " > $CTLDIR/NAMELIST/${f%_ref}.${CONFIG}-${CASE}
+#done
 
-for f in *.xml ; do
-   cat $f | sed -e "s/<CASE>/$CASE/g" -e "s/<CONFIG>/$CONFIG/g" > $CTLDIR/XML/$f
-done
+#for f in *.xml ; do
+#   cat $f | sed -e "s/<CASE>/$CASE/g" -e "s/<CONFIG>/$CONFIG/g" > $CTLDIR/XML/$f
+#done
 
 
 echo Run time files have been copied to $CTLDIR
@@ -147,9 +148,9 @@ echo "        - includefile.sh"
 echo "        - run_nemo.sh"
 echo "        - ${CONFIG}-${CASE}.db"
 echo
-echo " namelist can be taken from NAMELIST (do it manually). "
-echo "   It is very important to double check the values given to parameters in the namelists !"
-echo ""
-echo " xml files can be taken from XML. You need to adjust them to your needs."
-echo "   Basically, the customization is to be done in context_nemo.xml and file_def_nemo-xxx.xml " 
+#echo " namelist can be taken from NAMELIST (do it manually). "
+#echo "   It is very important to double check the values given to parameters in the namelists !"
+#echo ""
+#echo " xml files can be taken from XML. You need to adjust them to your needs."
+#echo "   Basically, the customization is to be done in context_nemo.xml and file_def_nemo-xxx.xml " 
 echo 
