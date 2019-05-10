@@ -1,43 +1,39 @@
 #!/bin/bash
-#------------------------------------------------------------------------------
-# $Id$
-#------------------------------------------------------------------------------
-
+# dcm_cmpfile
 # This script launch xdiff (or equivalent) between the local file and the corresponding
 # file in the $REFDIR (ie NEMOREF) tree
+# class = @Code maintenance@
 
 usage() {
-    echo "USAGE : $(basename $0 ) [-t] [-d] [-x <XDIFF_tool> ] [-h] local_file "
+    echo '      '
+    echo "USAGE : $(basename $0 ) [-t] [-d] [-x <XDIFF_tool>] [-h] LOCAL-file "
     echo '        one must be in CASE directory '
     echo '      '
-    echo "PURPOSE : This script launch meld (or equivalent) between "
-    echo "          the local file and the corresponding file in the reference NEMO "
-    echo "          $REFDIR tree." 
-    echo "          Using -d option allow the comparison with the DRAKKAR"
-    echo "          version  in $CUSDIR"
+    echo "  PURPOSE : This script launch meld (or equivalent) between "
+    echo "     the local file and the corresponding file in the reference NEMO "
+    echo "     \$REFDIR tree." 
+    echo "     Using -d option allow the comparison with the DRAKKAR version  in \$CUSDIR"
+    echo 
+    echo "  ARGUMENTS :"
+    echo "     LOCAL-file: name of the local file (in the current CASE directory to be "
+    echo "                 compared with the NEMOREF(default) or DRAKKAR (-d option) version."
     echo '      '
-    echo "OPTION : "
+    echo "  OPTIONS : "
     echo '        [-t ] : use  diff instead of meld (usefull if no Xterminal is'
     echo '              available ...'
-    echo '        [-x <XDIFF_tool> ] : Use XDIFF_tool instead of meld '
+    echo '        [-x <XDIFF_tool> ] : Use XDIFF_tool instead of meld'
     echo "        [-d ] : show differences with DRAKKAR instead of NEMOREF"
     echo '        [-h ] : This help message'
-
+    echo '      '
     exit 0
         }
 
+#set defaults
 WREFDIR=${REFDIR}
 XDIFF=meld
 
 if [ $# = 0 ] ; then usage ; fi
 
-# verify that you are in a CONFIG-CASE dir
-tmp=$( basename $(dirname $(pwd) ) )
-echo $tmp | grep -q -e 'CONFIG_'
-if [ $? != 0 ] ; then
-  echo You are not in a CONFIG-CASE directory ...
-  exit 1
-fi
 
 
 while getopts :hdtx: opt ; do
@@ -46,9 +42,17 @@ while getopts :hdtx: opt ; do
    (t)  noxdiff=1 ;;
    (x)  XDIFF=${OPTARG} ;;
    (d)  WREFDIR=${CUSDIR} ;;
-   (\?) echo $(basename $0 )" : -"$OPTARG" option not supported" ; usage ;;
+   (\?) echo $(basename $0 )" ERROR: -"$OPTARG" option not supported." ; usage ;;
   esac
 done
+
+# verify that you are in a CONFIG-CASE dir
+tmp=$( basename $(dirname $(pwd) ) )
+echo $tmp | grep -q -e 'CONFIG_'
+if [ $? != 0 ] ; then
+  echo " ERROR : You are not in a CONFIG-CASE directory."
+  exit 1
+fi
 
 echo WORKING WITH ${WREFDIR}/src
 
@@ -57,12 +61,12 @@ shift $(($OPTIND-1))
 file=$1
 
 if [ ! -f $file ] ; then
-   echo ERROR : $file  does not exist
+   echo " ERROR: $file  does not exist."
    exit 1
 fi
 
 if [ ! -L $file ] ; then
-   echo ERROR: $file is not a link to the NEMO tree
+   echo " ERROR: $file is not a link to the NEMO tree."
    exit 1
 fi
 
@@ -71,16 +75,16 @@ REF_FILE=${WREFDIR}/$SOURCE_FILE
 
 if [ $WREFDIR = $REFDIR ] ; then
 if [ -f ${CUSDIR}/$SOURCE_FILE ]  ; then
-   echo WARNING : this file is also in $CUSDIR
+   echo WARNING: this file is also in $CUSDIR
    echo ======================================
 fi
 fi
 
 if [ $WREFDIR = $CUSDIR ] ; then
 if [ ! -f ${CUSDIR}/$SOURCE_FILE ]  ; then
-   echo ERROR : this file is not in $CUSDIR
-   echo ======================================
-   echo " use dcm_cmpfile without -d option !"
+   echo "ERROR: this file is not in $CUSDIR."
+   echo "======================================"
+   echo "  --> consider using dcm_cmpfile without -d option."
    exit 1
 fi
 fi

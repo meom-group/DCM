@@ -1,4 +1,5 @@
 #!/bin/bash
+# class = @DCM core functions@
 echo " Available arch files :"
 echo " NEMOREF standard " 
 ls -l $HOMEDCM/NEMOREF/NEMO4/arch/*.fcm 2> /dev/null | awk '{ print $NF}'

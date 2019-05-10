@@ -2,7 +2,7 @@
 # dcm_version
 # Display the actual version of DCM as pointed by $HOMEDCM
 # display some revision information about this version
-# class = @DCM settings@
+# class = @DCM core functions@
 
 usage() {
    echo
