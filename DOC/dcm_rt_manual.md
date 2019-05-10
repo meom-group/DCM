@@ -177,6 +177,17 @@
   With this command you will populate the new empty CTL with a valid set of files identical to the ones for \<CONFIG\>-\<CASE\>, but the the correct names.  Then you need to adjust the namelists, and possibly the xml files. 
 > Note that if the CTL where you want to clone is not empty, no cloning will be done (in order to preserve possibly important settings!).
 
+## Setting up a scalability experiment.
+  It is always very usefull to perform a scalability experiment before running a long simulation, in order to optimize the computer ressources. It 
+is also required when you prepare a proposal to computing centers. 
+
+  With DCM, when using DRAKKAR modified code, we know the time (up to ms) when each step starts. This allow to easily draw a graph of the progression of the run (number of steps
+performed vs time). In general, if all works smoothly, this graph is almost a perfect straight line, which slope (in stp/min, for instance) is an indicator of the
+code performance.  On the other hand, this progression graph is also showing hardware problems very efficiently when they occur.  Due to the very linear shape of the progression graph,
+only a short experiment (says 100 steps) is able to tell us the performance of the code for a given domain decomposition, hence number of cores.  Note that when evalutating the slope (stp/mn) we disregard the first and last 10 steps which are slow due to one-time initialisation or to closing files. The slope is evaluated with linear regression (specifig dcmtk tool). 
+
+  In order to make it easy, a special procedure is proposed to set up a scalability experiment.
+
 ## Appendix
 ### REBUILD_MPP tool:
   In order to compile this rebuild tool (allowing parallel rebuild), the best way is  the following:
