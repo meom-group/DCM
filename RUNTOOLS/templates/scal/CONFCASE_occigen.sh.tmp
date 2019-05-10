@@ -1,0 +1,35 @@
+#!/bin/bash
+#SBATCH --nodes=<NODES>
+#SBATCH --ntasks=<NTASKS>
+#SBATCH --ntasks-per-node=<NCPN>
+#SBATCH --threads-per-core=1
+#SBATCH --constraint=<CONSTRAINT>
+#SBATCH -J nemo_occigen
+#SBATCH -e nemo_occigen_<JPNI>_<JPNJ>_<JPNIJ>.e%j
+#SBATCH -o nemo_occigen_<JPNI>_<JPNJ>_<JPNIJ>.o%j
+#SBATCH --time=0:35:00
+#SBATCH --exclusive
+
+set -x
+ulimit -s 
+ulimit -s unlimited
+export FORT_FMT_RECL=255
+
+. ./includefile.sh_<JPNI>_<JPNJ>_<JPNIJ>
+
+CTL_DIR=$PDIR/RUN_${CONFIG}/${CONFIG_CASE}/CTL
+
+# Following numbers must be consistant with the header of this job
+export NB_NPROC=$JPNIJ      # number of cores used for NEMO
+export NB_NPROC_IOS=$NXIOS  # number of cores used for xios (number of xios_server.exe)
+export NB_NCORE_DP=0        # activate depopulated core computation for XIOS. If not 0, RUN_DP is
+                            # the number of cores used by XIOS on each exclusive node.
+# no rebuild for scalability experiment
+
+date
+#
+
+. $RUNTOOLS/lib/function_4_all.sh
+. $RUNTOOLS/lib/function_4.sh
+#  you can eventually include function redefinitions here (for testing purpose, for instance).
+. $RUNTOOLS/lib/nemo4_scal.sh
