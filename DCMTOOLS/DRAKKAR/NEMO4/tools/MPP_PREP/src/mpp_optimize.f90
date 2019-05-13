@@ -35,7 +35,9 @@ PROGRAM mpp_optimize_jm
 
    IMPLICIT NONE
 
-   INTEGER, PARAMETER :: jpreci=1 ,jprecj=1   !: overlap between processors
+   INTEGER, PARAMETER :: nn_hls=1             !: overlap between processors
+   INTEGER            :: jperio               !: Periodic conditions read in domain_cfg file
+   INTEGER            :: irm, ijpjmin         !: northen most row of domain is smaller
 
    ! Namelist declaration and definition
    ! -----------------------------------
@@ -61,8 +63,7 @@ PROGRAM mpp_optimize_jm
    CHARACTER(LEN=80) :: cn_x='x'        !: X dimension name
    CHARACTER(LEN=80) :: cn_y='y'        !: Y dimension name
    CHARACTER(LEN=80) :: cn_fbathy       !: File name of the netcdf bathymetry (namelist)
-   LOGICAL           :: ln_zps=.FALSE.  !: Logical flag for partial cells.
-   NAMELIST /namfile/ cn_fbathy, cn_var, cn_x, cn_y,  ln_zps
+   NAMELIST /namfile/ cn_fbathy, cn_var, cn_x, cn_y
    !
    CHARACTER(LEN=80) :: cn_fovdta     !: root file name for keep output
    NAMELIST /namkeep/ cn_fovdta
@@ -256,11 +257,7 @@ PROGRAM mpp_optimize_jm
    !
    ! Read cdf bathy file
    IF ( cn_var == 'none' ) THEN  ! automatic detection of variable name according to partial step
-      IF ( ln_zps ) THEN           ! partial steps
-         cn_var = 'Bathymetry'
-      ELSE 
-         cn_var = 'Bathy_level'    ! full steps
-      ENDIF
+       cn_var = 'bottom_level'
    ENDIF
    PRINT *,''
    PRINT *,' ocean/land file used is: ', TRIM(cn_fbathy)
@@ -270,6 +267,12 @@ PROGRAM mpp_optimize_jm
 
    istatus = NF90_INQ_VARID (ncid, cn_var, id)
    istatus = NF90_GET_VAR   (ncid, id,   bathy)
+   istatus = NF90_INQ_VARID (ncid, 'jperio', id) 
+   IF ( istatus /= NF90_NOERR) THEN
+     PRINT *, " ERROR:  variable jperio not in ",TRIM(cn_fbathy)
+     STOP 45
+   ENDIF
+   istatus = NF90_GET_VAR   (ncid, id,   jperio)
    istatus = NF90_CLOSE     (ncid)
    !
    ! Building the mask ( eventually on a smaller domain than the bathy)
@@ -313,8 +316,8 @@ PROGRAM mpp_optimize_jm
             ! -----------------------------------
             !
             ! Partition : size of sub-domain 
-            ipi=(npiglo-2*jpreci + (jni-1))/jni + 2*jpreci
-            ipj=(npjglo-2*jprecj + (jnj-1))/jnj + 2*jprecj
+            ipi=(npiglo-2*nn_hls + (jni-1))/jni + 2*nn_hls
+            ipj=(npjglo-2*nn_hls + (jnj-1))/jnj + 2*nn_hls
             !
             ! Memory optimization ?
             IF ( ln_memchk ) THEN
@@ -326,17 +329,28 @@ PROGRAM mpp_optimize_jm
             !
             ! Position of each sub domain   (jni x jni in total )
             nimpp  = 1                             ; njmpp  = 1
-            ireci  = 2*jpreci                      ; irecj  = 2*jprecj
-            iresti = MOD ( npiglo - ireci , jni )  ; irestj = MOD ( npjglo - irecj , jnj )
+            ireci  = 2*nn_hls                      ; irecj  = 2*nn_hls
+            iresti = 1 + MOD ( npiglo - ireci -1 , jni )  ; irestj = 1 + MOD ( npjglo - irecj -1 , jnj )
             !
             ! 
-            IF (iresti == 0) iresti = jni
             nlcit(       1:iresti, 1:jnj) = ipi
             nlcit(iresti+1:jni   , 1:jnj) = ipi-1
 
-            IF (irestj == 0) irestj = jnj
-            nlcjt(1:jni,       1:irestj) = ipj
-            nlcjt(1:jni,irestj+1:jnj   ) = ipj-1
+            IF( jperio == 3 .OR. jperio == 4 .OR. jperio == 5 .OR. jperio == 6 ) THEN
+             ! minimize the size of the last row to compensate for the north pole folding coast
+               IF( jperio == 3 .OR. jperio == 4 )   ijpjmin = 5   ! V and F folding involves line jpj-3 that must not be south boundary
+               IF( jperio == 5 .OR. jperio == 6 )   ijpjmin = 4   ! V and F folding involves line jpj-2 that must not be south boundary
+               irm = jnj - irestj                                    ! total number of lines to be removed
+               nlcjt(:,            jnj) = MAX( ijpjmin, ipj-irm )   ! we must have jpj >= ijpjmin in the last row
+               irm = irm - ( ipj - nlcjt(1,jnj) )                   ! remaining number of lines to remove 
+               irestj = jnj - 1 - irm
+               nlcjt(1:jni,        1:irestj) = ipj
+               nlcjt(1:jni, irestj+1:jnj-1 ) = ipj-1
+            ELSE
+               ijpjmin = 3
+               nlcjt(1:jni,        1:irestj) = ipj
+               nlcjt(1:jni, irestj+1:jnj   ) = ipj-1
+            ENDIF
 
             nimppt(1:jni, 1:jnj) = nimpp
             njmppt(1:jni, 1:jnj) = njmpp
@@ -376,16 +390,16 @@ PROGRAM mpp_optimize_jm
 
                   isurf = 0
                   ! loop on inner point of sub-domain
-                  !             DO jj=1+jprecj, nlcjt(jni2,jnj2)-jprecj
-                  !                DO  ji=1+jpreci, nlcit(jni2,jnj2)-jpreci
+                  !             DO jj=1+nn_hls, nlcjt(jni2,jnj2)-nn_hls
+                  !                DO  ji=1+nn_hls, nlcit(jni2,jnj2)-nn_hls
                   !                   IF( tmask(ji+nimpp-1,jj+njmpp-1) == 1. ) isurf=isurf+1
                   !                END DO
                   !             END DO
 !                 isurf = SUM( INT(tmask(ii1:ii2, ij1:ij2) ) )
                   isurf = SUM( INT(tmask(nimpp:nimpp+nlci-1, njmpp:njmpp+nlcj-1) ) )
 
-                  ii1   = nimpp+jpreci      ; ii2 = nimpp+nlci-1 -jpreci
-                  ij1   = njmpp+jprecj      ; ij2 = njmpp+nlcj-1 -jprecj
+                  ii1   = nimpp+nn_hls      ; ii2 = nimpp+nlci-1 -nn_hls
+                  ij1   = njmpp+nn_hls      ; ij2 = njmpp+nlcj-1 -nn_hls
 
                   IF ( isurf == 0 ) THEN
                      nland = nland+1
