@@ -1,4 +1,4 @@
-PROGRAM mpp_optimize
+PROGRAM mpp_optimize_jm
    !!======================================================================
    !!                     ***  PROGRAM  mpp_optimize  ***
    !!=====================================================================
@@ -11,13 +11,14 @@ PROGRAM mpp_optimize
    !!               given and is probably a major criteria for choosing a 
    !!               domain decomposition.
    !!
-   !!  ** Method  : Use mpp_init2 like code for seting up the decomposition
+   !!  ** Method  : Use mpp_init like code for seting up the decomposition
    !!               and evaluate the efficiency of the decomposition.
    !! History
    !!       original  : 95-12 (Imbard M) for OPA8.1, CLIPPER
    !!       f90       : 03-06 (Molines JM), namelist as input
    !!                 : 05-05 (Molines JM), bathy in ncdf
    !!                 : 13-03 (Molines JM), Nemo-like coding and license.
+   !!                 : 18-10 (Mathiot  P), upgrade the NEMO 4.0
    !!----------------------------------------------------------------------
    !!----------------------------------------------------------------------
    !!   routines      : description
@@ -219,7 +220,7 @@ PROGRAM mpp_optimize
    READ(numnam,namkeep)  ! only used for -keep option but still ...
    CLOSE(numnam)
 
-   ! estimated  code size expressed in number of 3D arrays (valid for OPA8.1) to be tuned for OPA9.0/Nemo
+   ! estimated code size expressed in number of 3D arrays (valid for OPA8.1) to be tuned for OPA9.0/Nemo
    rppmpt = 55.+73./nn_jpk
 
    ! Open bathy file an allocate required memory
@@ -231,7 +232,7 @@ PROGRAM mpp_optimize
       npidta  = npiglo ; npjdta=npjglo
    ELSE
       PRINT *,' File missing : ', TRIM(cn_fbathy)
-      STOP
+      STOP 42
    ENDIF
 
    ALLOCATE (tmask(npiglo,npjglo), bathy(npidta,npjdta) )
@@ -261,6 +262,11 @@ PROGRAM mpp_optimize
          cn_var = 'Bathy_level'    ! full steps
       ENDIF
    ENDIF
+   PRINT *,''
+   PRINT *,' ocean/land file used is: ', TRIM(cn_fbathy)
+   PRINT *,' variable used to find ocean domain is: ', TRIM(cn_var)
+   PRINT *,' Dimensions (jpi x jpj) are: ',npiglo,'x',npjglo
+   PRINT *,''
 
    istatus = NF90_INQ_VARID (ncid, cn_var, id)
    istatus = NF90_GET_VAR   (ncid, id,   bathy)
@@ -296,10 +302,15 @@ PROGRAM mpp_optimize
    ENDIF
 
    ! loop on all decomposition a priori
+   PRINT *, 'Loop over all the decomposition (can take a while) ...'
+   PRINT *, ''
    DO jni=iminproci, imaxproci
       DO jnj=iminprocj, imaxprocj
          ! Limitation of the maxumun number of PE's
          IF ( jni*jnj <=  nn_procmax .AND. jni*jnj >= nn_procmin )  THEN
+            !
+            !  1. Dimension arrays for subdomains
+            ! -----------------------------------
             !
             ! Partition : size of sub-domain 
             ipi=(npiglo-2*jpreci + (jni-1))/jni + 2*jpreci
@@ -356,8 +367,8 @@ PROGRAM mpp_optimize
             inf30=0
             inf50=0
             !
-            DO jni2=1,jni
-               DO jnj2=1,jnj
+            DO jnj2=1,jnj
+              DO jni2=1,jni
                   nimpp = nimppt(jni2,jnj2)
                   njmpp = njmppt(jni2,jnj2)
                   nlci  = nlcit(jni2,jnj2)
@@ -370,9 +381,11 @@ PROGRAM mpp_optimize
                   !                   IF( tmask(ji+nimpp-1,jj+njmpp-1) == 1. ) isurf=isurf+1
                   !                END DO
                   !             END DO
+!                 isurf = SUM( INT(tmask(ii1:ii2, ij1:ij2) ) )
+                  isurf = SUM( INT(tmask(nimpp:nimpp+nlci-1, njmpp:njmpp+nlcj-1) ) )
+
                   ii1   = nimpp+jpreci      ; ii2 = nimpp+nlci-1 -jpreci
                   ij1   = njmpp+jprecj      ; ij2 = njmpp+nlcj-1 -jprecj
-                  isurf = SUM( INT(tmask(ii1:ii2, ij1:ij2) ) )
 
                   IF ( isurf == 0 ) THEN
                      nland = nland+1
@@ -521,4 +534,4 @@ PROGRAM mpp_optimize
    CLOSE(numout)
    !
    STOP
-END PROGRAM mpp_optimize
+END PROGRAM mpp_optimize_jm
