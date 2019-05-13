@@ -58,5 +58,5 @@ for n in $(seq $minproc $stpproc $maxproc)  ; do
    cat log_$nn |  sort -k8n | head -2 > ztmp ; mv ztmp log_$nn
 done
 
-python $RUNTOOLS/toolkit/dcmtk_scal_mkrunnemo.py  -n nemo_occigen_scal.sh -c 28 -x 5
+python $RUNTOOLS/toolkit/dcmtk_scal_mkrunnemo.py  -n run_nemo.scal.sh -c 28 -x 5
 
