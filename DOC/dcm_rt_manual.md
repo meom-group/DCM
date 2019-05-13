@@ -184,9 +184,17 @@ is also required when you prepare a proposal to computing centers.
   With DCM, when using DRAKKAR modified code, we know the time (up to ms) when each step starts. This allow to easily draw a graph of the progression of the run (number of steps
 performed vs time). In general, if all works smoothly, this graph is almost a perfect straight line, which slope (in stp/min, for instance) is an indicator of the
 code performance.  On the other hand, this progression graph is also showing hardware problems very efficiently when they occur.  Due to the very linear shape of the progression graph,
-only a short experiment (says 100 steps) is able to tell us the performance of the code for a given domain decomposition, hence number of cores.  Note that when evalutating the slope (stp/mn) we disregard the first and last 10 steps which are slow due to one-time initialisation or to closing files. The slope is evaluated with linear regression (specifig dcmtk tool). 
+only a short experiment (says 100 steps) is able to tell us the performance of the code for a given domain decomposition, hence number of cores.  Note that when evalutating the slope (stp/mn) we disregard the first and last 10 steps which are slow due to one-time initialisation or to closing files. The slope is evaluated with linear regression (specific dcmtk tool). 
 
   In order to make it easy, a special procedure is proposed to set up a scalability experiment.
+  * Create a new configuration 
+  * clone some differences for in the code (eliminating writing of restart files)
+  * code compilation
+  * Prepare the CTL directory
+  * Determine the domain decomposition you will test (using MPP_PREP tool)
+  * Prepare a meta script from the results of MPP_PREP
+  * run the metascript
+  * Analyse the results.
 
 ## Appendix
 ### REBUILD_MPP tool:
