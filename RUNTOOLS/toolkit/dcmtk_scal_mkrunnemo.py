@@ -13,6 +13,8 @@ import numpy as np
 import pandas as pd
 import glob
 import sys, getopt
+
+
 def usage(name):
    print ' '
    print 'USAGE: '+name+' -h  -n <script_name> -c  <cores>  -x <nxios_min>'
@@ -36,22 +38,29 @@ def usage(name):
    print '     -c <cores> : gives number of core per compute note. Default :',nc
    print '     -x <cores> : gives the minimum number of cores dedicated to'
    print '           xios_server.exe. Default : ',nxios_min
+   print '     -X <cores> : gives the maximum number of cores dedicated to'
+   print '           xios_server.exe. Default : ',nxios_max
    print ' '
    sys.exit()
 
 def set_default():
+   # set default
    global script
    global nc
    global nxios_min
-   # set default
+   global nxios_max
    script = './run_nemo_occigen_scal.sh'
    nc = 28
    nxios_min = 5
+   nxios_max = 10
 
 def parse(argv,name):
-
+   global script
+   global nc
+   global nxios_min
+   global nxios_max
    try:
-      opts, args = getopt.getopt(argv,"hn:c:x",["help","scal_script=","cores_per_node=","xios_min_cores="])
+      opts, args = getopt.getopt(argv,"hn:c:x:X:",["help","scal_script=","cores_per_node=","xios_min_cores=","xios_max_cores"])
    except getopt.GetoptError:
       usage(name)
    for opt, arg in opts:
@@ -60,9 +69,11 @@ def parse(argv,name):
       elif opt in ("-n", "--scal_script"):
          script = arg
       elif opt in ("-c", "--cores_per_node"):
-         nc = arg
+         nc = int(arg)
       elif opt in ("-x", "--xios_min_cores"):
-         nxios_min = arg
+         nxios_min = int(arg)
+      elif opt in ("-X", "--xios_max_cores"):
+         nxios_max = int(arg)
 
 def mkrun():
    # get current dir path
@@ -85,9 +96,12 @@ def mkrun():
           jpni.append(fl['jpni'][j])
           jpnj.append(fl['jpnj'][j])
           proc.append(fl['proc'][j])
+          print fl['proc'][j], nc, j 
           xi = int(fl['proc'][j]/nc + 1)*nc - fl['proc'][j]
           if ( xi < nxios_min ):
              xi = xi + nc          
+          if ( xi > nxios_max ):
+             xi = nxios_max
           xios.append(xi)
 
    # write into file
