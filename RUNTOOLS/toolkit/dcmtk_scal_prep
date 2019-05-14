@@ -5,7 +5,7 @@
 
 usage()  {
    echo
-   echo "USAGE : $(basename $0 ) [-h] [-l layout_file] [-h] [-m minproc] [-M maxproc] [-s proc_step]"
+   echo "USAGE : $(basename $0 ) [-h] [-l layout_file] [-m minproc] [-M maxproc] [-s proc_step]"
    echo
    echo "  PURPOSE:"
    echo "     This tool is part of the process for setting up a scalability experiment."

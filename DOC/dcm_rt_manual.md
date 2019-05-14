@@ -187,14 +187,92 @@ code performance.  On the other hand, this progression graph is also showing har
 only a short experiment (says 100 steps) is able to tell us the performance of the code for a given domain decomposition, hence number of cores.  Note that when evalutating the slope (stp/mn) we disregard the first and last 10 steps which are slow due to one-time initialisation or to closing files. The slope is evaluated with linear regression (specific dcmtk tool). 
 
   In order to make it easy, a special procedure is proposed to set up a scalability experiment.
-  * Create a new configuration 
-  * clone some differences for in the code (eliminating writing of restart files)
-  * code compilation
-  * Prepare the CTL directory
-  * Determine the domain decomposition you will test (using MPP_PREP tool)
-  * Prepare a meta script from the results of MPP_PREP
-  * run the metascript
-  * Analyse the results.
+  1. Create a new configuration   
+     It is likely a good idea to use a CASE name refering somehow to scalability, but nothing mandatory.
+
+  ```
+  dcm_mkconfdir_local <CONFIG>-<CASE>
+  ```
+
+  1. Clone some differences for in the code (eliminating writing of restart files) and compile:  
+     In `$HOMEDCM/DRAKKAR/NEMO4/cfgs`, `CONFIG-CASE.scal` configuration directory hold some 
+     modified source code. You may use this config as a `PREV_CONFIG` in `makefile` in order to import
+     those sources.
+
+  ```
+  cd $UDIR/CONFIG_<CONFIG>-<CASE>
+  #  edit makefile there by setting:
+  PREV_CONFIG=$(HOMEDCM)/DRAKKAR/NEMO4/cfgs/CONFIG-CASE.scal
+  # then
+  make copyconfig
+  # check the makefile for `MACHINE` and other classical points ...
+  make install && make
+  ```
+  
+  > At this point the NEMO code is ready for use.
+  1. Determine the domain decomposition you will test (using MPP_PREP tool)  
+     This requires the instalation of the `MPP_PREP` tool
+
+  ```
+  cd $UDIR/CONFIG_<CONFIG>-<CASE>
+  dcm_mktools -n MPP_PREP -m <MACHINE> -c <CONFIG>-<CASE>
+  ```
+  > Now the `mpp_optimize.exe` program is ready for use in $WORKDIR/W<CONFIG>-<CASE>/tools/MPP_PREP
+
+  ```
+  cd $WORKDIR/W<CONFIG>-<CASE>/tools/MPP_PREP
+  # edit the namelist in order to 
+  #   set cn_fbathy=<CONFIG>-<CASE>_domain_cfg.nc. Variable name is bottom_level by default.
+  #   set the maximum domains you are looking for (nn_procmax)
+  # Run the code (mpp_optimize.exe -h gives you USAGE information).
+  ./mpp_optimize.exe -n namelist 
+  ```
+  > Now you have a `processor.layout` file in the `MPP_PREP` directory. You can find optimal domain decomposition by using `./screen.sh  <CORES>`. But for the scalability experiment you can even prepare a script that will launch all possible cases... 
+
+  ```
+  dcmtk_scal_prep -h
+ USAGE : dcmtk_scal_prep [-h] [-l layout_file] [-m minproc] [-M maxproc] [-s proc_step]
+
+  PURPOSE:
+     This tool is part of the process for setting up a scalability experiment.
+     It assumes that you have already run the MPP_PREP tool for defining all the
+     file, narrowing the results to a specific range of cores. In addition, it will
+     call a python script that produces a job file to be submitted for all the 
+     decomposition to test. At this point, the python tools assumes that the target
+     machine is occigen (SLURM batch system). Hence, the job file may require some
+     editing (batch header part) to fit your HPC system.
+     Due to the interaction with MPP_PREP it is likely a good choice to run this tool
+     where you have the MPP_PREP results, in particular with the screen.sh script.
+
+  OPTIONS:
+     -h : Display this help message.
+     -l layout_file : Pass the name of the layout file produced by MPP_PREP  procedure.
+           Default is processor.layout
+     -m minproc : Gives the minimum number of core you want to test. Default=50 
+     -M maxproc : Gives the maximum number of core you want to test. Default=600
+     -s proc_step : Gives the core step for scaning the core range.  Default=50
+  ```
+
+  So doing (for instance) :
+
+  ```
+  module load python  # the dcmtk script launch a python program...
+  dcmtk_scal_prep -l processor.layout -m 100 -M 2000 -s 50 
+  ```
+
+  will produce `run.sh` metascript which is the driver for the scalability experiment.
+
+  ```
+  chmod 755 run.sh
+  cp run.sh $PDIR/RUN_<CONFIG>/<CONFIG>-<CASE>/CTL/
+  cd $PDIR/RUN_<CONFIG>/<CONFIG>-<CASE>/CTL/
+  ```
+
+  > You are now ready with the domain decomposition to test.
+  1. Prepare the CTL directory
+  1. Determine the domain decomposition you will test (using MPP_PREP tool)
+  1. run the metascript
+  1. Analyse the results.
 
 ## Appendix
 ### REBUILD_MPP tool:
