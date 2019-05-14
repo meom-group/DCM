@@ -1,0 +1,67 @@
+#!/bin/bash
+
+# dcmtk_scal_plot 
+# scan all the nemo output produced during a scalability experiment, compute the performance
+# in step/mn for each single output and collect the whole in perf.log
+# Then produce a simple graph of perf vs number of cores
+# class = @Scalability experiment tools@
+
+usage()  {
+   echo
+   echo "USAGE : $(basename $0 ) [-h] [-m MACHINE] [-s STEPS] [-o PERF.log] go"
+   echo
+   echo "  PURPOSE:"
+   echo "     This tool is part of the process for analysing a scalability experiment."
+   echo "     It is used in order to analyse the results of such an experiment, by"
+   echo "     extracting the timing information from the nemo job output files."
+   echo
+   echo "  ARGUMENT:"
+   echo "      go  or any word... Without argument, just display the usage message"
+   echo
+   echo "  OPTIONS:"
+   echo "     -h : Display this help message."
+   echo "     -s STEPS : number of time steps to analyse in dcmtk_rate."
+   echo "         If not given, try to take the number of steps in .db file."
+   echo "         If no .db file present takes the defaults value " $stpdef
+   echo "     -m MACHINE : use MACHINE to build the job output root name : nemo_<MACHINE>"
+   echo "            default is occigen, leading to nemo_occigen*.o* file list."
+   echo "     -o PERF.log : specify a name of the performance log file instead of the"
+   echo "            default name : perf.log"
+   echo
+   exit
+         }
+
+MACHINE=occigen
+PERF=perf.log
+stpdef=180
+lstep=''
+
+if [ $# = 0 ] ; then
+  usage
+fi
+
+while getopts :hm:o:s: opt ; do
+   case $opt in
+     (h) usage ;;
+     (m) MACHINE=${OPTARG} ;;
+     (o) PERF=${OPTARG} ;;
+     (s) lstep=1 ; stpdef=${OPTARG} ;;
+     (*) usage ;;
+   esac
+done
+
+if [ $lstep ] ; then
+   stp=$stpdef
+elif [ ! -f *.db ] ; then 
+   stp=$stpdef
+  echo "  +++ Use default value for steps : " $stp
+else
+  stp=$( cat *.db | head -1 | awk '{print $3}')
+fi
+
+  (for f in nemo_${MACHINE}_*.o* ; do 
+     echo -n $f " : "  ; dcmtk_rate -s $stp -b 1 -f $f
+   done  ) > $PERF
+
+ cat $PERF | sort -t_ -k4n  | sed -e "s/\.o/\ \.o/g" -e "s/_/ /g" | awk '{print $5 " " $11}' | graph -TX -S 2 -m -1
+
