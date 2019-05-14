@@ -269,10 +269,34 @@ only a short experiment (says 100 steps) is able to tell us the performance of t
   ```
 
   > You are now ready with the domain decomposition to test.
-  1. Prepare the CTL directory
-  1. Determine the domain decomposition you will test (using MPP_PREP tool)
+  1. Prepare the CTL directory  
+   Preparing the CTL directory for scalability experiment is done by:
+
+  ```
+  cd  $PDIR/RUN_<CONFIG>/<CONFIG>-<CASE>/CTL/
+  # use -s option in mkctl for scalability experiments
+  dcm_mkctl -m occigen -s -a 
+  ```
+
+   Once this is done, there are templates for namelist, includefile and main running script. You still need to have a look at those file in order to fix some PATH (includefile), or some parameters (namelist). You also need to set up a set of xml files for the output (despite the fact that output will not be processed
+in scalability experiment). You also need to setup the `<CONFIG>-<CASE>.db` in order to set the number of steps you want to perform foreach experiment. (A few hundreds is OK).
   1. run the metascript
-  1. Analyse the results.
+   The metascript `run.sh` prepared during the `MPP_PREP` phase is now ready to be run.
+
+  ```
+  ./run.sh
+  ```
+  
+  This metascript launch quite a lot of jobs, each differing by the number of cores they are testing. When the jobs are all completed, the raw scaling results are with the `nemo_occigen*.o*` files (job output). 
+  1. Analyse the results.  
+  You may be able to plot a very primary scalability graph with the following commands (`dcmtk_scal_plot`):
+
+  ```
+  for f in nemo_occigen_*.o* ; do echo -n $f " : "  ; dcmtk_rate -s 180 -b 1 -f $f; done > perf.log
+  cat perf.log |sort -t_ -k4n  | sed -e "s/\.o/\ \.o/g" -e "s/_/ /g" | awk '{print $5 " " $11}' | graph -TX -S 2 -m -1
+  ```
+
+  > Scalability experiments are an iterative process where you need to tune some parameters, such as the number of xios server you are requiring etc... This first and rather quick view of the scalability performance for a particular configuration helps you to choose an optimal number of cores. Then you may refine the experiment around this sweet point, in order to achieve the best performance before going to a production run.
 
 ## Appendix
 ### REBUILD_MPP tool:
