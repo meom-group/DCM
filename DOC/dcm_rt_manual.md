@@ -206,9 +206,11 @@ only a short experiment (says 100 steps) is able to tell us the performance of t
   # then
   make copyconfig
   # check the makefile for `MACHINE` and other classical points ...
+  # check the CPP.key file for the keys you need.
   make install && make
   ```
-  
+
+  > You may have some warning or error message when doing `make copyconfig`. You can ignore them safely.    
   > At this point the NEMO code is ready for use.
   1. Determine the domain decomposition you will test (using MPP_PREP tool)  
      This requires the instalation of the `MPP_PREP` tool
@@ -217,7 +219,7 @@ only a short experiment (says 100 steps) is able to tell us the performance of t
   cd $UDIR/CONFIG_<CONFIG>-<CASE>
   dcm_mktools -n MPP_PREP -m <MACHINE> -c <CONFIG>-<CASE>
   ```
-  > Now the `mpp_optimize.exe` program is ready for use in $WORKDIR/W<CONFIG>-<CASE>/tools/MPP_PREP
+  > Now the `mpp_optimize.exe` program is ready for use in `$WORKDIR/W<CONFIG>-<CASE>/tools/MPP_PREP`
 
   ```
   cd $WORKDIR/W<CONFIG>-<CASE>/tools/MPP_PREP
