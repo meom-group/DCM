@@ -87,7 +87,7 @@ MODULE iom
   
    !!----------------------------------------------------------------------
    !! NEMO/OCE 4.0 , NEMO Consortium (2018)
-   !! $Id: iom.F90 10523 2019-01-16 09:36:03Z smasson $
+   !! $Id: iom.F90 10816 2019-03-29 17:19:08Z smasson $
    !! Software governed by the CeCILL license (see ./LICENSE)
    !!----------------------------------------------------------------------
 CONTAINS
@@ -221,11 +221,11 @@ CONTAINS
           CALL iom_set_axis_attr( "nstrait", (/ (REAL(ji,wp), ji=1,4) /) )
 # endif
 #if defined key_top
-          CALL iom_set_axis_attr( "profsed", paxis = profsed )
+          IF( ALLOCATED(profsed) ) CALL iom_set_axis_attr( "profsed", paxis = profsed )
 #endif
           CALL iom_set_axis_attr( "icbcla", class_num )
-          CALL iom_set_axis_attr( "iax_20C", (/ REAL(20,wp) /) )
-          CALL iom_set_axis_attr( "iax_28C", (/ REAL(28,wp) /) )
+          CALL iom_set_axis_attr( "iax_20C", (/ REAL(20,wp) /) )   ! strange syntaxe and idea...
+          CALL iom_set_axis_attr( "iax_28C", (/ REAL(28,wp) /) )   ! strange syntaxe and idea...
       ENDIF
       !
       ! automatic definitions of some of the xml attributs

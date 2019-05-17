@@ -89,7 +89,7 @@ MODULE icestp
 #  include "vectopt_loop_substitute.h90"
    !!----------------------------------------------------------------------
    !! NEMO/ICE 4.0 , NEMO Consortium (2018)
-   !! $Id: icestp.F90 10535 2019-01-16 17:36:47Z clem $
+   !! $Id: icestp.F90 10931 2019-05-05 19:44:55Z clem $
    !! Software governed by the CeCILL license (see ./LICENSE)
    !!----------------------------------------------------------------------
 CONTAINS
@@ -188,7 +188,7 @@ CONTAINS
          !----------------------------!
          IF( ln_icethd )                CALL ice_thd( kt )            ! -- Ice thermodynamics      
          !
-         IF( ln_icethd )                CALL ice_cor( kt , 2 )        ! -- Corrections
+                                        CALL ice_cor( kt , 2 )        ! -- Corrections
          !
                                         CALL ice_var_glo2eqv          ! necessary calls (at least for coupling)
                                         CALL ice_var_agg( 2 )         ! necessary calls (at least for coupling)
@@ -446,9 +446,11 @@ CONTAINS
       qcn_ice_bot(:,:,:) = 0._wp ; qcn_ice_top(:,:,:) = 0._wp ! conductive fluxes
       t_si       (:,:,:) = rt0   ! temp at the ice-snow interface
 
-      tau_icebfr(:,:)   = 0._wp   ! landfast ice param only (clem: important to keep the init here)
-      cnd_ice   (:,:,:) = 0._wp   ! initialisation: effective conductivity at the top of ice/snow (ln_cndflx=T)
-      qtr_ice_bot(:,:,:) = 0._wp  ! initialization: part of solar radiation transmitted through the ice needed at least for outputs
+      tau_icebfr (:,:)   = 0._wp   ! landfast ice param only (clem: important to keep the init here)
+      cnd_ice    (:,:,:) = 0._wp   ! initialisation: effective conductivity at the top of ice/snow (ln_cndflx=T)
+      qcn_ice    (:,:,:) = 0._wp   ! initialisation: conductive flux (ln_cndflx=T & ln_cndemule=T)
+      qtr_ice_bot(:,:,:) = 0._wp   ! initialization: part of solar radiation transmitted through the ice needed at least for outputs
+      qsb_ice_bot(:,:)   = 0._wp   ! (needed if ln_icethd=F)
       !
       ! for control checks (ln_icediachk)
       diag_trp_vi(:,:) = 0._wp   ;   diag_trp_vs(:,:) = 0._wp

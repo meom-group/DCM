@@ -153,7 +153,7 @@
 !------------------------------------------------------------------------------
 &namthd_do      !   Ice growth in open water
 !------------------------------------------------------------------------------
-   rn_hinew         =   0.1           !  thickness for new ice formation in open water (m), must be larger than rn_hnewice
+   rn_hinew         =   0.1           !  thickness for new ice formation in open water (m), must be larger than rn_himin
    ln_frazil        = .false.         !  Frazil ice parameterization (ice collection as a function of wind)
       rn_maxfraz    =   1.0           !     maximum fraction of frazil ice collecting at the ice base
       rn_vfraz      =   0.417         !     thresold drift speed for frazil ice collecting at the ice bottom (m/s)

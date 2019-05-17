@@ -104,8 +104,6 @@
       <!-- PISCES with ligand parametisation : variables available namelist paramter ln_ligand -->
        <field id="LGW"         long_name="Weak ligands concentration"                unit="mmol/m3" />
        <field id="LGW_e3t"     long_name="LGW * e3t"                                 unit="mmol/m2"  > LGW * e3t </field >
-       <field id="LFe"         long_name="Lithogenic iron concentration"             unit="mmol/m3" />
-       <field id="LFe_e3t"     long_name="LFe * e3t"                                 unit="mmol/m2"  > LFe * e3t </field >
 
        <!-- PISCES light : variables available with ln_p2z  -->
        <field id="DET"         long_name="Detritus"                                 unit="mmol-N/m3" />
@@ -207,13 +205,9 @@
        <field id="SIZEN"       long_name="Mean relative size of nanophyto."        unit="-"          grid_ref="grid_T_3D" />
        <field id="SIZEP"       long_name="Mean relative size of picophyto."        unit="-"          grid_ref="grid_T_3D" />
        <field id="SIZED"       long_name="Mean relative size of diatoms"           unit="-"          grid_ref="grid_T_3D" />
-       <field id="Fe2"         long_name="Iron II concentration"                   unit="nmol/m3"    grid_ref="grid_T_3D" />
        <field id="Fe3"         long_name="Iron III concentration"                  unit="nmol/m3"    grid_ref="grid_T_3D" />
        <field id="FeL1"        long_name="Complexed Iron concentration with L1"    unit="nmol/m3"    grid_ref="grid_T_3D" />
-       <field id="FeL2"        long_name="Complexed Iron concentration with L2"    unit="nmol/m3"    grid_ref="grid_T_3D" />
-       <field id="FeP"         long_name="Precipitated Iron III"                   unit="nmol/m3"    grid_ref="grid_T_3D" />
        <field id="TL1"         long_name="Total L1 concentration"                  unit="nmol/m3"    grid_ref="grid_T_3D" />
-       <field id="TL2"         long_name="Total L2 concentration"                  unit="nmol/m3"    grid_ref="grid_T_3D" />
        <field id="pdust"       long_name="dust concentration"                      unit="g/m3"                            />
        <field id="Totlig"      long_name="Total ligand concentation"               unit="nmol/m3"    grid_ref="grid_T_3D" />
        <field id="Biron"       long_name="Bioavailable iron"                       unit="nmol/m3"    grid_ref="grid_T_3D" />

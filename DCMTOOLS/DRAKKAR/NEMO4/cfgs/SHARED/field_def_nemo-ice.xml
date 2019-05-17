@@ -159,11 +159,6 @@
           <!-- diags -->
           <field id="hfxdhc"       long_name="Heat content variation in snow and ice (neg = ice cooling)"   unit="W/m2" />
 
-	  <!-- diagnostics of the negative values resulting from the advection scheme -->
-	  <field id="iceneg_pres"  long_name="Fraction of time steps with negative sea ice volume"                    unit=""     />
-	  <field id="iceneg_volu"  long_name="Negative sea ice volume per area arising from advection"                unit="m"    />
-          <field id="iceneg_hfx"   long_name="Negative sea ice heat content (eq. heat flux) arising from advection"   unit="W/m2" />
-
 	  <!-- sbcssm variables -->
           <field id="sst_m"    unit="degC" />
           <field id="sss_m"    unit="psu"  />

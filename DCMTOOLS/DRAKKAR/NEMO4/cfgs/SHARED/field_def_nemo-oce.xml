@@ -107,6 +107,12 @@
         <!-- variables available ln_linssh=.FALSE. -->
         <field id="tpt_dep"      long_name="T-point depth"                  standard_name="depth_below_geoid"   unit="m"   grid_ref="grid_T_3D" />
         <field id="e3tdef"       long_name="T-cell thickness deformation"                                       unit="%"   grid_ref="grid_T_3D" />
+
+        <!-- variables available with ln_diacfl=.true. -->
+        <field id="cfl_cu"       long_name="u-courant number"   unit="#" />
+        <field id="cfl_cv"       long_name="v-courant number"   unit="#" />
+        <field id="cfl_cw"       long_name="w-courant number"   unit="#" />
+
       </field_group> <!-- grid_T -->
 
       <!-- Tides -->
