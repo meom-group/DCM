@@ -79,11 +79,6 @@
        <field field_ref="vfxice"           name="vfxice" />
        <field field_ref="vfxsnw"           name="vfxsnw" />
        
-       <!-- diag error for negative ice volume after advection -->
-       <field field_ref="iceneg_pres"      name="sineg_pres" />
-       <field field_ref="iceneg_volu"      name="sineg_volu" />
-       <field field_ref="iceneg_hfx"       name="sineg_hfx"  />
-
        <!-- categories -->
        <field field_ref="icemask_cat"      name="simskcat"/>
        <field field_ref="snwthic_cat"      name="snthicat"/>
