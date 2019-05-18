@@ -89,7 +89,7 @@ MODULE icestp
 #  include "vectopt_loop_substitute.h90"
    !!----------------------------------------------------------------------
    !! NEMO/ICE 4.0 , NEMO Consortium (2018)
-   !! $Id: icestp.F90 10931 2019-05-05 19:44:55Z clem $
+   !! $Id: icestp.F90 10993 2019-05-17 13:07:59Z clem $
    !! Software governed by the CeCILL license (see ./LICENSE)
    !!----------------------------------------------------------------------
 CONTAINS
@@ -338,6 +338,9 @@ CONTAINS
          WRITE(numout,*) '         maximum ice concentration for NH                              = ', rn_amax_n 
          WRITE(numout,*) '         maximum ice concentration for SH                              = ', rn_amax_s
       ENDIF
+      !                                        !--- change max ice concentration for roundoff errors
+      rn_amax_n = MIN( rn_amax_n, 1._wp - epsi10 )
+      rn_amax_s = MIN( rn_amax_s, 1._wp - epsi10 )
       !                                        !--- check consistency
       IF ( jpl > 1 .AND. ln_virtual_itd ) THEN
          ln_virtual_itd = .FALSE.
