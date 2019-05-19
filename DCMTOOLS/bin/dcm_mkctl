@@ -137,10 +137,10 @@ if [ $scal = 1 ] ; then
       cat $f | sed -e "s/<CONFCASE>/${CONFIG}-${CASE}/g " > $CTLDIR/${f%_ref}.${CONFIG}-${CASE}
    done
    cat  namelist.CONFIG-CASE.scal.tmp | sed -e "s/<CONFCASE>/${CONFIG}-${CASE}/g " > $CTLDIR/namelist.${CONFIG}-${CASE}.tmp
-
+   cp $HOMEDCM/NEMOREF/NEMO4/cfgs/SHARED/*xml $CTLDIR/XML/
+   # overwrite by DRAKKAR modifed ones.
    cp *.xml $CTLDIR/XML/
 fi 
-
 
 echo Run time files have been copied to $CTLDIR
 echo namelist and xml file are copied in NAMELIST and XML sub-directories, respectively.

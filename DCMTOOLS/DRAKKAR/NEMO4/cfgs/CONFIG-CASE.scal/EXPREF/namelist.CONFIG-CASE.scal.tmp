@@ -131,7 +131,7 @@
 !-----------------------------------------------------------------------
 &namwad        !   Wetting and Drying (WaD)                             (default: OFF)
 !-----------------------------------------------------------------------
-   ln_wd_il    = .false    !  T/F activation of iterative   limiter
+   ln_wd_il    = .false.   !  T/F activation of iterative   limiter
    ln_wd_dl    = .false.   !  T/F activation of directional limiter
    ln_wd_dl_bc = .false.   !  T/F Directional limiteer Baroclinic option
    ln_wd_dl_rmp = .false.  !  T/F Turn on directional limiter ramp
@@ -295,7 +295,6 @@
    sn_prec =    'drowned_precip_DFS5.2' ,   24           ,  'precip' ,    .true.   , .false. , 'yearly'  , 'wght_DFS5.2-ORCA05_bilin.nc' , ''       ,   ''
    sn_snow =    'drowned_snow_DFS5.2'  ,    24           ,  'snow'   ,    .true.   , .false. , 'yearly'  , 'wght_DFS5.2-ORCA05_bilin.nc' , ''       ,   ''
    sn_slp  =    'drowned_msl_ERAinterim' ,   3           ,  'msl'    ,    .true.   , .false. , 'yearly'  , 'wght_DFS5.2-ORCA05_bilin.nc' , ''       ,   ''
-
    sn_tdif =    'taudif_core'          ,    24           , 'taudif'  ,   .false.   , .true.  , 'yearly'  , 'weights_core_orca2_bilinear_noc'   , ''       ,   ''
 
 / 
@@ -1350,6 +1349,7 @@
    ln_ignmis   = .true.              ! Logical switch for ignoring missing files
    ln_s_at_t   = .false.             ! Logical switch for computing model S at T obs if not there
    ln_sstnight = .false.             ! Logical switch for calculating night-time average for SST obs
+   ln_bound_reject  = .false.        ! Logical to remove obs near boundaries in LAMs.
    ln_sla_fp_indegs = .true.         ! Logical for SLA: T=> averaging footprint is in degrees, F=> in metres
    ln_sst_fp_indegs = .true.         ! Logical for SST: T=> averaging footprint is in degrees, F=> in metres
    ln_sss_fp_indegs = .true.         ! Logical for SSS: T=> averaging footprint is in degrees, F=> in metres
