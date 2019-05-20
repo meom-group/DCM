@@ -127,7 +127,7 @@ runcode_u() {
 # ---
 # function for running OPA ans XIOS : it takes the number of procs and name of programs as argument
 #    runcode_mpmd  nproc1  prog1 nproc2 prog2
-runcode_mpmd() {
+runcode_mpmd_ibm() {
          rm -f ./zrunfile
          for n in $(seq 1 $1 ) ; do
           echo $2 >> ./zrunfile
@@ -137,6 +137,12 @@ runcode_mpmd() {
          done
 
           poe -pgmmodel mpmd -cmdfile ./zrunfile
+          }
+# ---
+# function for running OPA ans XIOS : it takes the number of procs and name of programs as argument
+#    runcode_mpmd  nproc1  prog1 nproc2 prog2
+runcode_mpmd() {
+     mpirun --map-by node -np $3 $4 : -np $1 $2
           }
 # ---
 
