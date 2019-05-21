@@ -1,0 +1,47 @@
+#!/bin/bash
+# dcmtk_zoom_abo
+# This script extract a subdomain from the global domain, taking a subdomain file (such as output.abort_xxxx.nc) as a model.
+# class = @Extraction tools@
+
+usage()  {
+   echo
+   echo "USAGE : $(basename $0 ) [-h] -m MODEL-file -s SRC-file "
+   echo
+   echo "  PURPOSE:"
+   echo "    This script extract a subdomain from the global domain, taking a "
+   echo "    subdomain file (such as output.abort_xxxx.nc) as a model."
+   echo
+   echo "  ARGUMENTS:"
+   echo "    -m MODEL-file : name of subdomain file."
+   echo "    -s SRC-file   : name of global source file."
+   echo
+   echo "  OPTIONS:"
+   echo "     -h : Display this help message."
+   echo
+   echo "  OUTPUT:"
+   echo "    The extracted file is named <SRC-file>_<NUMBER>.nc, where <NUMBER> is the"
+   echo "    number of the subdomain corresponding to <MODEL-file>"
+   echo
+   exit
+         }
+
+n=0
+while getopts :hm:s: opt ; do
+   case $opt in
+     (h) usage ;;
+     (m) cf_dom=${OPTARG} ; n=$(( n + 1 )) ;;
+     (s) cf_src=${OPTARG} ; n=$(( n + 1 )) ;;
+     (*) usage ;;
+   esac
+done
+
+if [ $n != 2 ] ; then
+   usage
+fi
+
+first=( $(ncdump  -h $cf_dom | grep position_first | sed -e 's/,/ /' | awk '{ print $3 " "$4}' ))
+last=(  $(ncdump  -h $cf_dom | grep position_last  | sed -e 's/,/ /' | awk '{ print $3 " "$4}' ))
+
+number=$(ncdump   -h $cf_dom | grep -w DOMAIN_number | awk '{ print $3 }' )
+
+ncks  -F -d x,${first[0]},${last[0]} -d y,${first[1]},${last[1]}  $cf_src -o ${cf_src%.nc}_${number}.nc
