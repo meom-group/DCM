@@ -42,6 +42,6 @@ fi
 first=( $(ncdump  -h $cf_dom | grep position_first | sed -e 's/,/ /' | awk '{ print $3 " "$4}' ))
 last=(  $(ncdump  -h $cf_dom | grep position_last  | sed -e 's/,/ /' | awk '{ print $3 " "$4}' ))
 
-number=$(ncdump   -h $cf_dom | grep -w DOMAIN_number | awk '{ print $3 }' )
+number=$(ncdump   -h $cf_dom | grep -w DOMAIN_number | awk '{ printf "%04g", $3 }' )
 
 ncks  -F -d x,${first[0]},${last[0]} -d y,${first[1]},${last[1]}  $cf_src -o ${cf_src%.nc}_${number}.nc
