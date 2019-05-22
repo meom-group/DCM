@@ -106,9 +106,9 @@ PROGRAM dcmtk_dom_doc
   ! If domain_cfg is netcdf4, then deflate the namelist
   ierr = NF90_INQUIRE(ncid,formatNum=iformat)
   IF ( iformat == NF90_FORMAT_NETCDF4 .OR. iformat == NF90_FORMAT_NETCDF4_CLASSIC ) THEN
-     ierr=NF90_DEF_VAR(ncid,'namelist_ref',NF90_CHAR,(/idlen,idl/), id, chunksizes=(/ilen,n/), deflate_level=9 )
+     ierr=NF90_DEF_VAR(ncid,'namelist_cfg',NF90_CHAR,(/idlen,idl/), id, chunksizes=(/ilen,n/), deflate_level=9 )
   ELSE
-     ierr=NF90_DEF_VAR(ncid,'namelist_ref',NF90_CHAR,(/idlen,idl/), id)
+     ierr=NF90_DEF_VAR(ncid,'namelist_cfg',NF90_CHAR,(/idlen,idl/), id)
   ENDIF
   ! add extra global attributes:
   ierr = NF90_PUT_ATT(ncid,NF90_GLOBAL,'source_bathy',cf_bathy)
