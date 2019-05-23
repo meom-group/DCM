@@ -152,11 +152,12 @@
           Here again, the `<KEY_WORD>` will be replaced by their value at run-time. These global attributes are used in the [DRAKKAR monitoring tools (DMONTOOLS)](https://github.com/meom-group/DMONTOOLS).
 
       `domain_def_nemo.xml` requires editing only if you add new sub-domains for output.  
-      `field_def_nemo-*.xml` requires editing if you want to add extra variables in the already long list of possible variables to output. New variables should have a corresponding call to iom_put in the NEMO code.
+      `field_def_nemo-*.xml` requires editing if you want to add extra variables in the already long list of possible variables to output. New variables should have a corresponding call to iom_put in the NEMO code.  
+
  1. Run the code
 
     ```
-    ./run_nemo.sh
+    ./run_nemo.sh  
     ```
 
     And that's it ! 
@@ -166,7 +167,7 @@
 
 ## Cloning an existing configuration:
 
-  It happens very often that a new configuration is built to make sensitivity experiments with respect to some references.  For this particular case, DCM offers a very easy procedure to clone the CTL of an existing running configuratin (as it exists for the code itself). 
+It happens very often that a new configuration is built to make sensitivity experiments with respect to some references.  For this particular case, DCM offers a very easy procedure to clone the CTL of an existing running configuratin (as it exists for the code itself). 
 > Note this procedure is not limited to sensitivity experiment, you can clone a completly different configuration, but of course then you need to adjust the parameters in the namelists and in the xml files.
 
 ```
@@ -174,131 +175,132 @@
    dcm_clone_ctl -c <CONFIG>-<CASE>
 ```
 
-  With this command you will populate the new empty CTL with a valid set of files identical to the ones for \<CONFIG\>-\<CASE\>, but the the correct names.  Then you need to adjust the namelists, and possibly the xml files. 
+With this command you will populate the new empty CTL with a valid set of files identical to the ones for \<CONFIG\>-\<CASE\>, but the the correct names.  Then you need to adjust the namelists, and possibly the xml files. 
 > Note that if the CTL where you want to clone is not empty, no cloning will be done (in order to preserve possibly important settings!).
 
 ## Setting up a scalability experiment.
-  It is always very usefull to perform a scalability experiment before running a long simulation, in order to optimize the computer ressources. It 
+It is always very usefull to perform a scalability experiment before running a long simulation, in order to optimize the computer ressources. It 
 is also required when you prepare a proposal to computing centers. 
 
-  With DCM, when using DRAKKAR modified code, we know the time (up to ms) when each step starts. This allow to easily draw a graph of the progression of the run (number of steps
+With DCM, when using DRAKKAR modified code, we know the time (up to ms) when each step starts. This allow to easily draw a graph of the progression of the run (number of steps
 performed vs time). In general, if all works smoothly, this graph is almost a perfect straight line, which slope (in stp/min, for instance) is an indicator of the
 code performance.  On the other hand, this progression graph is also showing hardware problems very efficiently when they occur.  Due to the very linear shape of the progression graph,
 only a short experiment (says 100 steps) is able to tell us the performance of the code for a given domain decomposition, hence number of cores.  Note that when evalutating the slope (stp/mn) we disregard the first and last 10 steps which are slow due to one-time initialisation or to closing files. The slope is evaluated with linear regression (specific dcmtk tool). 
 
   In order to make it easy, a special procedure is proposed to set up a scalability experiment.
-  1. Create a new configuration   
+ 1. Create a new configuration  
      It is likely a good idea to use a CASE name refering somehow to scalability, but nothing mandatory.
 
-  ```
-  dcm_mkconfdir_local <CONFIG>-<CASE>
-  ```
+    ```
+    dcm_mkconfdir_local <CONFIG>-<CASE>
+    ```
 
-  1. Clone some differences for in the code (eliminating writing of restart files) and compile:  
-     In `$HOMEDCM/DRAKKAR/NEMO4/cfgs`, `CONFIG-CASE.scal` configuration directory hold some 
-     modified source code. You may use this config as a `PREV_CONFIG` in `makefile` in order to import
-     those sources.
+ 1. Clone some differences for in the code (eliminating writing of restart files) and compile:  
+    In `$HOMEDCM/DRAKKAR/NEMO4/cfgs`, `CONFIG-CASE.scal` configuration directory hold some 
+    modified source code. You may use this config as a `PREV_CONFIG` in `makefile` in order to import
+    those sources.
 
-  ```
-  cd $UDIR/CONFIG_<CONFIG>-<CASE>
-  #  edit makefile there by setting:
-  PREV_CONFIG=$(HOMEDCM)/DRAKKAR/NEMO4/cfgs/CONFIG-CASE.scal
-  # then
-  make copyconfig
-  # check the makefile for `MACHINE` and other classical points ...
-  # check the CPP.key file for the keys you need.
-  make install && make
-  ```
+    ```
+    cd $UDIR/CONFIG_<CONFIG>-<CASE>
+    #  edit makefile there by setting:
+    PREV_CONFIG=$(HOMEDCM)/DRAKKAR/NEMO4/cfgs/CONFIG-CASE.scal
+    # then
+    make copyconfig
+    # check the makefile for `MACHINE` and other classical points ...
+    # check the CPP.key file for the keys you need.
+    make install && make
+    ```
 
-  > You may have some warning or error message when doing `make copyconfig`. You can ignore them safely.    
-  > At this point the NEMO code is ready for use.
-  1. Determine the domain decomposition you will test (using MPP_PREP tool)  
-     This requires the instalation of the `MPP_PREP` tool
+    > You may have some warning or error message when doing `make copyconfig`. You can ignore them safely.    
+    > At this point the NEMO code is ready for use.
 
-  ```
-  cd $UDIR/CONFIG_<CONFIG>-<CASE>
-  dcm_mktools -n MPP_PREP -m <MACHINE> -c <CONFIG>-<CASE>
-  ```
-  > Now the `mpp_optimize.exe` program is ready for use in `$WORKDIR/W<CONFIG>-<CASE>/tools/MPP_PREP`
+ 1. Prepare the CTL directory  
+    Preparing the CTL directory for scalability experiment is done by:
 
-  ```
-  cd $WORKDIR/W<CONFIG>-<CASE>/tools/MPP_PREP
-  # edit the namelist in order to 
-  #   set cn_fbathy=<CONFIG>-<CASE>_domain_cfg.nc. Variable name is bottom_level by default.
-  #   set the maximum domains you are looking for (nn_procmax)
-  # Run the code (mpp_optimize.exe -h gives you USAGE information).
-  ./mpp_optimize.exe -n namelist 
-  ```
-  > Now you have a `processor.layout` file in the `MPP_PREP` directory. You can find optimal domain decomposition by using `./screen.sh  <CORES>`. But for the scalability experiment you can even prepare a script that will launch all possible cases... 
+    ```
+    cd  $PDIR/RUN_<CONFIG>/<CONFIG>-<CASE>/CTL/
+    # use -s option in mkctl for scalability experiments
+    dcm_mkctl -m occigen -s -a 
+    ```
 
-  ```
-  dcmtk_scal_prep -h
- USAGE : dcmtk_scal_prep [-h] [-l layout_file] [-m minproc] [-M maxproc] [-s proc_step]
-
-  PURPOSE:
-     This tool is part of the process for setting up a scalability experiment.
-     It assumes that you have already run the MPP_PREP tool for defining all the
-     file, narrowing the results to a specific range of cores. In addition, it will
-     call a python script that produces a job file to be submitted for all the 
-     decomposition to test. At this point, the python tools assumes that the target
-     machine is occigen (SLURM batch system). Hence, the job file may require some
-     editing (batch header part) to fit your HPC system.
-     Due to the interaction with MPP_PREP it is likely a good choice to run this tool
-     where you have the MPP_PREP results, in particular with the screen.sh script.
-
-  OPTIONS:
-     -h : Display this help message.
-     -l layout_file : Pass the name of the layout file produced by MPP_PREP  procedure.
-           Default is processor.layout
-     -m minproc : Gives the minimum number of core you want to test. Default=50 
-     -M maxproc : Gives the maximum number of core you want to test. Default=600
-     -s proc_step : Gives the core step for scaning the core range.  Default=50
-  ```
-
-  So doing (for instance) :
-
-  ```
-  module load python  # the dcmtk script launch a python program...
-  dcmtk_scal_prep -l processor.layout -m 100 -M 2000 -s 50 
-  ```
-
-  will produce `run.sh` metascript which is the driver for the scalability experiment.
-
-  ```
-  chmod 755 run.sh
-  cp run.sh $PDIR/RUN_<CONFIG>/<CONFIG>-<CASE>/CTL/
-  cd $PDIR/RUN_<CONFIG>/<CONFIG>-<CASE>/CTL/
-  ```
-
-  > You are now ready with the domain decomposition to test.
-  1. Prepare the CTL directory  
-   Preparing the CTL directory for scalability experiment is done by:
-
-  ```
-  cd  $PDIR/RUN_<CONFIG>/<CONFIG>-<CASE>/CTL/
-  # use -s option in mkctl for scalability experiments
-  dcm_mkctl -m occigen -s -a 
-  ```
-
-   Once this is done, there are templates for namelist, includefile and main running script. You still need to have a look at those file in order to fix some PATH (includefile), or some parameters (namelist). You also need to set up a set of xml files for the output (despite the fact that output will not be processed
+    Once this is done, there are templates for namelist, includefile and main running script. You still need to have a look at those file in order to fix some PATH (includefile), or some parameters (namelist). You also need to set up a set of xml files for the output (despite the fact that output will not be processed
 in scalability experiment). You also need to setup the `<CONFIG>-<CASE>.db` in order to set the number of steps you want to perform foreach experiment. (A few hundreds is OK).
-  1. run the metascript
-   The metascript `run.sh` prepared during the `MPP_PREP` phase is now ready to be run.
+ 1. Determine the domain decomposition you will test (using MPP_PREP tool)  
+    This requires the instalation of the `MPP_PREP` tool
 
-  ```
-  ./run.sh
-  ```
+    ```
+    cd $UDIR/CONFIG_<CONFIG>-<CASE>
+    dcm_mktools -n MPP_PREP -m <MACHINE> -c <CONFIG>-<CASE>
+    ```
+    > Now the `mpp_optimize.exe` program is ready for use in `$WORKDIR/W<CONFIG>-<CASE>/tools/MPP_PREP`
+
+    ```
+    cd $WORKDIR/W<CONFIG>-<CASE>/tools/MPP_PREP
+    # edit the namelist in order to 
+    #   set cn_fbathy=<CONFIG>-<CASE>_domain_cfg.nc. Variable name is bottom_level by default.
+    #   set the maximum domains you are looking for (nn_procmax)
+    # Run the code (mpp_optimize.exe -h gives you USAGE information).
+    ./mpp_optimize.exe -n namelist 
+    ```
+
+    > Now you have a `processor.layout` file in the `MPP_PREP` directory. You can find optimal domain decomposition by using `./screen.sh  <CORES>`. But for the scalability experiment you can even prepare a script that will launch all possible cases... 
+
+    ```
+    dcmtk_scal_prep -h
+    USAGE : dcmtk_scal_prep [-h] [-l layout_file] [-m minproc] [-M maxproc] [-s proc_step]
   
-  This metascript launch quite a lot of jobs, each differing by the number of cores they are testing. When the jobs are all completed, the raw scaling results are with the `nemo_occigen*.o*` files (job output). 
-  1. Analyse the results.  
-  You may be able to plot a very primary scalability graph with the following commands (`dcmtk_scal_plot`):
+      PURPOSE:
+       This tool is part of the process for setting up a scalability experiment.
+       It assumes that you have already run the MPP_PREP tool for defining all the
+       file, narrowing the results to a specific range of cores. In addition, it will
+       call a python script that produces a job file to be submitted for all the 
+       decomposition to test. At this point, the python tools assumes that the target
+       machine is occigen (SLURM batch system). Hence, the job file may require some
+       editing (batch header part) to fit your HPC system.
+       Due to the interaction with MPP_PREP it is likely a good choice to run this tool
+       where you have the MPP_PREP results, in particular with the screen.sh script.
+  
+      OPTIONS:
+       -h : Display this help message.
+       -l layout_file : Pass the name of the layout file produced by MPP_PREP  procedure.
+             Default is processor.layout
+       -m minproc : Gives the minimum number of core you want to test. Default=50 
+       -M maxproc : Gives the maximum number of core you want to test. Default=600
+       -s proc_step : Gives the core step for scaning the core range.  Default=50
+    ```
 
-  ```
-  for f in nemo_occigen_*.o* ; do echo -n $f " : "  ; dcmtk_rate -s 180 -b 1 -f $f; done > perf.log
-  cat perf.log |sort -t_ -k4n  | sed -e "s/\.o/\ \.o/g" -e "s/_/ /g" | awk '{print $5 " " $11}' | graph -TX -S 2 -m -1
-  ```
+    So doing (for instance) :
 
-  > Scalability experiments are an iterative process where you need to tune some parameters, such as the number of xios server you are requiring etc... This first and rather quick view of the scalability performance for a particular configuration helps you to choose an optimal number of cores. Then you may refine the experiment around this sweet point, in order to achieve the best performance before going to a production run.
+    ```
+    module load python  # the dcmtk script launch a python program...
+    dcmtk_scal_prep -l processor.layout -m 100 -M 2000 -s 50 
+    ```
+
+    will produce `run.sh` metascript which is the driver for the scalability experiment.
+
+    ```
+    chmod 755 run.sh
+    cp run.sh $PDIR/RUN_<CONFIG>/<CONFIG>-<CASE>/CTL/
+    cd $PDIR/RUN_<CONFIG>/<CONFIG>-<CASE>/CTL/
+    ```
+
+    > You are now ready with the domain decomposition to test.
+ 1. Run the metascript
+    The metascript `run.sh` prepared during the `MPP_PREP` phase is now ready to be run.
+
+    ```
+    ./run.sh
+    ```
+    This metascript launch quite a lot of jobs, each differing by the number of cores they are testing. When the jobs are all completed, the raw scaling results are with the `nemo_occigen*.o*` files (job output). 
+ 1. Analyse the results.  
+    You may be able to plot a very primary scalability graph with the following commands (`dcmtk_scal_plot`):
+
+    ```
+    for f in nemo_occigen_*.o* ; do echo -n $f " : "  ; dcmtk_rate -s 180 -b 1 -f $f; done > perf.log
+    cat perf.log |sort -t_ -k4n  | sed -e "s/\.o/\ \.o/g" -e "s/_/ /g" | awk '{print $5 " " $11}' | graph -TX -S 2 -m -1
+    ```
+
+    > Scalability experiments are an iterative process where you need to tune some parameters, such as the number of xios server you are requiring etc... This first and rather quick view of the scalability performance for a particular configuration helps you to choose an optimal number of cores. Then you may refine the experiment around this sweet point, in order to achieve the best performance before going to a production run.
 
 ## Appendix
 ### REBUILD_MPP tool:
