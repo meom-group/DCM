@@ -105,7 +105,6 @@
     * **`xml files`** : Templates xml files are located in CTL/XML directory. The ones you need should be copied or moved to CTL/.  As already explained in the forewords of this manual, XIOS only needs `iodef.xml` file. However, all the other xml files are included at different levels, as shown in the following tree:
 
       ```
-                                                           __
       iodef.xml                                            __|  check using_server : true
          |                                                 __
          |___ context_nemo.xml                             __|  only keep the needed file_def !
@@ -129,11 +128,10 @@
                           |_______ grid_def_nemo.xml       __|  no edit required for std use
       ```
 
-
-      As shown on the graph above, major editing is only required in the `file_def_nemo-*.xml`. And in `context_nemo.xml` you should keep only the `file_def_nemo-*.xml` required by your setting (*e.g.* : if you do not use the ice model, you must not have `file_def_nemo-ice.xml` sourced in `context_nemo.xml`).
+    As shown on the graph above, major editing is only required in the `file_def_nemo-*.xml`. And in `context_nemo.xml` you should keep only the `file_def_nemo-*.xml` required by your setting (*e.g.* : if you do not use the ice model, you must not have `file_def_nemo-ice.xml` sourced in `context_nemo.xml`).
 
       Note the `file_def*xml` files used in DRAKKAR implements some changes with respect to the standard NEMO:
-        *  `<file_definition\>` xml tag  is changed to (for example):
+      *  `<file_definition\>` xml tag  is changed to (for example):
 
            ```
            <file_definition type="multiple_file" name="<OUTDIR>/@expname@_@freq@" sync_freq="1d" min_digits="4">
@@ -141,7 +139,7 @@
 
            `<OUTDIR>` is a `<KEY_WORD>` that will be changed to `$DDIR/<CONFIG>-<CASE>-XIOS.<seg>` in order to have the XIOS output in a separate directory for each production segment.
 
-        * Global attributes in the output netcdf files are used, having for each file definition:
+      * Global attributes in the output netcdf files are used, having for each file definition:
 
           ```
              <variable name="start_date"       type="int"><NDATE0>    </variable>
