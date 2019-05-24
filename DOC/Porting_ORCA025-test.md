@@ -50,7 +50,7 @@ We choose to port the very last version of ORCA025 ran in MEOM : ORCA025-GJM189.
 
 ### Conclusions:
 `ORCA025.L75` configuration is now ported to NEMO4.  
- Basic namelists files and standard xml are located in the [cfgs](../DRAKKAR/NEMO4/cfgs/ORCA025.L75) sub directory.  
+ Basic namelists files and standard xml are located in the [cfgs](../DCMTOOLS/DRAKKAR/NEMO4/cfgs/ORCA025.L75-nemo4) sub directory.  
 `ORCA025.L75_domain_cfg_v1.nc` file is available on [meom-opendap](https://ige-meom-opendap.univ-grenoble-alpes.fr/thredds/catalog/meomopendap/extract/NEMO4-cfg/ORCA025.L75/catalog.html?dataset=meomscanpublic/NEMO4-cfg/ORCA025.L75/ORCA025.L75_domain_cfg_v1.nc) 
 
     
