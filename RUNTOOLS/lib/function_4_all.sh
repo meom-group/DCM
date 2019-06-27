@@ -112,6 +112,15 @@ getinitdmp()        {
      fi
                     }
 # ---
+# Get ice initialisation if required
+geticeini()        {
+    tmp=$(LookInNamelist ln_iceini_file namelist_ice namini ) ; tmp=$(normalize $tmp)
+    if [ $tmp = T ] ; then
+      filter=''
+      blk=namini ;  getfiles $blk $P_DTA_DIR $F_DTA_DIR namelist_ice
+    fi
+                   }
+# ---
 # Get ice damping files if required.
 geticedmp()        {
      tmp=$(LookInNamelist ln_limdmp namelist_ice) ; tmp=$(normalize $tmp )

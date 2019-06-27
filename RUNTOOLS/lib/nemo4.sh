@@ -314,7 +314,7 @@ BDY=0
 # Ice model
 ICE_INI=0 ; ICE_DMP=0
 if [ $ICE = 1 ] ; then   # SI3
-    tmp=$(LookInNamelist ln_ice namelist_ice namini ) ; tmp=$(normalize $tmp)
+    tmp=$(LookInNamelist ln_iceini namelist_ice namini ) ; tmp=$(normalize $tmp)
     if [ $tmp = T ] ; then ICE_INI=1 ; fi
 
 #   No ice damping so far in SI3/NEMO4 ....
@@ -711,7 +711,10 @@ fi
 
 ## Ice initial condition only if no = 1
 if [ $ICE_INI = 1 -a $no -eq 1 ] ; then
-    rapatrie $ICEINI  $P_I_DIR $F_INI_DIR $NEMO_ICEINI
+    tmp=$(LookInNamelist ln_iceini_file namelist_ice namini ) ; tmp=$(normalize $tmp)
+    if [ $tmp = T ] ; then 
+       geticeini
+    fi
 fi
 
 ## Ice damping file 

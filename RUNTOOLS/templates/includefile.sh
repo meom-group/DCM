@@ -100,8 +100,7 @@ MERGE_EXEC=$P_UTL_DIR/bin/mergefile_mpp2.exe           # rebuild program (REBUIL
 # For the following files, if not relevant set the 'world' name to ''
 # set specific file names (data )(world name )                 ;   and their name in NEMO
 #--------------------------------------------------------------------------------------------------------
-# Ice initialiazation/damping
-ICEINI=Init_Ice_GLORYS1V1_NSIDC_BOOTSTRAP_y1989m01_new.nc      ; NEMO_ICEINI=Ice_initialization.nc
+# Ice damping  ! not available in si3 
 ICEDMP=                                                        ; NEMO_ICEDMP=ice_damping.nc
 
 # Sub-basin mask for diaptr diags ( mask should include  atlmsk pacmsk indmsk variables
