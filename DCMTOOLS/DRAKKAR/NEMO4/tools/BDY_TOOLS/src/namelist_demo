@@ -1,0 +1,26 @@
+!-----------------  DEMO namelist for bdy_coord_create ------------------------------------
+&nambdy 
+   nb_bdy         = 3         !  number of open boundary sets
+   ln_coords_file = .true.,.true.,.true.   !  =T : read bdy coordinates from file
+   cn_coords_file = 'sbdy_coordinate_file.nc','nbdy_coordinate_file.nc','wbdy_coordinate_file.nc' !  bdy coordinates files
+   nn_rimwidth  = 9,9,9           !  width of the relaxation zone
+
+&nambdy_index
+    ctypebdy = 'S'
+    nbdyind  =  3
+    nbdybeg  = 2
+    nbdyend  = 933
+/
+&nambdy_index
+    ctypebdy = 'N'
+    nbdyind  = 399
+    nbdybeg  = 2
+    nbdyend  = 933
+/
+&nambdy_index
+    ctypebdy = 'W'
+    nbdyind  = 76
+    nbdybeg  = 301
+    nbdyend  = 358
+/
+
