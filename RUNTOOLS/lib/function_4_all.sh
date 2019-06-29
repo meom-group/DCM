@@ -320,6 +320,15 @@ getzdfiwm() {
 # get BDY files 
 getbdy()  {
         nb_bdy=$(LookInNamelist nb_bdy namelist)
+        # (0) bdy_coordinates
+        ln_coords_file=( $(LookInNamelist ln_coords_file namelist | sed -e 's/,/ /g' ) )
+        cn_coords_file=( $(LookInNamelist cn_coords_file namelist | sed -e 's/,/ /g' ) )
+        for i in $( seq 0 $(( nb_bdy -1 )) ) ; do
+            tmp=${ln_coords_file[$i]}  ;  tmp=$(normalize $tmp )         
+            if [ $tmp = T ] ; then 
+               rapatrie ${cn_coords_file[$i]}  $P_BDY_DIR $F_BDY_DIR ${cn_coords_file[$i]}
+            fi
+        done
         # (1) data set for dyn2d:
         # get a list of comma separated integer (nb_bdy long)
         nn_dyn2d_dta_lst=($( LookInNamelist nn_dyn2d_dta  namelist | sed -e 's/,/ /g') ) 
