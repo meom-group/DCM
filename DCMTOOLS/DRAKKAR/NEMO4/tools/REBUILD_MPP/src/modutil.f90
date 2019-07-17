@@ -43,9 +43,9 @@ CONTAINS
        PRINT 9001 , mmpirank, nndone, 'DOMAIN_halo_size_start: ', sf_in%ihalo_size_start(:)
        PRINT 9001 , mmpirank, nndone, 'DOMAIN_halo_size_end: '  , sf_in%ihalo_size_end(:)
        PRINT 9002 , mmpirank, nndone, 'DOMAIN_type: '           , TRIM(sf_in%c_type)
-9000   FORMAT( I4.4,1x,i4, 1x, a22,i4)
-9001   FORMAT( I4.4,1x,i4, 1x, a22,i4,1x,i4)
-9002   FORMAT( I4.4,1x,i4, 1x, a22,a)
+9000   FORMAT( I5.5,1x,i5, 1x, a22,i5)
+9001   FORMAT( I5.5,1x,i5, 1x, a22,i5,1x,i5)
+9002   FORMAT( I5.5,1x,i5, 1x, a22,a)
     ENDIF
 
     ALLOCATE ( sf_out%nvdim   (sf_in%nvars) )
@@ -136,10 +136,10 @@ CONTAINS
             &                         xtype  = GetNcFile%itype(jvar),     &
             &                         ndims  = GetNcFile%nvdim(jvar),     &
             &                         dimids = GetNcFile%idimids(jvar,:), &
-            &                         nAtts  = GetNcFile%nvatt(jvar),     &
-            &                         contiguous = GetNcFile%lconti(jvar),   &
-            &                         chunksizes = GetNcFile%ichunk(jvar,:), &
-            &                         deflate_level = GetNcFile%ideflat(jvar)      )
+            &                         nAtts  = GetNcFile%nvatt(jvar)) ! ,     &
+!           &                         contiguous = GetNcFile%lconti(jvar),   &
+!           &                         chunksizes = GetNcFile%ichunk(jvar,:), &
+!           &                         deflate_level = GetNcFile%ideflat(jvar)      )
     END DO
     ! Look for attributes
     ierr = NF90_GET_ATT (GetNcFile%ncid, NF90_GLOBAL, 'DOMAIN_number_total'   , GetNcFile%number_total       )
@@ -322,6 +322,10 @@ CONTAINS
             ! x, y, z, t
             ichunk=(/sf_in%isize_local(:), 1, 1 /)
             ideflate = 1
+       CASE DEFAULT 
+            ! kt, rdt
+            ichunk=1
+            ideflate = 0
        END SELECT
 
        IF ( lg_nc3 ) THEN
@@ -331,6 +335,7 @@ CONTAINS
             &             sd_fout%idimids(jvar,1:sd_fout%nvdim(jvar) ) , &
             &             sd_fout%nvid(jvar)                             )
        ELSE
+         IF ( idimv /= 0 ) THEN
          ierr = NF90_DEF_VAR( sd_fout%ncid,                              &
             &             sd_fout%c_vnam(jvar),                          &
             &             sd_fout%itype(jvar),                           &
@@ -338,6 +343,12 @@ CONTAINS
             &             sd_fout%nvid(jvar),                            &
             &             chunksizes=ichunk(1:idimv),                    &
             &             deflate_level=ideflate                         )
+         ELSE
+         ierr = NF90_DEF_VAR( sd_fout%ncid,                              &
+            &             sd_fout%c_vnam(jvar),                          &
+            &             sd_fout%itype(jvar),                           &
+            &             sd_fout%nvid(jvar))
+         ENDIF
        ENDIF
 
        ! copy attribute
@@ -381,23 +392,37 @@ CONTAINS
     INTEGER(KIND=4) :: ii1, ii2, ij1, ij2       ! local working integer
     INTEGER(KIND=4) :: ierr                     ! ncdf error status
     INTEGER(KIND=4) :: ilen1, ilen2             ! working integer
-    INTEGER(KIND=4), DIMENSION(2) :: ihalo
+    INTEGER(KIND=4) :: inpi, inpj
+    INTEGER(KIND=4), DIMENSION(2) :: ihalos, ihaloe ! save halo_start and halo_end
 
     REAL(KIND=8), DIMENSION(:),   ALLOCATABLE :: dl_wrk_1d ! use dble precision always, reduction
     REAL(KIND=8), DIMENSION(:,:), ALLOCATABLE :: dl_wrk_2d ! to ad-hoc precision performed at write time
     TYPE(ncfile), DIMENSION(:),   ALLOCATABLE :: sl_fin    ! local subdomain file structure
+    ! Reduce the number of open files together, dividing the full set of files by nbloc
+    ! This allows a big reduction of the memory imprint ( working with O(1000) files per bloc is OK).
+    INTEGER(KIND=4) :: nbloc=1, ibloc_sz, ikr1, ikr2,iknrank, ijrank
     !!----------------------------------------------------------------------
     !      ierr = PrintNcFile(sd_fout)
     !      ierr = PrintNcFile(sf_in)
-    ALLOCATE ( sl_fin(knrank) )
-    IF (lg_verbose) PRINT '(i4.4,I4, 1x, a,1x, i3,1x,a)', mmpirank,nndone, ' OPEN THE ',knrank,' SUB-DOMAIN FILE'
-    DO jrank =1, knrank
+ ibloc_sz=knrank/nbloc
+ ikr1=1
+ ikr2=0
+ DO WHILE (ikr2 /=  knrank) 
+    ikr2=ikr1+ibloc_sz
+    IF ( ikr2 > knrank ) ikr2=knrank 
+    iknrank=ikr2-ikr1+1
+    
+    ALLOCATE ( sl_fin(iknrank) )
+    IF (lg_verbose) PRINT '(i5.5,I5, 1x, a,1x, i5,1x,a)', mmpirank,nndone, ' OPEN THE ',iknrank,' SUB-DOMAIN FILE'
+    PRINT *,' WORKING from ranks ', ikr1,' to ', ikr2
+    DO jrank =ikr1,ikr2
+       ijrank=jrank - ikr1 + 1
        WRITE(cf_in,'(a,i4.4,a)') TRIM(cf_root)//'_',jrank-1,'.nc'
-       sl_fin(jrank) = GetNcFile ( cf_in )
+       sl_fin(ijrank) = GetNcFile ( cf_in )
     ENDDO
 
     DO jvar = 1 , sd_fout%nvars 
-       PRINT '(i4.4,i4,1x,a,i4,1x, a,a,i3)', mmpirank,nndone, 'merge variable ', jvar, TRIM(sd_fout%c_vnam(jvar)), &
+       PRINT '(i5.5,i5,1x,a,i5,1x, a,a,i3)', mmpirank,nndone, 'merge variable ', jvar, TRIM(sd_fout%c_vnam(jvar)), &
             &  ' dimension : ', sd_fout%nvdim(jvar)
        SELECT CASE ( sd_fout%nvdim(jvar) )
        CASE ( 1 )  ! depth or time
@@ -417,39 +442,48 @@ CONTAINS
              ierr= NF90_PUT_VAR(sd_fout%ncid, sd_fout%nvid(jvar),   dl_wrk_2d )
              DEALLOCATE (dl_wrk_2d )
           ELSE ! nav_lon nav_lat
-            DO jrank = 1, knrank
-               ii1=sl_fin(jrank)%iposition_first(1)  ; ii2=ii1+sl_fin(jrank)%npi-1
-               ij1=sl_fin(jrank)%iposition_first(2)  ; ij2=ij1+sl_fin(jrank)%npj-1
-               ALLOCATE (dl_wrk_2d (sl_fin(jrank)%npi, sl_fin(jrank)%npj ) )
+            DO jrank = ikr1,ikr2
+               ijrank=jrank - ikr1 + 1
+               ii1=sl_fin(ijrank)%iposition_first(1)  ; ii2=ii1+sl_fin(ijrank)%npi-1
+               ij1=sl_fin(ijrank)%iposition_first(2)  ; ij2=ij1+sl_fin(ijrank)%npj-1
+               ihalos(:) = sl_fin(ijrank)%ihalo_size_start(:)
+               ihaloe(:) = sl_fin(ijrank)%ihalo_size_end(:)
+               inpi=sl_fin(ijrank)%npi
+               inpj=sl_fin(ijrank)%npj
+               ALLOCATE (dl_wrk_2d (inpi,inpj ) )
                dl_wrk_2d=0.d0
-               ierr= NF90_GET_VAR(sl_fin(jrank)%ncid,  sl_fin(jrank)%nvid(jvar),   dl_wrk_2d )
-               IF ( lg_coord ) THEN
-                  SELECT CASE ( sl_fin(jrank)%c_vnam(jvar) )
+               ierr= NF90_GET_VAR(sl_fin(ijrank)%ncid,  sl_fin(ijrank)%nvid(jvar),   dl_wrk_2d )
+               IF ( lg_coord ) THEN  ! JMM check nav_lon/nav_lat
+                  SELECT CASE ( sl_fin(ijrank)%c_vnam(jvar) )
                   CASE ('nav_lon') 
-                     WHERE ( dl_wrk_2d == 0 )  dl_wrk_2d = dglam(ii1:ii2, ij1:ij2 )
+                     WHERE ( dl_wrk_2d == 0 .OR. dl_wrk_2d > 200. )  dl_wrk_2d = dglam(ii1:ii2, ij1:ij2 )
                   CASE ('nav_lat') 
-                     WHERE ( dl_wrk_2d == 0 )  dl_wrk_2d = dgphi(ii1:ii2, ij1:ij2 )
+                     WHERE ( dl_wrk_2d == 0 .OR. dl_wrk_2d > 200. )  dl_wrk_2d = dgphi(ii1:ii2, ij1:ij2 )
                 END SELECT
                ENDIF
 
                ierr= NF90_PUT_VAR( sd_fout%ncid,  sd_fout%nvid(jvar), dl_wrk_2d ,                   &
-                    & start=(/ii1,ij1/), count=(/sl_fin(jrank)%npi,sl_fin(jrank)%npj/) )
+                    & start=(/ii1,ij1/), count=(/inpi,inpj/) )
                DEALLOCATE ( dl_wrk_2d )
             END DO
           ENDIF
        CASE ( 3 )   ! likely to be x, y, t fields 
           ! loop on dim 3
           DO j3 = 1, sd_fout%nlen(sd_fout%idimids(jvar,3))
-             DO jrank = 1, knrank
-                ihalo(:) = sl_fin(jrank)%ihalo_size_start(:)
-                ii1=sl_fin(jrank)%iposition_first(1)  ; ii2=ii1+sl_fin(jrank)%npi-1
-                ij1=sl_fin(jrank)%iposition_first(2)  ; ij2=ij1+sl_fin(jrank)%npj-1
-                ALLOCATE (dl_wrk_2d (sl_fin(jrank)%npi, sl_fin(jrank)%npj ) )
+             DO jrank = ikr1,ikr2
+                ijrank=jrank - ikr1 + 1
+                ihalos(:) = sl_fin(ijrank)%ihalo_size_start(:)
+                ihaloe(:) = sl_fin(ijrank)%ihalo_size_end(:)
+                ii1=sl_fin(ijrank)%iposition_first(1)  ; ii2=ii1+sl_fin(ijrank)%npi-1
+                ij1=sl_fin(ijrank)%iposition_first(2)  ; ij2=ij1+sl_fin(ijrank)%npj-1
+                inpi=sl_fin(ijrank)%npi-ihaloe(1)
+                inpj=sl_fin(ijrank)%npj-ihaloe(2)
+                ALLOCATE (dl_wrk_2d (inpi,inpj ) )
                 dl_wrk_2d=0.d0
-                ierr = NF90_GET_VAR( sl_fin(jrank)%ncid,  sl_fin(jrank)%nvid(jvar),  dl_wrk_2d ,              &
-                     &  start=(/ 1 + ihalo(:), j3 /), count=(/sl_fin(jrank)%npi,sl_fin(jrank)%npj,1/) )
+                ierr = NF90_GET_VAR( sl_fin(ijrank)%ncid,  sl_fin(ijrank)%nvid(jvar),  dl_wrk_2d ,              &
+                     &  start=(/ 1 + ihalos(:), j3 /), count=(/inpi,inpj,1/) )
                 ierr = NF90_PUT_VAR( sd_fout%ncid, sd_fout%nvid(jvar), dl_wrk_2d ,                            &
-                     & start=(/ ii1,ij1, j3/),  count=(/sl_fin(jrank)%npi,sl_fin(jrank)%npj,1/) )
+                     & start=(/ ii1,ij1, j3/),  count=(/inpi,inpj,1/) )
                 DEALLOCATE ( dl_wrk_2d )
              ENDDO
           END DO
@@ -457,28 +491,37 @@ CONTAINS
           ! loop on dim 4 and 3
           DO j4 = 1, sd_fout%nlen(sd_fout%idimids(jvar,4))
              DO j3 = 1, sd_fout%nlen(sd_fout%idimids(jvar,3))
-                DO jrank = 1, knrank
-                   ihalo(:) = sl_fin(jrank)%ihalo_size_start(:)
-                   ii1=sl_fin(jrank)%iposition_first(1)  ; ii2=ii1+sl_fin(jrank)%npi-1
-                   ij1=sl_fin(jrank)%iposition_first(2)  ; ij2=ij1+sl_fin(jrank)%npj-1
-                   ALLOCATE (dl_wrk_2d (sl_fin(jrank)%npi, sl_fin(jrank)%npj ) )
+                DO jrank = ikr1,ikr2
+                   ijrank=jrank - ikr1 + 1
+                   ihalos(:) = sl_fin(ijrank)%ihalo_size_start(:)
+                   ihaloe(:) = sl_fin(ijrank)%ihalo_size_end(:)
+                   ii1=sl_fin(ijrank)%iposition_first(1)  ; ii2=ii1+sl_fin(ijrank)%npi-1
+                   ij1=sl_fin(ijrank)%iposition_first(2)  ; ij2=ij1+sl_fin(ijrank)%npj-1
+                   inpi=sl_fin(ijrank)%npi-ihaloe(1)
+                   inpj=sl_fin(ijrank)%npj-ihaloe(2)
+                   ALLOCATE (dl_wrk_2d (inpi,inpj ) )
                    dl_wrk_2d=0.d0
-                   ierr = NF90_GET_VAR( sl_fin(jrank)%ncid,  sl_fin(jrank)%nvid(jvar),  dl_wrk_2d ,                   &
-                        &  start=(/ 1 + ihalo(:), j3 ,j4/), count=(/sl_fin(jrank)%npi,sl_fin(jrank)%npj,1/) )
+                   ierr = NF90_GET_VAR( sl_fin(ijrank)%ncid,  sl_fin(ijrank)%nvid(jvar),  dl_wrk_2d ,                   &
+                        &  start=(/ 1 + ihalos(:), j3 ,j4/), count=(/inpi,inpj,1/) )
                    ierr = NF90_PUT_VAR( sd_fout%ncid, sd_fout%nvid(jvar), dl_wrk_2d ,                                 &
-                        & start=(/ ii1,ij1, j3,j4/),  count=(/sl_fin(jrank)%npi,sl_fin(jrank)%npj,1,1/) )
+                        & start=(/ ii1,ij1, j3,j4/),  count=(/inpi,inpj,1,1/) )
                    DEALLOCATE ( dl_wrk_2d )
                 ENDDO
              ENDDO
           ENDDO
        END SELECT
     ENDDO
-    ierr = NF90_CLOSE(sd_fout%ncid )
 
-    DO jrank = 1, knrank
-       ierr = NF90_CLOSE(sl_fin(jrank)%ncid )
+    DO jrank = ikr1,ikr2
+       ijrank=jrank - ikr1 + 1
+       ierr = NF90_CLOSE(sl_fin(ijrank)%ncid )
     ENDDO
     DEALLOCATE ( sl_fin) 
+    ierr = NF90_SYNC(sd_fout%ncid )
+
+    ikr1=ikr2+1
+ENDDO
+    ierr = NF90_CLOSE(sd_fout%ncid )
 
   END SUBROUTINE FillMergedFile
 
