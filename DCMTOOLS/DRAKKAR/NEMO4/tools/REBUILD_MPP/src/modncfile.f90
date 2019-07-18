@@ -7,6 +7,7 @@ MODULE modncfile
      INTEGER(KIND=4)                              :: nvars   ! number of vars
      INTEGER(KIND=4)                              :: natts   ! number of global attributes
      INTEGER(KIND=4)                              :: iunlim  ! ID of unlimited dimension
+     INTEGER(KIND=4)                              :: kdimid  ! ID of vertical dimension
      INTEGER(KIND=4)                              :: npi     ! i-size of file
      INTEGER(KIND=4)                              :: npj     ! j-size of file
      INTEGER(KIND=4)                              :: npk     ! k-size of file
@@ -57,6 +58,8 @@ MODULE modncfile
   LOGICAL           :: lg_rename     = .FALSE. ! flag for renaming the output file to drakkar standards
   LOGICAL           :: lg_nc3        = .FALSE. ! flag for creating netcdf3 files instead of netcdf4
   LOGICAL           :: lg_verbose    = .FALSE. ! flag for increased verbosity
+  LOGICAL           :: lg_win        = .FALSE. ! flag for screening output.
+  LOGICAL           :: lg_kmax       = .FALSE. ! flag for limiting the vertical levels on output
 
   REAL(KIND=8), DIMENSION(:,:), ALLOCATABLE :: dglam, dgphi   ! longitude, latitude from coordinate file
   INTEGER(KIND=4) :: mmpirank=0, nndone =1    ! dummy variables to mimic MPP behaviour

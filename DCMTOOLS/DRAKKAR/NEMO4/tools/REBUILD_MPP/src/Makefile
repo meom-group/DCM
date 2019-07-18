@@ -1,7 +1,7 @@
 NCDF = -I$(NETCDF_INCDIR) -I$(NETCDFF_INCDIR) $(NETCDF_LDFLAGS) $(NETCDFF_LDFLAGS)
 
-
-#FFLAGS= -O0 $(NCDF) $(NC4) -assume byterecl -convert big_endian -CB -fpe0 -ftrapuv -traceback -g
+#FFLAGS= -O2 $(NCDF) $(NC4)  -CB -fpe0 -ftrapuv -traceback -g  -fp-model precise
+#FFLAGS= -O2 $(NCDF) $(NC4)  -CB  -traceback -g
 FFLAGS= -O2  $(NCDF) $(NC4) -fp-model precise
 F90=ifort
 MPF90=mpif90
