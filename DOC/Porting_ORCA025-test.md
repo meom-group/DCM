@@ -18,7 +18,7 @@ We choose to port the very last version of ORCA025 ran in MEOM : ORCA025-GJM189.
    ```
    namelist.ORCA025.L75-GJM189.36c
    ```
-   Then splitted filed were recombined into a single file, renamed `
+   Then splitted files were recombined into a single file, renamed ``
 
    > note that a newtool `dcmtk_dom_doc` compiled together with `DOMAINcfg` tool allow to add extra global attributes `source_bathy` and `source_coord`, as well as a `namelist_cfg` variables holding the full content of the used namelist when processing `domain_cfg` file.  
    > `sed` lovers will appreciate the following command for extracting the encoded `namelist_cfg` :)  
