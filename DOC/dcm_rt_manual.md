@@ -27,6 +27,9 @@
     - More informations will be given for advanced users willing non standard variables or defining sub domains.
  * **data** files such as initial conditions, domain configuration, atmospheric forcing etc...
     - In NEMO4, most of the data file are defined as a namelist parameter. 
+    - The `domain_cfg.nc` configuration file is a new feature in NEMO4. It replaces the `coordinates.nc` and `bathy_meter.nc` files and includes the definition of the vertical grid
+(no more initialized within NEMO, as it was the case in previous versions). A specific tool (`DOMAIN_cfg`) is dedicated to the building of the `domain_cfg.nc` file from files and namelist used 
+in NEMO-3.6. See the [appendix](#domain_cfg-tool-) for instruction how to prepare the `domain_cfg.nc` file.
 
 
  In order to run NEMO, the principle is to have all the runtime files in a common directory, together with `nemo4.exe` and `xios_server.exe` and issue (for instance -- there are variant according to the HPC system--) a command like :
@@ -301,6 +304,23 @@ in scalability experiment). You also need to setup the `<CONFIG>-<CASE>.db` in o
     > Scalability experiments are an iterative process where you need to tune some parameters, such as the number of xios server you are requiring etc... This first and rather quick view of the scalability performance for a particular configuration helps you to choose an optimal number of cores. Then you may refine the experiment around this sweet point, in order to achieve the best performance before going to a production run.
 
 ## Appendix
+### DOMAIN_cfg tool:
+ This tool (proposed by NEMO ST) is aiming at creating the required `domain_cfg.nc` file from information used in NEMO3.6 ( namelist, coordinates.nc and bathy_meter.nc). In DCM, some fixes where added in order to be fully compliant with DRAKKAR namelist. In addition (DCM goodies!), `dcmtk_dom_doc.exe` can be used to encode the namelist_cfg and names of bathymetry and coordinates used when building the domain_cfg.nc file, in order to have a full tracability of the domain_cfg file (in particular, the namdom coefficient for the vertical grid are important to record if the same vertical grid need to be reproduced.)  
+#### Compiling DOMAIN_cfg tool:
+ In order to compile the tool, the best way in the following:
+
+```
+    cd $UDIR/CONFIG_<CONFIG>-<CASE>
+    dcm_mktools -n DOMAIN_cfg -m <ARCH> -c <CONFIG>-<CASE>
+```
+
+where `<ARCH>` is the same used for compiling NEMO (see MACHINE in the makefile *e.g.* X64_OCCIGEN2 ). At the end of the compilation, a message indicates where you can find the executables. Go there and copy/move all the .exe files and template namelists to the directory where you build the domain_cfg.nc file.
+
+#### Using make_domain_cfg.exe
+
+#### Using dcmtk_dom_doc.exe 
+
+
 ### REBUILD_MPP tool:
   In order to compile this rebuild tool (allowing parallel rebuild), the best way is  the following:
 
@@ -312,19 +332,23 @@ in scalability experiment). You also need to setup the `<CONFIG>-<CASE>.db` in o
 where `<ARCH>` is the same used for compiling NEMO (see MACHINE in the makefile *e.g.* X64_OCCIGEN2 ). At the end of the compilation, a message indicates where you can find the executables. Go there and copy/move all the .exe files into `$WORKDIR/bin` (*i.e.* a directory in your PATH). There are many executables according to the scheme of parallelization, but they have all the same user interface, and in the DCM running script, `mergefile_mpp4.exe` is used as standard (and user can use it blindly !). Just for information, usage of mergefile series is :
 
    ```
-   usage :  mergefile_mpp4.exe -F | -f <file*>_0000.nc  [-c coordinate_file ] ...
-           [ -d output_directory] [ -r ] [-nc3] [-v]
+  usage :  mergefile4 -F | -f <file*>_0000.nc  [-c coordinate_file ] ...
+           [-d output_directory] [-r ] [-nc3] [-v] [-kmax K-max] ...
+           [-w imin imax jmin jmax] [-b BLOCK-number] [-encoding ndigit]
        
       PURPOSE :
           This program recombine splitted netcd files into a single global file.
        
       ARGUMENTS :
-         use either one of the follwing ( not both) :
+        Use either one of the following ( not both) :
          -F : takes all possible _0000.nc files in current directory
             This option has been introduced to overrid shell limitations 
             regarding the length of the arguments.
         or :
-         -f <file*>_0000.nc : list of full name of rank 0 <file*> to be rebuild (deprecated).
+         -f <file*>_0000.nc : list of full name of rank 0 <file*> to be rebuild
+  
+        If the number of digit used for coding the rank number in the file
+        names is not 4, condider the use of -encoding option.
        
       OPTIONS :
          -c coordinates file : Use coordinate file to patch nav_lon,nav_lat
@@ -335,6 +359,26 @@ where `<ARCH>` is the same used for compiling NEMO (see MACHINE in the makefile 
                (-r option supersedes the -d option.) 
          -nc3: Create netcdf3 files instead of default netcdf4 
          -v  : Verbose, more informations on output
+         -w imin imax jmin jmax : Only rebuild the sub-domain that are within 
+               the specified windows (in model coordinates).  This is usefull
+               when rebuilding HUGE restart file having in mind to use only
+               a sub zone of the total domain. Using this option reduces the
+               time of the rebuild. However, the resulting file is still on
+               the total domain and will need some croping afterward.
+               Default behaviour is to rebuild the total domain.
+         -kmax K-max : define the maximum number of level to be processed in
+               the merged output file. (Usefull with -w option).
+         -b BLOCK-number : This option was written in order to reduce the 
+               number of files opened simultaneously during the rebuild.
+               The total number of (mpp) files will be processed by blocks.
+               BLOCK-number is the number of blocks you choose. Default is 1.
+               This option can considerably reduce the memory imprint, linked
+               with the massive opening of all the mpp files together.
+               As a rule of thumb, BLOCK-number can be choosen in order to
+               block size ranging from 1000 to 2000. It of course depends on
+               the available memory.
+         -encoding ndigit : indicates the number of digits used for coding
+               the rank number in the mpp file's names. Default is 4
        
       REQUIRED FILES :
          none
@@ -344,5 +388,5 @@ where `<ARCH>` is the same used for compiling NEMO (see MACHINE in the makefile 
         variables    : same than in <file>_0000.nc file
        
       SEE ALSO :
-       rebuild_nemo, splitfile 
+       rebuild_nemo, splitfile
    ```
