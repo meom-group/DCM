@@ -334,6 +334,9 @@ print *, 'JMMMM : ', sf_out%nlen(sf_out%kdimid)
              ! axis_bound, time variable or depth
              ichunk(1:2)=(/sd_fout%nlen(sd_fout%idb),1/)
              ideflate = 0
+          ELSE IF (sd_fout%idimids(jvar,2) == sd_fout%iunlim ) THEN  ! z,t  variables ? or x,t or y t ? 
+             ichunk(1:2)=(/sd_fout%nlen(sd_fout%idimids(jvar,1)),1/)
+             ideflate = 0
           ELSE
              ! x, y variables ( nav_lon, nav_lat )
              ichunk(1:2)=sf_in%isize_local(:)
@@ -479,7 +482,8 @@ print *, 'JMMMM : ', sf_out%nlen(sf_out%kdimid)
              ierr= NF90_PUT_VAR(sd_fout%ncid, sd_fout%nvid(jvar), dl_wrk_1d )
              DEALLOCATE ( dl_wrk_1d )
           CASE ( 2 )   ! in general can be nav_lon, nav_lat or  variable (:, axis_nbounds) 
-             IF ( sd_fout%idimids(jvar,1) == sd_fout%idb ) THEN ! bounds variable,  same for all ranks
+                       ! in domain_cfg file can also be a z,t file
+             IF ( sd_fout%idimids(jvar,1) == sd_fout%idb .OR. sd_fout%idimids(jvar,2) == sd_fout%iunlim ) THEN ! bounds variable,  same for all ranks
                 ilen1=sf_in%nlen(sd_fout%idimids(jvar,1))
                 ilen2=sf_in%nlen(sd_fout%idimids(jvar,2))
                 ALLOCATE (dl_wrk_2d (ilen1,  ilen2 ) )
