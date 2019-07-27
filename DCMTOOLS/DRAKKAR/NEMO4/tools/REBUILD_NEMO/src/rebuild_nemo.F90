@@ -172,7 +172,10 @@ PROGRAM rebuild_nemo
    NAMELIST/nam_rebuild/ filebase, ndomain, dims, nslicesize, l_maskout, deflate_level, &
                        & nc4_xchunk, nc4_ychunk, nc4_zchunk, nc4_tchunk, fchunksize         
 
-   external      :: getarg
+! Add on for coordinate file
+  INTEGER(i4) :: ncidc, id
+  REAL(sp), ALLOCATABLE, DIMENSION(:,:) :: glam, gphi   ! for nav_lon, nav_lat from  coordinate file
+  CHARACTER(LEN=80) :: cl_glam, cl_gphi, cl_grid, cl_coor='coordinates.nc'
 
    !End of definitions 
 
