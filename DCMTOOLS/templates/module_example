@@ -55,6 +55,7 @@ setenv          RUNTOOLS        ${runtool_path}
 
 prepend-path    PATH            ${base_path}/bin
 prepend-path    PATH            ${runtool_path}/toolkit
+prepend-path    PATH            ${runtool_path}/bin
 
 #
 if {[module-info mode load]==1} {
