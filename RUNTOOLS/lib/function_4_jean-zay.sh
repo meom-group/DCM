@@ -29,7 +29,8 @@
 # copy : a wrap up for scp or cp 
 copy()    { cp $1 $2 ; }
 rcopy()   { cp $1 $2 ; }
-copyfor() { ln -sf $1 $2 ;}
+#copyfor() { ln -sf $1 $2 ;}
+copyfor() { cp  $1 $2 ;}
 # ---
 
 # rapatrie is a shell function which tries to copy $1 on the local dir with the name $4
