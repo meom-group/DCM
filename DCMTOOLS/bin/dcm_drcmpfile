@@ -40,7 +40,7 @@ while getopts :hx:a:t opt ; do
    (h)  usage ;;
    (t)  noxdiff=1 ;;
    (x)  XDIFF=${OPTARG} ;;
-   (x)  ALT=${OPTARG} ;;
+   (a)  ALT=${OPTARG} ;;
    (\?) echo $(basename $0 )" : -"$OPTARG" option not supported" ; usage ;;
   esac
 done
