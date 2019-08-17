@@ -21,7 +21,7 @@ PROGRAM bdy_coord_create
 
   INTEGER(KIND=4) :: numnam=10
   INTEGER(KIND=4) :: numnamd=11
-  INTEGER(KIND=4) :: nb_bdy, n0=0
+  INTEGER(KIND=4) :: nb_bdy, n0=0, ir
   INTEGER(KIND=4) :: nbdyind,nbdybeg,nbdyend
   INTEGER(KIND=4), DIMENSION(jpbdy) :: nn_rimwidth
 
