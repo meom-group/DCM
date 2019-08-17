@@ -21,7 +21,7 @@ PROGRAM bdy_coord_create
 
   INTEGER(KIND=4) :: numnam=10
   INTEGER(KIND=4) :: numnamd=11
-  INTEGER(KIND=4) :: nb_bdy
+  INTEGER(KIND=4) :: nb_bdy, n0=0
   INTEGER(KIND=4) :: nbdyind,nbdybeg,nbdyend
   INTEGER(KIND=4), DIMENSION(jpbdy) :: nn_rimwidth
 
@@ -31,6 +31,7 @@ PROGRAM bdy_coord_create
   CHARACTER(LEN=80), DIMENSION(jpbdy) :: cn_coords_file
 
   LOGICAL, DIMENSION(jpbdy)  :: ln_coords_file
+  LOGICAL                    :: ll_rim0=.FALSE.
 
   NAMELIST/nambdy/ nb_bdy, ln_coords_file, cn_coords_file, nn_rimwidth
   NAMELIST/nambdy_index/ctypebdy,nbdyind,nbdybeg,nbdyend 
@@ -38,7 +39,7 @@ PROGRAM bdy_coord_create
   narg = iargc()
 
   IF ( narg == 0 ) THEN
-     PRINT *,' usage : bdy_coord_create -n namelist [-p] '
+     PRINT *,' usage : bdy_coord_create -n namelist [-p] [-rim0]'
      PRINT *,'      '
      PRINT *,'     PURPOSE :'
      PRINT *,'       Create bdy_coordinates file from nambdy_index information.' 
@@ -49,6 +50,7 @@ PROGRAM bdy_coord_create
      PRINT *,'            cn_coords_file and nn_rimwidth.' 
      PRINT *,'      '
      PRINT *,'     OPTIONS :'
+     PRINT *,'       -rim0 : create a nbr=0 for bdy+second order numerical scheme'
      PRINT *,'       -p : print a template namelist namlist.tmpl to be edited to fit user'
      PRINT *,'            requirement.' 
      PRINT *,'      '
@@ -70,6 +72,7 @@ PROGRAM bdy_coord_create
      CASE ( '-n'   ) ; CALL getarg(ijarg, cf_namlist ) ; ijarg=ijarg+1
         ! option
      CASE ( '-p'   ) ; CALL PrintNamelist ; STOP
+     CASE ( '-rim0') ; ll_rim0=.TRUE. ; n0=1
      CASE DEFAULT    ; PRINT *, ' ERROR : ', TRIM(cldum),' : unknown option.'; STOP 1
      END SELECT
   ENDDO
@@ -82,6 +85,11 @@ PROGRAM bdy_coord_create
    PRINT *, nb_bdy
    DO jb=1, nb_bdy
      PRINT *, 'BDY ',jb,' : ', ln_coords_file(jb), TRIM(cn_coords_file(jb) ), nn_rimwidth(jb)
+     IF ( ll_rim0 ) THEN
+       PRINT *,'        starts at rim=0'
+     ELSE
+       PRINT *,'        starts at rim=1'
+     ENDIF
    ENDDO
    REWIND(numnam)  ! only once 
    DO jb =1, nb_bdy
@@ -134,7 +142,7 @@ CONTAINS
     INTEGER(KIND=4)                            :: idy, idxt, idxu, idxv
     !!----------------------------------------------------------------------
     ilen  = (kbdyend - kbdybeg + 1)
-    ixsiz = ilen * krim
+    ixsiz = ilen * (krim + n0 )
 
     ALLOCATE ( nbit(ixsiz), nbjt(ixsiz), nbrt(ixsiz) )
     ALLOCATE ( nbiu(ixsiz), nbju(ixsiz), nbru(ixsiz) )
@@ -167,6 +175,24 @@ CONTAINS
     CASE ('S')
         ! Boundary is set at V , J point, T U at J
         ii=0
+        IF ( ll_rim0 ) THEN
+           ir=0
+           DO jl=1,ilen
+              ii= ii + 1
+              nbjv(ii) = kbdyind + ir -1 
+              nbjt(ii) = nbjv(ii)
+              nbju(ii) = nbjv(ii)
+
+              nbiv(ii) = kbdybeg + jl -1
+              nbit(ii) = nbiv(ii)
+              nbiu(ii) = nbiv(ii)
+
+              nbrv(ii) = ir
+              nbrt(ii) = ir
+              nbru(ii) = ir
+           ENDDO
+        ENDIF
+              
         DO jr=1,krim
            DO jl=1,ilen
               ii = ii + 1
@@ -186,6 +212,23 @@ CONTAINS
     CASE ('W')
         ! Boundary is set at U , I point, T U at I
         ii=0
+        IF ( ll_rim0 ) THEN
+           ir=0
+           DO jl=1,ilen
+              ii= ii + 1
+              nbiu(ii) = kbdyind + ir -1
+              nbit(ii) = nbiu(ii)
+              nbiv(ii) = nbiu(ii)
+
+              nbju(ii) = kbdybeg + jl -1
+              nbjt(ii) = nbju(ii)
+              nbjv(ii) = nbju(ii)
+
+              nbrv(ii) = ir
+              nbrt(ii) = ir
+              nbru(ii) = ir
+           ENDDO
+        ENDIF
         DO jr=1,krim
            DO jl=1,ilen
               ii = ii + 1
@@ -205,6 +248,23 @@ CONTAINS
 
     CASE ('N')
         ii=0
+        IF ( ll_rim0 ) THEN
+           ir=0
+           DO jl=1,ilen
+              ii= ii + 1
+              nbjv(ii) = kbdyind - ir + 1
+              nbjt(ii) = nbjv(ii) + 1
+              nbju(ii) = nbjv(ii) + 1
+
+              nbiv(ii) = kbdybeg + jl - 1
+              nbit(ii) = nbiv(ii)
+              nbiu(ii) = nbiv(ii)
+
+              nbrv(ii) = ir
+              nbrt(ii) = ir
+              nbru(ii) = ir
+           ENDDO
+        ENDIF
         DO jr=1,krim
            DO jl=1,ilen
               ii = ii + 1
@@ -223,6 +283,23 @@ CONTAINS
         ENDDO
     CASE ('E')
         ii=0
+        IF ( ll_rim0 ) THEN
+           ir=0
+           DO jl=1,ilen
+              ii= ii + 1
+              nbiu(ii) = kbdyind - ir + 1
+              nbit(ii) = nbiu(ii) + 1
+              nbiv(ii) = nbiu(ii) + 1
+
+              nbju(ii) = kbdybeg + jl - 1
+              nbjt(ii) = nbju(ii)
+              nbjv(ii) = nbju(ii)
+
+              nbrv(ii) = ir
+              nbrt(ii) = ir
+              nbru(ii) = ir
+           ENDDO
+        ENDIF
         DO jr=1,krim
            DO jl=1,ilen
               ii = ii + 1
