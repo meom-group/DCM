@@ -54,7 +54,6 @@ PROGRAM bdy_mk_coordinates
 
   LOGICAL            :: ll_data=.FALSE.
 
-
   !!---------------------------------------------------------------------
   narg=iargc()
   iioff=1
@@ -63,7 +62,7 @@ PROGRAM bdy_mk_coordinates
      PRINT *,'   '
      PRINT *,'  usage : bdy_mk_coordinates_from_file -f RIM-file -t BDY-type'
      PRINT *,'          [-o BDY-coordinates-file] [-offset I-offset J-offset]'
-     PRINT *,'          [-data DTASET-name]'
+     PRINT *,'          [-data ]'
      PRINT *,'   '
      PRINT *,'  PURPOSE :'
      PRINT *,'     Build bdy coordinates file from rim file. At this stage this program'
@@ -87,12 +86,8 @@ PROGRAM bdy_mk_coordinates
      PRINT *,'        general work is done locally on a smaller domain around the bdy.'
      PRINT *,'        Iglobal = Ilocal + I-offset -1'
      PRINT *,'        Jglobal = Jlocal + J-offset -1'
-     PRINT *,'    -data DTASET-name : This is the base name of a pre-computed data set '
-     PRINT *,'        corresponding to the working boundary, associated with the rim-file.'
-     PRINT *,'        The program will look for <VAR>_DTASET-name.nc files with <VAR> in :'
-     PRINT *,'        votemper, vosaline,vozocrtx,vomecrty, sossheig,ileadfra,iicethic.'
-     PRINT *,'        If a file is not found, assumes that this variable is not required'
-     PRINT *,'        at the boundaries.'
+     PRINT *,'    -data  : This option forces the program to build bdy_data files from'
+     PRINT *,'        pre processed input files for all required variables'
      PRINT *,'   '
      PRINT *,'  REQUIRED FILES :'
      PRINT *,'    none'
@@ -296,12 +291,17 @@ CONTAINS
           STOP 'ERROR 1'
        ENDIF
        ALLOCATE (zdata(npiglo,npjglo) )
-       ierr = NF90_INQ_DIMID(incid,cd_var,id)
+       ierr = NF90_INQ_VARID(incid,cd_var,id)
+       IF ( ierr /= NF90_NOERR)      PRINT *,' INQ_VAR_ID :', TRIM(NF90_STRERROR(ierr))
        CALL CreateOutput(clf_in,cd_var,ipkglo, incout, idout)
        DO jt=1,ipt
           DO jk=1, ipkglo
-             ierr = NF90_GET_VAR(incid,id,zdata,start=(/1,1,jk,jt/), count=(/npiglo,npjglo,1,1/) )
-             PRINT *,NF90_STRERROR(ierr)
+             IF ( ipkglo == 1 ) THEN
+               ierr = NF90_GET_VAR(incid,id,zdata,start=(/1,1,jt/), count=(/npiglo,npjglo,1/) )
+             ELSE
+               ierr = NF90_GET_VAR(incid,id,zdata,start=(/1,1,jk,jt/), count=(/npiglo,npjglo,1,1/) )
+             ENDIF
+             IF ( ierr /= NF90_NOERR)      PRINT *,' GET_VAR:', TRIM(NF90_STRERROR(ierr))
              SELECT CASE ( cd_typ)
              CASE ('T') ; nbi=nbit ; nbj=nbjt
              CASE ('U') ; nbi=nbiu ; nbj=nbju
@@ -312,7 +312,11 @@ CONTAINS
                 ij=nbj(jx)
                 zbdydata(jx) = zdata(ii,ij)
              ENDDO
-             ierr = NF90_PUT_VAR(incout,idout,zbdydata(:), start=(/1,jk,jt/), count=(/nxt,1,1/) )
+             IF (ipkglo == 1 ) THEN
+               ierr = NF90_PUT_VAR(incout,idout,zbdydata(:), start=(/1,1,jt/), count=(/nxt,1,1/) )
+             ELSE
+               ierr = NF90_PUT_VAR(incout,idout,zbdydata(:), start=(/1,1,jk,jt/), count=(/nxt,1,1,1/) )
+             ENDIF
           ENDDO
        ENDDO
        ierr = NF90_CLOSE(incout)
