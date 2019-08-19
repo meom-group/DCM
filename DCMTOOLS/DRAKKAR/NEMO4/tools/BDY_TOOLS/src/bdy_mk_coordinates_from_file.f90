@@ -39,7 +39,6 @@ PROGRAM bdy_mk_coordinates
   REAL(KIND=4), DIMENSION(:,:),  ALLOCATABLE :: v2d,zwk
 
   CHARACTER(LEN=255) :: cf_rim 
-  CHARACTER(LEN=255) :: cf_dta='none'
   CHARACTER(LEN=255) :: cv_rim ="Bathymetry"  ! BMGTOOLS does it !
   CHARACTER(LEN=255) :: c_dimx ="x"         
   CHARACTER(LEN=255) :: c_dimy ="y"        
@@ -117,9 +116,9 @@ PROGRAM bdy_mk_coordinates
         ! options
      CASE ( '-o'     ) ; CALL getarg(ijarg,cf_out  ) ; ijarg=ijarg+1
      CASE ( '-offset') ; CALL getarg(ijarg,cldum   ) ; ijarg=ijarg+1 ; READ(cldum,*) iioff
-        ;            ; CALL getarg(ijarg,cldum   ) ; ijarg=ijarg+1 ; READ(cldum,*) ijoff
-     CASE ( '-data  ') ; CALL getarg(ijarg,cf_dta  ) ; ijarg=ijarg+1 ; ll_data=.TRUE.
-     CASE DEFAULT    ; PRINT *, ' ERROR : ', TRIM(cldum),' : unknown option.'; STOP 1
+        ;              ; CALL getarg(ijarg,cldum   ) ; ijarg=ijarg+1 ; READ(cldum,*) ijoff
+     CASE ( '-data  ') ; ll_data=.TRUE.
+     CASE DEFAULT      ; PRINT *, ' ERROR : ', TRIM(cldum),' : unknown option.'; STOP 1
 
      END SELECT
   ENDDO
@@ -198,18 +197,17 @@ PROGRAM bdy_mk_coordinates
   DEALLOCATE( v2d, zwk)
 
   IF (ll_data) THEN
-     CALL CreateData(cn_votemper,cf_dta,'T')
-     CALL CreateData(cn_vosaline,cf_dta,'T')
-     CALL CreateData(cn_sossheig,cf_dta,'T')
-     CALL CreateData(cn_vozocrtx,cf_dta,'U')
-     CALL CreateData(cn_vomecrty,cf_dta,'V')
-     CALL CreateData(cn_ileadfra,cf_dta,'T')
-     CALL CreateData(cn_iicethic,cf_dta,'T')
+     CALL CreateData(cn_votemper,'T')
+     CALL CreateData(cn_vosaline,'T')
+     CALL CreateData(cn_sossheig,'T')
+     CALL CreateData(cn_vozocrtx,'U')
+     CALL CreateData(cn_vomecrty,'V')
+     CALL CreateData(cn_ileadfra,'T')
+     CALL CreateData(cn_iicethic,'T')
 
   ENDIF
 
-
-  ! write output file (coordinates)
+  ! write output file (bdy_coordinates file)
   ierr = NF90_CREATE( cf_out, NF90_NETCDF4,ncid)
   ierr = NF90_DEF_DIM(ncid,'yb',1, idy)
   ierr = NF90_DEF_DIM(ncid,'xbT',nxt, idxt)
@@ -251,100 +249,155 @@ PROGRAM bdy_mk_coordinates
 
 CONTAINS
 
-  SUBROUTINE CreateData ( cd_var,cd_dtaset, cd_typ)
-
-    CHARACTER(LEN=*), INTENT(in) :: cd_var,cd_dtaset
+  SUBROUTINE CreateData ( cd_var, cd_typ)
+    !!---------------------------------------------------------------------
+    !!                  ***  ROUTINE CreateData  ***
+    !!
+    !! ** Purpose :  Create the bdydata netcdffile corresponding to cd_var
+    !!               according to its position on the C-grid 
+    !!
+    !! ** Method  :  Read or use pre computed nbix, nbjx bdy points position
+    !!               and extract the relevant variables from the data files,
+    !!               assuming they already exists on a bubset of the model grid. 
+    !!
+    !!----------------------------------------------------------------------
+    ! Arguments
+    CHARACTER(LEN=*), INTENT(in) :: cd_var
     CHARACTER(LEN=1), INTENT(in) :: cd_typ
-
-    INTEGER(KIND=4) :: jf, jt, jx, jk
-    INTEGER(KIND=4) :: nfile, numlst=10, ierr, ncid, id, idim
+    ! local
+    INTEGER(KIND=4) :: jf, jt, jx, jk  ! dummy loop index
+    INTEGER(KIND=4) :: infile,  ierr, incid, id, idim
+    INTEGER(KIND=4) :: incout, idout
     INTEGER(KIND=4) :: ipiglo, ipjglo, ipt, ipkglo, ii, ij
     INTEGER(KIND=4), DIMENSION(nxt) :: nbi, nbj
+
     REAL(KIND=4), DIMENSION(:,:),   ALLOCATABLE :: zdata
-    REAL(KIND=4), DIMENSION(:,:,:), ALLOCATABLE :: zbdydata
+    REAL(KIND=4), DIMENSION(:)    , ALLOCATABLE :: zbdydata
+
     CHARACTER(LEN=255), DIMENSION(:), ALLOCATABLE :: cl_list
     CHARACTER(LEN=255)                            :: clf_in
-
-    ! ncdump -h vosaline_H2BDY12-HBDY36-2_y2004.1d.msk.nc
-    ! dimensions:
-    ! 	y = 98 ;
-    ! 	x = 170 ;
-    ! 	time_counter = UNLIMITED ; // (366 currently)
-    ! 	z = 150 ;
-    ! variables:
-    ! resulting file will be : dimension yb=1, xbT=...,time z and variables votemper(xbT,yb,z,time) 
-    CALL getlist( cd_var, cl_list, nfile)    
-    DO jf= 1, nfile
+    !!----------------------------------------------------------------------
+    CALL GetList( cd_var, cl_list, infile)    
+    DO jf= 1, infile
        clf_in=TRIM(cl_list(jf))
        PRINT *, clf_in
-       ierr=NF90_OPEN(clf_in,NF90_NOWRITE,ncid)
-       ierr=NF90_INQUIRE(ncid,nDimensions=idim)
-       ierr=NF90_INQ_DIMID(ncid,c_dimx,id) ; ierr=NF90_INQUIRE_DIMENSION(ncid,id,len=ipiglo)
-       ierr=NF90_INQ_DIMID(ncid,c_dimy,id) ; ierr=NF90_INQUIRE_DIMENSION(ncid,id,len=ipjglo)
-       ierr=NF90_INQ_DIMID(ncid,c_dimt,id) ; ierr=NF90_INQUIRE_DIMENSION(ncid,id,len=ipt)
+       ierr=NF90_OPEN(clf_in,NF90_NOWRITE,incid)
+       ierr=NF90_INQUIRE(incid,nDimensions=idim)
+       ierr=NF90_INQ_DIMID(incid,c_dimx,id) ; ierr=NF90_INQUIRE_DIMENSION(incid,id,len=ipiglo)
+       ierr=NF90_INQ_DIMID(incid,c_dimy,id) ; ierr=NF90_INQUIRE_DIMENSION(incid,id,len=ipjglo)
+       ierr=NF90_INQ_DIMID(incid,c_dimt,id) ; ierr=NF90_INQUIRE_DIMENSION(incid,id,len=ipt)
        ipkglo=1
        IF ( idim ==4 )  THEN
-       ierr=NF90_INQ_DIMID(ncid,c_dimz,id) ; ierr=NF90_INQUIRE_DIMENSION(ncid,id,len=ipkglo)
+          ierr=NF90_INQ_DIMID(incid,c_dimz,id) ; ierr=NF90_INQUIRE_DIMENSION(incid,id,len=ipkglo)
        ENDIF
-       ALLOCATE(zbdydata(nxt,ipkglo,ipt) )
+       ALLOCATE(zbdydata(nxt) )
        IF ( ipiglo /= npiglo .OR. ipjglo /= npjglo) THEN
           PRINT *, ' inconsistent domain size between rim file and data file '
           STOP 'ERROR 1'
        ENDIF
        ALLOCATE (zdata(npiglo,npjglo) )
-       ierr = NF90_INQ_DIMID(ncid,cd_var,id)
+       ierr = NF90_INQ_DIMID(incid,cd_var,id)
+       CALL CreateOutput(clf_in,cd_var,ipkglo, incout, idout)
        DO jt=1,ipt
-           DO jk=1, ipkglo
-              ierr = NF90_GET_VAR(ncid,id,zdata,start=(/1,1,jk,jt/), count=(/npiglo,npjglo,1,1/) )
-              print *,NF90_STRERROR(ierr)
-              SELECT CASE ( cd_typ)
-              CASE ('T') ; nbi=nbit ; nbj=nbjt
-              CASE ('U') ; nbi=nbiu ; nbj=nbju
-              CASE ('V') ; nbi=nbiv ; nbj=nbjv
-              END SELECT
-              DO jx=1,nxt
-                 ii=nbi(jx)
-                 ij=nbj(jx)
-                 zbdydata(jx,jk,jt) = zdata(ii,ij)
-              ENDDO
-           ENDDO
+          DO jk=1, ipkglo
+             ierr = NF90_GET_VAR(incid,id,zdata,start=(/1,1,jk,jt/), count=(/npiglo,npjglo,1,1/) )
+             PRINT *,NF90_STRERROR(ierr)
+             SELECT CASE ( cd_typ)
+             CASE ('T') ; nbi=nbit ; nbj=nbjt
+             CASE ('U') ; nbi=nbiu ; nbj=nbju
+             CASE ('V') ; nbi=nbiv ; nbj=nbjv
+             END SELECT
+             DO jx=1,nxt
+                ii=nbi(jx)
+                ij=nbj(jx)
+                zbdydata(jx) = zdata(ii,ij)
+             ENDDO
+             ierr = NF90_PUT_VAR(incout,idout,zbdydata(:), start=(/1,jk,jt/), count=(/nxt,1,1/) )
+          ENDDO
        ENDDO
-       ! write data to file
-    DEALLOCATE ( zdata, zbdydata )
-    ierr = NF90_CLOSE(ncid)
-    ENDDO
-    
+       ierr = NF90_CLOSE(incout)
 
+       DEALLOCATE ( zdata, zbdydata )
+       ierr = NF90_CLOSE(incid)
+    ENDDO
   END SUBROUTINE CreateData
 
-  SUBROUTINE getlist ( cd_var, cd_list, kfile )
+  SUBROUTINE CreateOutput( cd_file, cd_var, kpkglo, kncout, kidout)
+    !!---------------------------------------------------------------------
+    !!                  ***  ROUTINE CreateOutput  ***
+    !!
+    !! ** Purpose :   Create bdy_data netcdf output file
+    !!
+    !! ** Method  :   Infer name from data file, create variable, according to
+    !!                its 2D/3D character and return ncout and idout
+    !!
+    !!----------------------------------------------------------------------
+    ! Arguments
+    CHARACTER(LEN=*), INTENT(in) :: cd_file  ! name of the data files used for xtrac
+    CHARACTER(LEN=*), INTENT(in) :: cd_var   ! name of the  variable to process
 
+    INTEGER(KIND=4), INTENT(in )  :: kpkglo  ! number of dimensions for cd_var
+    INTEGER(KIND=4), INTENT(out)  :: kncout  ! netcdf id of the output file
+    INTEGER(KIND=4), INTENT(out)  :: kidout  ! varid of the output variables
+    ! Local 
+    INTEGER(KIND=4)    :: ierr
+    INTEGER(KIND=4)    :: idx, idy,idz,idt
+    CHARACTER(LEN=255) :: cl_file
+    !!----------------------------------------------------------------------
+    cl_file='bdydta_'//TRIM(cd_file)
+    ierr = NF90_CREATE(cl_file,NF90_NETCDF4,kncout)
+
+    ierr = NF90_DEF_DIM(kncout,'yb',1  ,idy)
+    ierr = NF90_DEF_DIM(kncout,'xt',nxt,idx)
+    ierr = NF90_DEF_DIM(kncout,'time_counter',NF90_UNLIMITED,idt)
+    IF ( kpkglo /= 1  ) THEN
+       ierr = NF90_DEF_DIM(kncout,'z',kpkglo,idz)
+       ierr = NF90_DEF_VAR(kncout,cd_var,NF90_FLOAT,(/idx,idy,idz,idt/), kidout )
+    ELSE
+       ierr = NF90_DEF_VAR(kncout,cd_var,NF90_FLOAT,(/idx,idy,idt/), kidout )
+    ENDIF
+    ierr = NF90_ENDDEF(kncout)
+
+  END SUBROUTINE CreateOutput
+
+
+  SUBROUTINE GetList ( cd_var, cd_list, kfile )
+    !!---------------------------------------------------------------------
+    !!                  ***  ROUTINE GetList  ***
+    !!
+    !! ** Purpose :  Allocate and fill in cd_list(:) with the names of all
+    !!               files whose name starts with cd_var. Return also the 
+    !!               number of files.
+    !!
+    !! ** Method  :  Use a system call that output to a hidden file and then
+    !!               read the file to establish the list.
+    !!
+    !!----------------------------------------------------------------------
+    ! Arguments
     CHARACTER(LEN=*),                               INTENT(in ) :: cd_var
     CHARACTER(LEN=255), DIMENSION(:), ALLOCATABLE , INTENT(out) :: cd_list
     INTEGER(KIND=4),                                INTENT(out) :: kfile
-
+    ! Local
     INTEGER(KIND=4) :: jf
-    INTEGER(KIND=4) :: numlst=10
-
-
+    INTEGER(KIND=4) :: inumlst=10
+    !!----------------------------------------------------------------------
     CALL SYSTEM( "find . -maxdepth 1 -name """ //  TRIM(cd_var) // "*"" -printf ""%f\n"" | sort -r  > .zbdyfile_list.tmp")
     kfile=0
-    OPEN(numlst, FILE='.zbdyfile_list.tmp')
+    OPEN(inumlst, FILE='.zbdyfile_list.tmp')
     DO
-       READ(numlst,*,END=999)
+       READ(inumlst,*,END=999)
        kfile=kfile+1
     ENDDO
 999 PRINT *, 'Files to process : ', kfile
     ALLOCATE( cd_list(kfile) )
-    REWIND(numlst)
+    REWIND(inumlst)
     DO jf=1,kfile
-       READ(numlst,"(a)")  cd_list(jf)
+       READ(inumlst,"(a)")  cd_list(jf)
     ENDDO
-    CLOSE(numlst)
+    CLOSE(inumlst)
 
-  END SUBROUTINE getlist
+    CALL SYSTEM( "rm .zbdyfile_list.tmp")
 
-
-
+  END SUBROUTINE GetList
 
 END PROGRAM bdy_mk_coordinates
