@@ -268,9 +268,12 @@ CONTAINS
 
     REAL(KIND=4), DIMENSION(:,:),   ALLOCATABLE :: zdata
     REAL(KIND=4), DIMENSION(:)    , ALLOCATABLE :: zbdydata
+    REAL(KIND=4)                                :: zspval
 
     CHARACTER(LEN=255), DIMENSION(:), ALLOCATABLE :: cl_list
     CHARACTER(LEN=255)                            :: clf_in
+    
+    LOGICAL :: l_go
     !!----------------------------------------------------------------------
     CALL GetList( cd_var, cl_list, infile)    
     DO jf= 1, infile
@@ -292,10 +295,16 @@ CONTAINS
        ENDIF
        ALLOCATE (zdata(npiglo,npjglo) )
        ierr = NF90_INQ_VARID(incid,cd_var,id)
+       ierr = NF90_GET_ATT(incid,id,'_FillValue',zspval )
        IF ( ierr /= NF90_NOERR)      PRINT *,' INQ_VAR_ID :', TRIM(NF90_STRERROR(ierr))
-       CALL CreateOutput(clf_in,cd_var,ipkglo, incout, idout)
+       CALL CreateOutput(clf_in,cd_var,ipkglo, zspval, incout, idout)
        DO jt=1,ipt
+          PRINT *,TRIM(cd_var), 'JT : ', jt,' / ', ipt
+          l_go =.TRUE.
           DO jk=1, ipkglo
+             zbdydata(:) = zspval
+!           PRINT *,'JK : ', jk,' / ',ipkglo
+             IF ( l_go ) THEN      
              IF ( ipkglo == 1 ) THEN
                ierr = NF90_GET_VAR(incid,id,zdata,start=(/1,1,jt/), count=(/npiglo,npjglo,1/) )
              ELSE
@@ -312,6 +321,8 @@ CONTAINS
                 ij=nbj(jx)
                 zbdydata(jx) = zdata(ii,ij)
              ENDDO
+             IF ( count ( (zbdydata == zspval)) == nxt ) l_go=.FALSE.
+             ENDIF
              IF (ipkglo == 1 ) THEN
                ierr = NF90_PUT_VAR(incout,idout,zbdydata(:), start=(/1,1,jt/), count=(/nxt,1,1/) )
              ELSE
@@ -326,7 +337,7 @@ CONTAINS
     ENDDO
   END SUBROUTINE CreateData
 
-  SUBROUTINE CreateOutput( cd_file, cd_var, kpkglo, kncout, kidout)
+  SUBROUTINE CreateOutput( cd_file, cd_var, kpkglo, pspval,kncout, kidout)
     !!---------------------------------------------------------------------
     !!                  ***  ROUTINE CreateOutput  ***
     !!
@@ -341,6 +352,7 @@ CONTAINS
     CHARACTER(LEN=*), INTENT(in) :: cd_var   ! name of the  variable to process
 
     INTEGER(KIND=4), INTENT(in )  :: kpkglo  ! number of dimensions for cd_var
+    REAL(KIND=4),    INTENT(in )  :: pspval  ! Fill value
     INTEGER(KIND=4), INTENT(out)  :: kncout  ! netcdf id of the output file
     INTEGER(KIND=4), INTENT(out)  :: kidout  ! varid of the output variables
     ! Local 
@@ -360,6 +372,7 @@ CONTAINS
     ELSE
        ierr = NF90_DEF_VAR(kncout,cd_var,NF90_FLOAT,(/idx,idy,idt/), kidout )
     ENDIF
+       ierr = NF90_PUT_ATT(kncout,kidout,'_FillValue',pspval) 
     ierr = NF90_ENDDEF(kncout)
 
   END SUBROUTINE CreateOutput
