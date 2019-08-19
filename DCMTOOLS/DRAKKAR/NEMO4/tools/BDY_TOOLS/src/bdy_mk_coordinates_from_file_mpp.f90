@@ -62,7 +62,7 @@ PROGRAM bdy_mk_coordinates_mpp
   ijoff=1
   IF ( narg == 0 ) THEN
      PRINT *,'   '
-     PRINT *,'  usage : bdy_mk_coordinates_from_file -f RIM-file -t BDY-type'
+     PRINT *,'  usage : bdy_mk_coordinates_from_file_mpp -f RIM-file -t BDY-type'
      PRINT *,'          [-o BDY-coordinates-file] [-offset I-offset J-offset]'
      PRINT *,'          [-data ]'
      PRINT *,'   '
@@ -125,8 +125,13 @@ PROGRAM bdy_mk_coordinates_mpp
   ENDIF
 
   CALL MPI_INIT(mpierr)
+  IF ( mpierr /= 0 ) PRINT *, ' ERROR in mpi_init' 
   CALL MPI_COMM_SIZE(MPI_COMM_WORLD, mpisize, mpierr)
+  IF ( mpierr /= 0 ) PRINT *, ' ERROR in mpi_comm_size' 
   CALL MPI_COMM_RANK(MPI_COMM_WORLD, mpirank, mpierr)
+  IF ( mpierr /= 0 ) PRINT *, ' ERROR in mpi_comm_rank' 
+
+PRINT *,' RANK : ', mpirank,mpisize
 
   ! read rim file
   ierr = NF90_OPEN(cf_rim,NF90_NOWRITE,ncid)
@@ -249,6 +254,7 @@ PROGRAM bdy_mk_coordinates_mpp
 
   ierr = NF90_CLOSE(ncid)
   ENDIF
+  CALL MPI_FINALIZE(mpierr)
 
 CONTAINS
 
@@ -286,7 +292,7 @@ CONTAINS
     CALL GetList( cd_var, cl_list, infile)    
 !   DO jf= 1, infile
        clf_in=TRIM(cl_list(mpirank+1))
-       PRINT *, clf_in
+       PRINT *,mpirank,  clf_in
        ierr=NF90_OPEN(clf_in,NF90_NOWRITE,incid)
        ierr=NF90_INQUIRE(incid,nDimensions=idim)
        ierr=NF90_INQ_DIMID(incid,c_dimx,id) ; ierr=NF90_INQUIRE_DIMENSION(incid,id,len=ipiglo)
