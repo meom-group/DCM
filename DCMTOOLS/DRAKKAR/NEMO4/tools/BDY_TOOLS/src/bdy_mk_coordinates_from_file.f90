@@ -228,7 +228,6 @@ PROGRAM bdy_mk_coordinates
      nbjt=nbjt- ijoff+1 ; nbju=nbju-iioff+1 ;  nbjv=nbjv-ijoff+1
   ENDIF
 
-
   IF (ll_data) THEN
      CALL CreateData(cn_votemper,'T')
      CALL CreateData(cn_vosaline,'T')
@@ -240,7 +239,7 @@ PROGRAM bdy_mk_coordinates
 
   ENDIF
 
-  IF ( ll_rim ) THEN
+  IF (  ll_rim ) THEN
   ! write output file (bdy_coordinates file)
   ierr = NF90_CREATE( cf_out, NF90_NETCDF4,ncid)
   ierr = NF90_DEF_DIM(ncid,'yb',1, idy)
@@ -281,7 +280,6 @@ PROGRAM bdy_mk_coordinates
 
   ierr = NF90_CLOSE(ncid)
   ENDIF
-
 
 CONTAINS
 
