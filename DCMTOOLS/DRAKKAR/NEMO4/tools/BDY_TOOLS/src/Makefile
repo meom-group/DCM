@@ -4,8 +4,8 @@
 F90=ifort
 MPF90=mpiifort
 
-#FFLAGS= -O  $(NCDF) -fp-model precise 
-FFLAGS= -O  $(NCDF)   -assume byterecl -convert big_endian -CB -fpe0 -ftrapuv -traceback -g  -lnetcdf -lnetcdff
+FFLAGS= -O3  $(NCDF) -fp-model precise   -lnetcdf -lnetcdff
+#FFLAGS= -O  $(NCDF)   -assume byterecl -convert big_endian -CB -fpe0 -ftrapuv -traceback -g  -lnetcdf -lnetcdff
 
 EXE = bdy_coord_create.exe bdy_mk_coordinates_from_file.exe  bdy_mk_coordinates_from_file_mpp.exe
 
