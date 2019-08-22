@@ -219,14 +219,15 @@ PROGRAM bdy_mk_coordinates
      ierr = NF90_INQ_VARID(ncid,'nbjt',id) ; ierr=NF90_GET_VAR(ncid,id,nbjt,start=(/1,1/), count=(/nxt,1/) )
      ierr = NF90_INQ_VARID(ncid,'nbiu',id) ; ierr=NF90_GET_VAR(ncid,id,nbiu,start=(/1,1/), count=(/nxt,1/) )
      ierr = NF90_INQ_VARID(ncid,'nbju',id) ; ierr=NF90_GET_VAR(ncid,id,nbju,start=(/1,1/), count=(/nxt,1/) )
-     ierr = NF90_INQ_VARID(ncid,'nbjv',id) ; ierr=NF90_GET_VAR(ncid,id,nbjv,start=(/1,1/), count=(/nxt,1/) )
+     ierr = NF90_INQ_VARID(ncid,'nbiv',id) ; ierr=NF90_GET_VAR(ncid,id,nbiv,start=(/1,1/), count=(/nxt,1/) )
      ierr = NF90_INQ_VARID(ncid,'nbjv',id) ; ierr=NF90_GET_VAR(ncid,id,nbjv,start=(/1,1/), count=(/nxt,1/) )
      ierr=NF90_CLOSE(ncid)
      ! reverse offset
 
      nbit=nbit- iioff+1 ; nbiu=nbiu-iioff+1 ;  nbiv=nbiv-iioff+1
-     nbjt=nbjt- ijoff+1 ; nbju=nbju-iioff+1 ;  nbjv=nbjv-ijoff+1
+     nbjt=nbjt- ijoff+1 ; nbju=nbju-ijoff+1 ;  nbjv=nbjv-ijoff+1
   ENDIF
+
 
   IF (ll_data) THEN
      CALL CreateData(cn_votemper,'T')
@@ -264,7 +265,7 @@ PROGRAM bdy_mk_coordinates
   ierr = NF90_ENDDEF(ncid)
   ! apply offset
   nbit=nbit+ iioff-1 ; nbiu=nbiu+iioff-1 ;  nbiv=nbiv+iioff-1
-  nbjt=nbjt+ ijoff-1 ; nbju=nbju+iioff-1 ;  nbjv=nbjv+ijoff-1
+  nbjt=nbjt+ ijoff-1 ; nbju=nbju+ijoff-1 ;  nbjv=nbjv+ijoff-1
 
   ierr = NF90_PUT_VAR( ncid,idit,nbit)
   ierr = NF90_PUT_VAR( ncid,idjt,nbjt)
