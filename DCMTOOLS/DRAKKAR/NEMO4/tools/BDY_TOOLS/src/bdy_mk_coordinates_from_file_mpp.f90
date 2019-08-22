@@ -216,13 +216,14 @@ PRINT *,' RANK : ', mpirank,mpisize
   DEALLOCATE( v2d, zwk)
   ENDIF
 
-  IF ( ll_coor)
+  IF ( ll_coor) THEN
      ! read data in bdy_coord
      ierr = NF90_OPEN(cf_coo,NF90_NOWRITE,ncid)
      ! find out the name of the dimensions
      ierr = NF90_INQ_VARID(ncid,'nbit',id)
      ierr = NF90_INQUIRE_VARIABLE(ncid, id, dimids=idims)
      ierr = NF90_INQUIRE_DIMENSION(ncid,idims(1),len=nxt) 
+
      ALLOCATE (nbit(nxt), nbjt(nxt) )
      ALLOCATE (nbiu(nxt), nbju(nxt) )
      ALLOCATE (nbiv(nxt), nbjv(nxt) )
@@ -233,9 +234,12 @@ PRINT *,' RANK : ', mpirank,mpisize
      ierr = NF90_INQ_VARID(ncid,'nbjv',id) ; ierr=NF90_GET_VAR(ncid,id,nbjv,start=(/1,1/), count=(/nxt,1/) )
      ierr = NF90_INQ_VARID(ncid,'nbjv',id) ; ierr=NF90_GET_VAR(ncid,id,nbjv,start=(/1,1/), count=(/nxt,1/) )
      ierr=NF90_CLOSE(ncid)
+     ! reverse offset
+
      nbit=nbit- iioff+1 ; nbiu=nbiu-iioff+1 ;  nbiv=nbiv-iioff+1
      nbjt=nbjt- ijoff+1 ; nbju=nbju-iioff+1 ;  nbjv=nbjv-ijoff+1
   ENDIF
+
 
   IF (ll_data) THEN
      CALL CreateData(cn_votemper,'T')
@@ -329,7 +333,9 @@ CONTAINS
        clf_in=TRIM(cl_list(mpirank+1))
        PRINT *,mpirank,  clf_in
        ierr=NF90_OPEN(clf_in,NF90_NOWRITE,incid)
-       ierr=NF90_INQUIRE(incid,nDimensions=idim)
+       ierr=NF90_INQ_VARID(incid,cd_var,id)
+       ierr=NF90_INQUIRE_VARIABLE(incid,id,ndims=idim)
+
        ierr=NF90_INQ_DIMID(incid,c_dimx,id) ; ierr=NF90_INQUIRE_DIMENSION(incid,id,len=ipiglo)
        ierr=NF90_INQ_DIMID(incid,c_dimy,id) ; ierr=NF90_INQUIRE_DIMENSION(incid,id,len=ipjglo)
        ierr=NF90_INQ_DIMID(incid,c_dimt,id) ; ierr=NF90_INQUIRE_DIMENSION(incid,id,len=ipt)
@@ -338,9 +344,14 @@ CONTAINS
           ierr=NF90_INQ_DIMID(incid,c_dimz,id) ; ierr=NF90_INQUIRE_DIMENSION(incid,id,len=ipkglo)
        ENDIF
        ALLOCATE(zbdydata(nxt) )
+       IF (ll_rim ) THEN
        IF ( ipiglo /= npiglo .OR. ipjglo /= npjglo) THEN
           PRINT *, ' inconsistent domain size between rim file and data file '
           STOP 'ERROR 1'
+       ENDIF
+       ELSE 
+         npiglo=ipiglo
+         npjglo=ipjglo
        ENDIF
        ALLOCATE (zdata(npiglo,npjglo) )
        ierr = NF90_INQ_VARID(incid,cd_var,id)
@@ -348,7 +359,7 @@ CONTAINS
        IF ( ierr /= NF90_NOERR)      PRINT *,' INQ_GET_ATT :', TRIM(NF90_STRERROR(ierr))
        CALL CreateOutput(clf_in,cd_var,ipkglo, zspval, incout, idout)
        DO jt=1,ipt
-          PRINT *,TRIM(cd_var), 'JT : ', jt,' / ', ipt
+          PRINT *,TRIM(cd_var), ' JT : ', jt,' / ', ipt
           l_go =.TRUE.
           DO jk=1, ipkglo
              zbdydata(:) = zspval
