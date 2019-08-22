@@ -35,11 +35,13 @@ PROGRAM bdy_mk_coordinates
   INTEGER(KIND=4), DIMENSION(:), ALLOCATABLE :: nbit, nbjt, nbrt
   INTEGER(KIND=4), DIMENSION(:), ALLOCATABLE :: nbiu, nbju, nbru
   INTEGER(KIND=4), DIMENSION(:), ALLOCATABLE :: nbiv, nbjv, nbrv
+  INTEGER(KIND=4), DIMENSION(2)              :: idims
 
   REAL(KIND=4), DIMENSION(:,:),  ALLOCATABLE :: v2d,zwk
 
   CHARACTER(LEN=255) :: cf_rim 
   CHARACTER(LEN=255) :: cv_rim ="Bathymetry"  ! BMGTOOLS does it !
+  CHARACTER(LEN=255) :: cf_coo 
   CHARACTER(LEN=255) :: c_dimx ="x"         
   CHARACTER(LEN=255) :: c_dimy ="y"        
   CHARACTER(LEN=255) :: c_dimt ="time_counter"           
@@ -53,6 +55,8 @@ PROGRAM bdy_mk_coordinates
   CHARACTER(LEN=20) :: cn_ileadfra='ileadfra', cn_iicethic='iicethic'
 
   LOGICAL            :: ll_data=.FALSE.
+  LOGICAL            :: ll_rim =.FALSE.
+  LOGICAL            :: ll_coor=.FALSE.
 
   !!---------------------------------------------------------------------
   narg=iargc()
@@ -60,7 +64,7 @@ PROGRAM bdy_mk_coordinates
   ijoff=1
   IF ( narg == 0 ) THEN
      PRINT *,'   '
-     PRINT *,'  usage : bdy_mk_coordinates_from_file -f RIM-file -t BDY-type'
+     PRINT *,'  usage : bdy_mk_coordinates_from_file_mpp -r RIM-file | -c BDY-coord  -t BDY-type'
      PRINT *,'          [-o BDY-coordinates-file] [-offset I-offset J-offset]'
      PRINT *,'          [-data ]'
      PRINT *,'   '
@@ -72,7 +76,9 @@ PROGRAM bdy_mk_coordinates
      PRINT *,'     100*(rimwidth) + 100.' 
      PRINT *,'   '
      PRINT *,'  ARGUMENTS :'
-     PRINT *,'    -f RIM-file : gives the name of the original rim file'
+     PRINT *,'      Use only one of -r or -c options.'
+     PRINT *,'    -r RIM-file : gives the name of the original rim file'
+     PRINT *,'    -c BDY-COORD : gives the name of a bdy_coordinate file holding the nbi,nbj'
      PRINT *,'    -t BDY-type : One of N S E W. Although the boundary geometry is not'
      PRINT *,'        strictly N S E or W, as far as we are dealing with strait lines'
      PRINT *,'        we can always figure out one of those type for the BDY.'
@@ -106,7 +112,8 @@ PROGRAM bdy_mk_coordinates
   DO WHILE ( ijarg <= narg )
      CALL getarg(ijarg, cldum ) ; ijarg=ijarg+1
      SELECT CASE ( cldum )
-     CASE ( '-f'     ) ; CALL getarg(ijarg, cf_rim ) ; ijarg=ijarg+1
+     CASE ( '-r'     ) ; CALL getarg(ijarg, cf_rim ) ; ijarg=ijarg+1 ; ll_rim =.TRUE.
+     CASE ( '-c'     ) ; CALL getarg(ijarg, cf_coo ) ; ijarg=ijarg+1 ; ll_coor=.TRUE.
      CASE ( '-t'     ) ; CALL getarg(ijarg,cbdy_typ) ; ijarg=ijarg+1
         ! options
      CASE ( '-o'     ) ; CALL getarg(ijarg,cf_out  ) ; ijarg=ijarg+1
@@ -121,7 +128,12 @@ PROGRAM bdy_mk_coordinates
      PRINT *,'  +++ E R R O R: You must specify a bdy-type with option -t '
      STOP 999
   ENDIF
-
+  IF ( ll_rim .AND. ll_coor ) THEN
+     PRINT *,'  +++ E R R O R: You must choose onmy one of -r or -c option'
+     STOP 999
+  ENDIF
+  
+  IF ( ll_rim ) THEN
   ! read rim file
   ierr = NF90_OPEN(cf_rim,NF90_NOWRITE,ncid)
   ierr = NF90_INQ_DIMID(ncid,c_dimx,id)  ; ierr = NF90_INQUIRE_DIMENSION(ncid,id,len=npiglo)
@@ -190,6 +202,28 @@ PROGRAM bdy_mk_coordinates
   END SELECT
 
   DEALLOCATE( v2d, zwk)
+  ENDIF
+
+  IF ( ll_coor)
+     ! read data in bdy_coord
+     ierr = NF90_OPEN(cf_coo,NF90_NOWRITE,ncid)
+     ! find out the name of the dimensions
+     ierr = NF90_INQ_VARID(ncid,'nbit',id)
+     ierr = NF90_INQUIRE_VARIABLE(ncid, id, dimids=idims)
+     ierr = NF90_INQUIRE_DIMENSION(ncid,idims(1),len=nxt) 
+     ALLOCATE (nbit(nxt), nbjt(nxt) )
+     ALLOCATE (nbiu(nxt), nbju(nxt) )
+     ALLOCATE (nbiv(nxt), nbjv(nxt) )
+     ierr = NF90_INQ_VARID(ncid,'nbit',id) ; ierr=NF90_GET_VAR(ncid,id,nbit,start=(/1,1/), count=(/nxt,1/) )
+     ierr = NF90_INQ_VARID(ncid,'nbjt',id) ; ierr=NF90_GET_VAR(ncid,id,nbjt,start=(/1,1/), count=(/nxt,1/) )
+     ierr = NF90_INQ_VARID(ncid,'nbiu',id) ; ierr=NF90_GET_VAR(ncid,id,nbiu,start=(/1,1/), count=(/nxt,1/) )
+     ierr = NF90_INQ_VARID(ncid,'nbju',id) ; ierr=NF90_GET_VAR(ncid,id,nbju,start=(/1,1/), count=(/nxt,1/) )
+     ierr = NF90_INQ_VARID(ncid,'nbjv',id) ; ierr=NF90_GET_VAR(ncid,id,nbjv,start=(/1,1/), count=(/nxt,1/) )
+     ierr = NF90_INQ_VARID(ncid,'nbjv',id) ; ierr=NF90_GET_VAR(ncid,id,nbjv,start=(/1,1/), count=(/nxt,1/) )
+     ierr=NF90_CLOSE(ncid)
+     nbit=nbit- iioff+1 ; nbiu=nbiu-iioff+1 ;  nbiv=nbiv-iioff+1
+     nbjt=nbjt- ijoff+1 ; nbju=nbju-iioff+1 ;  nbjv=nbjv-ijoff+1
+  ENDIF
 
   IF (ll_data) THEN
      CALL CreateData(cn_votemper,'T')
@@ -202,6 +236,7 @@ PROGRAM bdy_mk_coordinates
 
   ENDIF
 
+  IF (  ll_rim ) THEN
   ! write output file (bdy_coordinates file)
   ierr = NF90_CREATE( cf_out, NF90_NETCDF4,ncid)
   ierr = NF90_DEF_DIM(ncid,'yb',1, idy)
@@ -241,6 +276,7 @@ PROGRAM bdy_mk_coordinates
   ierr = NF90_PUT_VAR( ncid,idrv,nbrv)
 
   ierr = NF90_CLOSE(ncid)
+  ENDIF
 
 CONTAINS
 
@@ -296,7 +332,7 @@ CONTAINS
        ALLOCATE (zdata(npiglo,npjglo) )
        ierr = NF90_INQ_VARID(incid,cd_var,id)
        ierr = NF90_GET_ATT(incid,id,'_FillValue',zspval )
-       IF ( ierr /= NF90_NOERR)      PRINT *,' INQ_VAR_ID :', TRIM(NF90_STRERROR(ierr))
+       IF ( ierr /= NF90_NOERR)      PRINT *,' INQ_GET_ATT :', TRIM(NF90_STRERROR(ierr))
        CALL CreateOutput(clf_in,cd_var,ipkglo, zspval, incout, idout)
        DO jt=1,ipt
           PRINT *,TRIM(cd_var), 'JT : ', jt,' / ', ipt
