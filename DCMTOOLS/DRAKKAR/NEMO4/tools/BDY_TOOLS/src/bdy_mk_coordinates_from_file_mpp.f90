@@ -54,7 +54,7 @@ PROGRAM bdy_mk_coordinates_mpp
 
   CHARACTER(LEN=20) :: cn_votemper='votemper', cn_vosaline='vosaline', cn_sossheig='sossheig'
   CHARACTER(LEN=20) :: cn_vozocrtx='vozocrtx', cn_vomecrty='vomecrty'
-  CHARACTER(LEN=20) :: cn_ileadfra='ileadfra', cn_iicethic='iicethic'
+  CHARACTER(LEN=20) :: cn_ileadfra='ileadfra', cn_iicethic='iicethic', cn_isnowthi='isnowthi'
 
   LOGICAL            :: ll_data=.FALSE.
   LOGICAL            :: ll_rim =.FALSE.
@@ -249,6 +249,7 @@ PRINT *,' RANK : ', mpirank,mpisize
      CALL CreateData(cn_vomecrty,'V')
      CALL CreateData(cn_ileadfra,'T')
      CALL CreateData(cn_iicethic,'T')
+     CALL CreateData(cn_isnowthi,'T')
 
   ENDIF
 
