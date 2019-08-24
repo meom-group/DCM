@@ -338,11 +338,15 @@ getbdy()  {
           if [ ${cn_dyn2d_lst[$bdyset]} != 'none' ] ; then
              nn_dyn2d_dta=${nn_dyn2d_dta_lst[$bdyset]}
              if [ $nn_dyn2d_dta != 0 ] ; then
-               echo '  ***  get bdy files for dyn2d, bdy set $bdyset'
+               echo "  ***  get bdy files for dyn2d, bdy set $bdyset"
                filter='| grep -v bn_u3d | grep -v bn_v3d '                               # skip dyn3d_dta
                filter="$filter | grep -v bn_tem | grep -v bn_sal"                        # skip tra_dta
-               filter="$filter | grep -v bn_frld | grep -v bn_hicif | grep -v bn_hsnif"  # skip lim2_dta
+               filter="$filter | grep -v bn_a_i | grep -v bn_h_i | grep -v bn_h_s"  # skip lim2_dta
 #               filter="$filter | grep -v bn_a_i | grep -v bn_ht_i | grep -v bn_ht_s"    # skip lim3_dta
+               ln_full_vel=$(LookInNamelist ln_full_vel namelist) ;  ln_full_vel=$(normalize $ln_full_vel)
+               if [ $ln_full_vel = T ] ; then
+                 filter="$filter | grep -v bn_u2d | grep -v bn_v2d "  # skip barotropic stuff
+               fi
                blk=nambdy_dta ; getfiles $blk  $P_BDY_DIR $F_BDY_DIR BDY${bdyset}${nb_bdy}
              fi
           fi
@@ -357,10 +361,10 @@ getbdy()  {
           if [ ${cn_dyn3d_lst[$bdyset]} != 'none' ] ; then
              nn_dyn3d_dta=${nn_dyn3d_dta_lst[$bdyset]}
              if [ $nn_dyn3d_dta != 0 ] ; then
-               echo '  ***  get bdy files for dyn3d, bdy set $bdyset'
+               echo "  ***  get bdy files for dyn3d, bdy set $bdyset"
                filter='| grep -v bn_ssh | grep -v bn_u2d | grep -v bn_v2d '              # skip dyn2d_dta
                filter="$filter | grep -v bn_tem | grep -v bn_sal"                        # skip tra_dta
-               filter="$filter | grep -v bn_frld | grep -v bn_hicif | grep -v bn_hsnif"  # skip lim2_dta
+               filter="$filter | grep -v bn_a_i | grep -v bn_h_i | grep -v bn_h_s"  # skip lim2_dta
 #               filter="$filter | grep -v bn_a_i | grep -v bn_ht_i | grep -v bn_ht_s"    # skip lim3_dta
                blk=nambdy_dta ; getfiles $blk  $P_BDY_DIR $F_BDY_DIR BDY${bdyset}${nb_bdy}
              fi
@@ -376,30 +380,28 @@ getbdy()  {
           if [ ${cn_tra_lst[$bdyset]} != 'none' ] ; then
              nn_tra_dta=${nn_tra_dta_lst[$bdyset]}
              if [ $nn_tra_dta != 0 ] ; then
-               echo '  ***  get bdy files for tracer, bdy set $bdyset'
+               echo "  ***  get bdy files for tracer, bdy set $bdyset"
                filter='| grep -v bn_ssh | grep -v bn_u2d | grep -v bn_v2d '              # skip dyn2d_dta
-               filter='| grep -v bn_u3d | grep -v bn_v3d '                               # skip dyn3d_dta
-               filter="$filter | grep -v bn_frld | grep -v bn_hicif | grep -v bn_hsnif"  # skip lim2_dta
-#               filter="$filter | grep -v bn_a_i | grep -v bn_ht_i | grep -v bn_ht_s"    # skip lim3_dta
+               filter="$filter | grep -v bn_u3d | grep -v bn_v3d "                       # skip dyn3d_dta
+               filter="$filter | grep -v bn_a_i | grep -v bn_h_i | grep -v bn_h_s"       # skip si3_dta
                blk=nambdy_dta ; getfiles $blk  $P_BDY_DIR $F_BDY_DIR BDY${bdyset}${nb_bdy}
              fi
           fi
         done
 
-        # (4) data set for ice_lim
+        # (4) data set for si3
         # get a list of comma separated integer (nb_bdy long)
-        nn_ice_lim_dta_lst=($( LookInNamelist nn_ice_lim_dta  namelist | sed -e 's/,/ /g') )
+        nn_ice_dta_lst=($( LookInNamelist nn_ice_dta  namelist | sed -e 's/,/ /g') )
         # get a list of comma separated integer (nb_bdy long)
-        cn_ice_lim_lst=($( LookInNamelist cn_ice_lim namelist | sed -e 's/,/ /g') )
+        cn_ice_lst=($( LookInNamelist cn_ice namelist | sed -e 's/,/ /g') )
         for bdyset in $( seq 0 $(( nb_bdy-1)) ); do
-          if [ ${cn_ice_lim_lst[$bdyset]} != 'none' ] ; then
-             nn_ice_lim_dta=${nn_ice_lim_dta_lst[$bdyset]}
-             if [ $nn_ice_lim_dta != 0 ] ; then
-               echo '  ***  get bdy files for ice model, bdy set $bdyset'
+          if [ ${cn_ice_lst[$bdyset]} != 'none' ] ; then
+             nn_ice_dta=${nn_ice_dta_lst[$bdyset]}
+             if [ $nn_ice_dta != 0 ] ; then
+               echo "  ***  get bdy files for ice model, bdy set $bdyset"
                filter='| grep -v bn_ssh | grep -v bn_u2d | grep -v bn_v2d '              # skip dyn2d_dta
-               filter='| grep -v bn_u3d | grep -v bn_v3d '                               # skip dyn3d_dta
+               filter="$filter | grep -v bn_u3d | grep -v bn_v3d"                        # skip dyn3d_dta
                filter="$filter | grep -v bn_tem | grep -v bn_sal"                        # skip tra_dta
-#               filter="$filter | grep -v bn_a_i | grep -v bn_ht_i | grep -v bn_ht_s"    # skip lim3_dta
                blk=nambdy_dta ; getfiles $blk  $P_BDY_DIR $F_BDY_DIR BDY${bdyset}${nb_bdy}
              fi
           fi
@@ -560,7 +562,7 @@ getfiles()  {
                 # the BDYxx keyword
                 zstr="bn_"
                 ztmp=${4#BDY}
-                zbdy_set=${ztmp:0:1}   # assume key like BDY03 BDY13 BDY23 
+                zbdyset=${ztmp:0:1}   # assume key like BDY03 BDY13 BDY23 
                 znbdy=${ztmp:1:1}      # may be improve with a key like BDY-00-03 ...( for bdy>9 ! )
                 namelist=namelist 
                 bdyflag=1
