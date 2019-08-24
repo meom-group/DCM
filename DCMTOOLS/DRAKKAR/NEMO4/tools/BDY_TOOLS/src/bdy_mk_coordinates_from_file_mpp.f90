@@ -26,7 +26,7 @@ PROGRAM bdy_mk_coordinates_mpp
   INTEGER(KIND=4)               :: npiglo, npjglo
   INTEGER(KIND=4)               :: iioff, ijoff
   INTEGER(KIND=4)               :: nrim,  irim
-  INTEGER(KIND=4)               :: nxt, ii
+  INTEGER(KIND=4)               :: nxt, ii, nvar
   INTEGER(KIND=4)               :: ncid, id, ierr
   INTEGER(KIND=4)               :: idxt,idxu,idxv, idy
   INTEGER(KIND=4)               :: idit,idjt,idrt
@@ -59,6 +59,9 @@ PROGRAM bdy_mk_coordinates_mpp
   LOGICAL            :: ll_data=.FALSE.
   LOGICAL            :: ll_rim =.FALSE.
   LOGICAL            :: ll_coor=.FALSE.
+  LOGICAL            :: ll_votemper=.TRUE., ll_vosaline=.TRUE., ll_sossheig=.TRUE.
+  LOGICAL            :: ll_vozocrtx=.TRUE., ll_vomecrty=.TRUE.
+  LOGICAL            :: ll_ileadfra=.TRUE., ll_iicethic=.TRUE., ll_isnowthi=.TRUE.
 
   !!---------------------------------------------------------------------
   narg=iargc()
@@ -68,7 +71,7 @@ PROGRAM bdy_mk_coordinates_mpp
      PRINT *,'   '
      PRINT *,'  usage : bdy_mk_coordinates_from_file_mpp -r RIM-file | -c BDY-coord  -t BDY-type'
      PRINT *,'          [-o BDY-coordinates-file] [-offset I-offset J-offset]'
-     PRINT *,'          [-data ]'
+     PRINT *,'          [-data] [-v LST-vars]'
      PRINT *,'   '
      PRINT *,'  PURPOSE :'
      PRINT *,'     Build bdy coordinates file from rim file. At this stage this program'
@@ -96,6 +99,10 @@ PROGRAM bdy_mk_coordinates_mpp
      PRINT *,'        Jglobal = Jlocal + J-offset -1'
      PRINT *,'    -data  : This option forces the program to build bdy_data files from'
      PRINT *,'        pre processed input files for all required variables'
+     PRINT *,'    -v VAR-lst : give a comma separated list of the variables you want to '
+     PRINT *,'        process. Default is to process all variables.'
+     PRINT *,'        Possible variables are votemper,vosaline,sossheig,vozocrtx,vomecrty,'
+     PRINT *,'        iicethic,isnowthi and ileadfra.'
      PRINT *,'   '
      PRINT *,'  REQUIRED FILES :'
      PRINT *,'    none'
@@ -122,6 +129,8 @@ PROGRAM bdy_mk_coordinates_mpp
      CASE ( '-offset') ; CALL getarg(ijarg,cldum   ) ; ijarg=ijarg+1 ; READ(cldum,*) iioff
         ;              ; CALL getarg(ijarg,cldum   ) ; ijarg=ijarg+1 ; READ(cldum,*) ijoff
      CASE ( '-data  ') ; ll_data=.TRUE.
+     CASE ( '-v'     ) ; CALL getarg(ijarg, cldum )  ; ijarg=ijarg+1
+        ;              ; CALL ParseVars ( cldum   )
      CASE DEFAULT      ; PRINT *, ' ERROR : ', TRIM(cldum),' : unknown option.'; STOP 1
 
      END SELECT
@@ -242,15 +251,14 @@ PRINT *,' RANK : ', mpirank,mpisize
 
 
   IF (ll_data) THEN
-     CALL CreateData(cn_votemper,'T')
-     CALL CreateData(cn_vosaline,'T')
-     CALL CreateData(cn_sossheig,'T')
-     CALL CreateData(cn_vozocrtx,'U')
-     CALL CreateData(cn_vomecrty,'V')
-     CALL CreateData(cn_ileadfra,'T')
-     CALL CreateData(cn_iicethic,'T')
-     CALL CreateData(cn_isnowthi,'T')
-
+     IF ( ll_votemper ) CALL CreateData(cn_votemper,'T')
+     IF ( ll_vosaline ) CALL CreateData(cn_vosaline,'T')
+     IF ( ll_sossheig ) CALL CreateData(cn_sossheig,'T')
+     IF ( ll_vozocrtx ) CALL CreateData(cn_vozocrtx,'U')
+     IF ( ll_vomecrty ) CALL CreateData(cn_vomecrty,'V')
+     IF ( ll_ileadfra ) CALL CreateData(cn_ileadfra,'T')
+     IF ( ll_iicethic ) CALL CreateData(cn_iicethic,'T')
+     IF ( ll_isnowthi ) CALL CreateData(cn_isnowthi,'T')
   ENDIF
 
   IF ( mpirank == 0 .AND. ll_rim ) THEN
@@ -479,5 +487,55 @@ CONTAINS
     CALL SYSTEM( "rm .zbdyfile_list."//TRIM(crank))
 
   END SUBROUTINE GetList
+   SUBROUTINE ParseVars (cdum)
+      !!---------------------------------------------------------------------
+      !!                  ***  ROUTINE ParseVars  ***
+      !!
+      !! ** Purpose :  Decode variables names to be used
+      !!
+      !! ** Method  :  look for , in the argument string and set the number of
+      !!         variable (nvaro), allocate cv_fix array and fill it with the
+      !!         decoded  names.
+      !!
+      !!----------------------------------------------------------------------
+      CHARACTER(LEN=*), INTENT(in) :: cdum
+
+      CHARACTER(LEN=80), DIMENSION(100) :: cl_dum  ! 100 is arbitrary
+      INTEGER  :: ji
+      INTEGER  :: inchar,  i1=1
+      !!----------------------------------------------------------------------
+
+      inchar= LEN(TRIM(cdum))
+      ! scan the input string and look for ',' as separator
+      DO ji=1,inchar
+         IF ( cdum(ji:ji) == ',' ) THEN
+            cl_dum(nvar) = cdum(i1:ji-1)
+            i1=ji+1
+            nvar=nvar+1
+         ENDIF
+      ENDDO
+      ! reset all flags  to false
+      ll_votemper=.FALSE.; ll_vosaline=.FALSE.; ll_sossheig=.FALSE.
+      ll_vozocrtx=.FALSE.; ll_vomecrty=.FALSE.
+      ll_ileadfra=.FALSE.; ll_iicethic=.FALSE.; ll_isnowthi=.FALSE.
+
+      ! last name of the list does not have a ','
+      cl_dum(nvar) = cdum(i1:inchar)
+
+      DO ji =1, nvar
+        SELECT CASE ( cl_dum(ji) )
+        CASE ( 'votemper' ) ; ll_votemper=.TRUE.
+        CASE ( 'vosaline' ) ; ll_vosaline=.TRUE.
+        CASE ( 'sossheig' ) ; ll_sossheig=.TRUE.
+        CASE ( 'vozocrtx' ) ; ll_vozocrtx=.TRUE.
+        CASE ( 'vomecrty' ) ; ll_vomecrty=.TRUE.
+        CASE ( 'ileadfra' ) ; ll_ileadfra=.TRUE.
+        CASE ( 'iicethic' ) ; ll_iicethic=.TRUE.
+        CASE ( 'isnowthi' ) ; ll_isnowthi=.TRUE.
+        CASE DEFAULT 
+         PRINT *,' +++ E R R O R : incorrect specified variable :', TRIM( cl_dum(ji))
+        END SELECT
+      ENDDO
+   END SUBROUTINE ParseVars
 
 END PROGRAM bdy_mk_coordinates_mpp
