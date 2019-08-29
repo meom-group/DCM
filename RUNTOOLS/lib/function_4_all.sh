@@ -329,6 +329,13 @@ getbdy()  {
                rapatrie ${cn_coords_file[$i]}  $P_BDY_DIR $F_BDY_DIR ${cn_coords_file[$i]}
             fi
         done
+        # (0-1) bdy_mask
+        ln_mask_file=$(LookInNamelist ln_mask_file namelist ) 
+        cn_mask_file=$(LookInNamelist cn_mask_file namelist )
+        tmp=$(normalize ln_mask_file)
+        if [ $tmp = T ] ; then
+           rapatrie $cn_mask_file  $P_BDY_DIR $F_BDY_DIR $cn_mask_file
+        fi
         # (1) data set for dyn2d:
         # get a list of comma separated integer (nb_bdy long)
         nn_dyn2d_dta_lst=($( LookInNamelist nn_dyn2d_dta  namelist | sed -e 's/,/ /g') ) 
