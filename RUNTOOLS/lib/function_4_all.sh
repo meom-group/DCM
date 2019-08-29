@@ -332,7 +332,7 @@ getbdy()  {
         # (0-1) bdy_mask
         ln_mask_file=$(LookInNamelist ln_mask_file namelist ) 
         cn_mask_file=$(LookInNamelist cn_mask_file namelist )
-        tmp=$(normalize ln_mask_file)
+        tmp=$(normalize $ln_mask_file)
         if [ $tmp = T ] ; then
            rapatrie $cn_mask_file  $P_BDY_DIR $F_BDY_DIR $cn_mask_file
         fi
