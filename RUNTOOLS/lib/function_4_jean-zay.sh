@@ -131,6 +131,76 @@ runcode_u() {
          mpirun --bynode -np $*
           }
 # ---
+runcode_mpmd_dp()  {
+   # call from nemo4 like: 
+   #  runcode_mpmd_dp [-cpn core per node ]  -dp $NB_NCORE_DP $NB_NPROC ./nemo4.exe $NB_NPROC_IOS ./xios_server.exe
+   # 
+   # prepare final command to be srun --mpi=pmi2 -m arbitrary -K1 --multi-prog ./ztask_file.conf
+   # with the environment SLURM_HOSTFILE=machine_file.tmp
+   # parse the command line
+   narg=$#
+   iarg=1   ; ipair=1
+   core_per_node=${SLURM_CPUS_ON_NODE}
+   while [ $iarg -le $narg ] ; do
+     case $1 in
+      ( -cpn ) shift 1 ;      core_per_node=$1 ; shift 1 ; iarg=$(( iarg + 2 )) ;;  # option
+      ( -dp  ) shift 1 ; xios_core_per_node=$1 ; shift 1 ; iarg=$(( iarg + 2 )) ;;
+      ( *    )
+          case $ipair in
+             ( 1 )  nb_core_nemo=$1 ; shift 1 ; iarg=$(( iarg + 1 ))
+                    nemo_prog=$1     ; shift 1 ; iarg=$(( iarg + 1 ))
+                    ipair=$(( ipair + 1 )) ;;
+             ( 2 )  nb_core_xios=$1 ; shift 1 ; iarg=$(( iarg + 1 ))
+                    xios_prog=$1     ; shift 1 ; iarg=$(( iarg + 1 ))
+                    ipair=$(( ipair + 1 )) ;;
+          esac
+     esac
+   done
+   nb_node_nemo=$(( nb_core_nemo / core_per_node ))
+   nb_node_xios=$(( nb_core_xios / xios_core_per_node ))
+   # create multi-prog file : ztask_file.conf 
+   rm -f ./ztask_file.conf
+   echo  0-$((${nb_core_nemo}-1))  $nemo_prog > ./ztask_file.conf
+   echo  ${nb_core_nemo}-$(( nb_core_nemo + nb_core_xios -1 )) $xios_prog >> ./ztask_file.conf
+
+   list_nodes_c=$(scontrol show hostname ${SLURM_NODELIST} | paste -d, -s )
+   list_nodes=( $(echo ${list_nodes_c} | sed -e 's/,/ /g' ) )    # array of nodes
+   nb_node_full=${#list_nodes[@]}   # should be = to ${SLURM_....}
+
+   # Create node-list file  ( for info only) :
+   rm  -f znode_list.tmp
+   for i in  $( seq 0 $(( $nb_node_full - 1 )) ) ; do
+     echo ${list_nodes[$i]} >> znode_list.tmp
+   done
+
+   # Create hostfile : list of cores in the order of ztask_file
+   rm -f zhost_file.tmp
+   # first work for nemo and mimic binding by node
+   idx=0
+   for i in $(seq 1 ${nb_core_nemo} ) ; do
+     nd=${list_nodes[$idx]}
+     echo $nd >>  zhost_file.tmp
+     idx=$(( ( $idx + 1 ) % ${nb_node_nemo} ))
+   done
+   # then work for unpopulated node with XIOS
+   # + keep track of xios_node for information
+   rm -f znodes_xios.tmp
+   idx=$(( nb_node_full - nb_node_xios ))  # index for first xios node
+   for i in $( seq $idx $(( nb_node_full - 1 )) ) ; do
+     nd=${list_nodes[$i]}
+     echo $nd >> znodes_xios.tmp
+     for ix in $(seq 1 ${xios_core_per_node}) ; do
+        echo ${nd} >>  zhost_file.tmp
+     done
+   done
+
+   export SLURM_HOSTFILE=zhost_file.tmp
+
+   srun --mpi pmi2 --distribution=arbitrary -K1 --multi-prog ./ztask_file.conf
+
+   unset SLURM_HOSTFILE 
+                   }
+
 # function for running OPA ans XIOS : it takes the number of procs and name of programs as argument
 #    runcode_mpmd  nproc1 prog1    nproc2 prog2   ... nprocn progn
 runcode_mpmd() {
