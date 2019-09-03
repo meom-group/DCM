@@ -28,7 +28,7 @@ usage() {
    echo "    -h : print this help message and exit."
    echo "    -n : execute a dry run to see what will be done "
    echo "    -m : specify a supported machine for installing CTL"
-   echo "         Supported machines are : occigen, ada, irene"
+   echo "         Supported machines are : occigen, ada, irene and jean-zay"
    echo "         Default is occigen."
    echo "    -s : create/populate CTL with ad-hoc scripts for scalability experiment"
    echo

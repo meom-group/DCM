@@ -37,7 +37,7 @@ TMPDIR=$WORKDIR/TMPDIR_${CONFIG_CASE}
 MACHINE=<MACHINE>
 
 case  $MACHINE  in
-( occigen) SUBMIT=sbatch  ;;
+( occigen | jean-zay ) SUBMIT=sbatch  ;;
 ( irene  ) SUBMIT=ccc_msub ;;
 ( ada    ) SUBMIT=SUBMIT=llsubmit ;;
 ( *      )  echo $MACHINE not yet supported for SUBMIT definition

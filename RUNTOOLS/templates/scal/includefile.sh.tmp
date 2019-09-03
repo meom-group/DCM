@@ -41,10 +41,10 @@ QUEUE=none         # queue name (e.g. curie )
 # 
 #WORKDIR=/scratch/$USER
 TMPDIR=$WORKDIR/TMPDIR_${CONFIG_CASE}_<JPNI>_<JPNJ>_<JPNIJ>
-MACHINE=occigen
+MACHINE=$MACHINE
 
 case  $MACHINE  in
-( occigen) SUBMIT=sbatch  ;;
+( occigen | jean(zay) SUBMIT=sbatch  ;;
 ( irene  ) SUBMIT=ccc_msub ;;
 ( ada    ) SUBMIT=SUBMIT=llsubmit ;;
 ( *      )  echo $MACHINE not yet supported for SUBMIT definition
