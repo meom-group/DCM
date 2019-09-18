@@ -73,18 +73,19 @@ while [ $go ] ; do
    rstep=$(echo $step $nit000 | awk '{ print $1 - $2 + 1 }' )
    rwri=$(echo $rstep $nwrite | awk '{ print $1 / $2 }' )
    rday=$( echo $rstep $nstpday | awk '{ print $1 / $2 }' )
+   cdate=$(grep DATE ocean.output | tail -1 | awk '{ print $10}')
    if [ $oldrstep = $rstep ] ; then
      # use red for rstep to alert for standing run
      badcount=$(( badcount + 1 ))
      if (( $badcount > 10 )) ; then 
        printf "\033[31m%5d\033[0m %5d / %5d : %5.2f \033[31;1;5mPROBLEM\033[0m\r" $rstep $step $nitend $rday
      else
-       printf "\033[31m%5d\033[0m %5d / %5d : %5.2f\r" $rstep $step $nitend $rday
+       printf "\033[31m%5d\033[0m %5d / %5d : %5.2f %s\r" $rstep $step $nitend $rday $cdate
      fi
    else
      # use green for rstep : OK
      badcount=0
-     printf "\033[32m%5d\033[0m %5d / %5d : %5.2f             \r" $rstep $step $nitend $rday
+     printf "\033[32m%5d\033[0m %5d / %5d : %5.2f %s      \r" $rstep $step $nitend $rday $cdate
    fi
    oldrstep=$rstep
    sleep $delay 
