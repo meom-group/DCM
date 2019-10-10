@@ -116,6 +116,7 @@ PROGRAM bdy_mk_coordinates
   ENDIF
 
   ijarg = 1 
+  cf_coo = 'none'  ! weird but w/o this initialization cf_coo is corrupted after getarg ??? (occigen)
   DO WHILE ( ijarg <= narg )
      CALL getarg(ijarg, cldum ) ; ijarg=ijarg+1
      SELECT CASE ( cldum )
@@ -492,6 +493,7 @@ CONTAINS
 
       inchar= LEN(TRIM(cdum))
       ! scan the input string and look for ',' as separator
+      nvar=1
       DO ji=1,inchar
          IF ( cdum(ji:ji) == ',' ) THEN
             cl_dum(nvar) = cdum(i1:ji-1)

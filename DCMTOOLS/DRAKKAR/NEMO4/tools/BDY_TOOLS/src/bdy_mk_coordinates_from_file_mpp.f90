@@ -64,6 +64,7 @@ PROGRAM bdy_mk_coordinates_mpp
   LOGICAL            :: ll_ileadfra=.TRUE., ll_iicethic=.TRUE., ll_isnowthi=.TRUE.
 
   !!---------------------------------------------------------------------
+  cf_coo = "None"
   narg=iargc()
   iioff=1
   ijoff=1
@@ -326,6 +327,7 @@ CONTAINS
     INTEGER(KIND=4) :: infile,  ierr, incid, id, idim
     INTEGER(KIND=4) :: incout, idout
     INTEGER(KIND=4) :: ipiglo, ipjglo, ipt, ipkglo, ii, ij
+    INTEGER(KIND=4) :: iblock ! loop over processes 
     INTEGER(KIND=4), DIMENSION(nxt) :: nbi, nbj
 
     REAL(KIND=4), DIMENSION(:,:),   ALLOCATABLE :: zdata
@@ -338,8 +340,11 @@ CONTAINS
     LOGICAL :: l_go
     !!----------------------------------------------------------------------
     CALL GetList( cd_var, cl_list, infile)    
-!   DO jf= 1, infile
-       clf_in=TRIM(cl_list(mpirank+1))
+    iblock = infile/mpisize
+    PRINT *, ' ... Processing ',iblock, ' of ',mpisize, ' files from ', infile
+    DO jf= 1, iblock+1
+       clf_in=TRIM(cl_list((mpirank+1)+mpisize*(jf-1)))
+       IF ( (mpirank+1)+mpisize*(jf-1) > infile ) EXIT
        PRINT *,mpirank,  clf_in
        ierr=NF90_OPEN(clf_in,NF90_NOWRITE,incid)
        ierr=NF90_INQ_VARID(incid,cd_var,id)
@@ -403,7 +408,7 @@ CONTAINS
 
        DEALLOCATE ( zdata, zbdydata )
        ierr = NF90_CLOSE(incid)
-!   ENDDO
+    ENDDO
   END SUBROUTINE CreateData
 
   SUBROUTINE CreateOutput( cd_file, cd_var, kpkglo, pspval,kncout, kidout)
@@ -506,6 +511,7 @@ CONTAINS
       !!----------------------------------------------------------------------
 
       inchar= LEN(TRIM(cdum))
+      nvar = 1
       ! scan the input string and look for ',' as separator
       DO ji=1,inchar
          IF ( cdum(ji:ji) == ',' ) THEN
