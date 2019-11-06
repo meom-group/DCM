@@ -193,9 +193,20 @@ getforcing()        {
          filter=''  
          tmp=$( LookInNamelist ln_taudif );  tmp=$(normalize $tmp )
          if [ $tmp = F ] ; then filter="$filter | grep -v sn_tdif " ; fi
+         tmp=$( LookInNamelist ln_clim_forcing );  tmp=$(normalize $tmp )
+         if [ $tmp = T ] ; then filter="$filter | grep -v sn_wndi  | grep -v sn_wndj " ; fi
+         ln_clim_forcing=$tmp
 
          getweight $blk $P_WEI_DIR $F_WEI_DIR
-         getfiles $blk  $P_FOR_DIR $F_FOR_DIR ;;
+         getfiles $blk  $P_FOR_DIR $F_FOR_DIR
+
+         if [ $ln_clim_forcing = T ] ; then
+           filter="$filter | grep -v sn_kati | grep -v sn_katj"
+           blk_clim=namsbc_blk_drk
+           getweight $blk_clim $P_WEI_DIR $F_WEI_DIR
+           getfiles $blk_clim  $P_FOR_DIR $F_FOR_DIR
+         fi ;;
+    
 
       FLX )  
          getweight $blk $P_WEI_DIR $F_WEI_DIR
@@ -216,7 +227,7 @@ getforcing()        {
         filter=''
         tmp=$( LookInNamelist ln_kata namelist namsbc_blk_drk)  ;  tmp=$(normalize $tmp )
         if [ $tmp = T ] ; then 
-          filter=""
+          filter="$filter | grep -v sn_wmod | grep -v sn_uw | grep -v sn_vw"
           getfiles namsbc_blk_drk  $P_DTA_DIR $F_DTA_DIR 
         fi
      fi
@@ -1316,7 +1327,7 @@ eof
   mkbuild_merge() {
   mk_batch_hdr --name ${1%%.*} --cores $NB_NPROC_MER --wallclock $WALL_CLK_MER \
              --account $ACCOUNT --cluster hpt  --adapp --queue $QUEUE \
-             --nodes $NB_NNODE_MER --constraint=$CONSTRAI_MER --option '--exclusive' > $1
+             --nodes $NB_NNODE_MER --constraint $CONSTRAI_MER --option '--exclusive' > $1
        echo "  *** building merging script "
        cat  << eof >> $1
       . $RUNTOOLS/lib/function_4.sh
