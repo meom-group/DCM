@@ -245,8 +245,14 @@ print *, 'JMMMM : ', sf_out%nlen(sf_out%kdimid)
     CHARACTER(LEN=255) :: cl_dum       ! working copy of cd_froot
     !!----------------------------------------------------------------------
     cl_dum = cd_froot
+
     ! look for config-case
     ipos        = INDEX( cl_dum,'_')
+    IF ( lg_agrif) THEN  ! skip 1_ or 2_ 
+      cl_dum      = cl_dum(ipos+1: )
+      ipos        = INDEX( cl_dum,'_')
+    ENDIF
+     
     cl_confcase = cl_dum(1:ipos-1)
     cl_dum      = cl_dum(ipos+1: )
 

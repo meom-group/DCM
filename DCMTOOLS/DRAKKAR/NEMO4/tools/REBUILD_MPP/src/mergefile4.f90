@@ -46,7 +46,7 @@ PROGRAM mergefile4
 
   IF ( narg == 0 ) THEN
      PRINT *,' usage :  mergefile4 -F | -f <file*>_0000.nc  [-c coordinate_file ] ...'
-     PRINT *,'          [-d output_directory] [-r ] [-nc3] [-v] [-kmax K-max] ...'
+     PRINT *,'          [-d output_directory] [-r ] [-nc3] [-v] [-kmax K-max] [-agrif]...'
      PRINT *,'          [-w imin imax jmin jmax] [-b BLOCK-number] [-encoding ndigit]'
      PRINT *,'      '
      PRINT *,'     PURPOSE :' 
@@ -81,6 +81,8 @@ PROGRAM mergefile4
      PRINT *,'              Default behaviour is to rebuild the total domain.'
      PRINT *,'        -kmax K-max : define the maximum number of level to be processed in'
      PRINT *,'              the merged output file. (Usefull with -w option).'
+     PRINT *,'        -agrif  : indicates to the program that your files are prefixed by '
+     PRINT *,'              a number (ex: 1_xxx) '
      PRINT *,'        -b BLOCK-number : This option was written in order to reduce the '
      PRINT *,'              number of files opened simultaneously during the rebuild.'
      PRINT *,'              The total number of (mpp) files will be processed by blocks.'
@@ -166,6 +168,8 @@ PROGRAM mergefile4
      CASE ('-kmax') 
         lg_kmax       = .TRUE. 
         CALL getarg(ijarg, cdum) ; ijarg = ijarg + 1 ; READ(cdum,*) maxk
+     CASE ('-agrif') 
+        lg_agrif     = .TRUE.
      CASE ('-b')
         CALL getarg(ijarg, cdum) ; ijarg = ijarg + 1 ; READ(cdum,*) nbloc
      CASE ('-encoding')

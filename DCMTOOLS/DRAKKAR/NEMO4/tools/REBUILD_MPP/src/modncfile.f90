@@ -56,6 +56,7 @@ MODULE modncfile
   LOGICAL           :: lg_coord      = .FALSE. ! flag for use of coordinate file (option)
   LOGICAL           :: lg_coord_read = .FALSE. ! flag set when the coordinate file is already read
   LOGICAL           :: lg_rename     = .FALSE. ! flag for renaming the output file to drakkar standards
+  LOGICAL           :: lg_agrif      = .FALSE. ! flag for telling the prog that files are produced with agrif
   LOGICAL           :: lg_nc3        = .FALSE. ! flag for creating netcdf3 files instead of netcdf4
   LOGICAL           :: lg_verbose    = .FALSE. ! flag for increased verbosity
   LOGICAL           :: lg_win        = .FALSE. ! flag for screening output.
