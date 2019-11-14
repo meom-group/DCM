@@ -90,6 +90,15 @@ MODULE sbcblk
    INTEGER , PARAMETER ::   jp_snow = 8           ! index of snow (solid prcipitation)       (kg/m2/s)
    INTEGER , PARAMETER ::   jp_slp  = 9           ! index of sea level pressure              (Pa)
    INTEGER , PARAMETER ::   jp_tdif =10           ! index of tau diff associated to HF tau   (N/m2)   at T-point
+#if defined key_drakkar
+   LOGICAL             ::   ln_clim_forcing = .false.   ! Logical flag for use of climatological forcing 
+                                                  !     ( T= climatological, F=interannual)
+   ! note that jp_uw and jp_vw replace jp_wndi and jp_wndj.
+   !           jp_wmod use the same value as jp_tdif. They cannot be used together
+   INTEGER  ::   jp_wmod =10           ! index of wind module                     (m/s)
+   INTEGER  ::   jp_uw   = 1           ! index of zonal pseudo stress             (m2/s2)
+   INTEGER  ::   jp_vw   = 2           ! index of meridional pseudo stress        (m2/s2)
+#endif
 
    TYPE(FLD), ALLOCATABLE, DIMENSION(:) ::   sf   ! structure of input fields (file informations, fields read)
 
@@ -136,8 +145,11 @@ MODULE sbcblk
    CHARACTER(len=32) :: cl_katfile                !: katabatic filename
    REAL(wp) , PUBLIC, ALLOCATABLE, SAVE, DIMENSION(:,:) :: rmskkatax  !: array for katamask (T-point)
    REAL(wp) , PUBLIC, ALLOCATABLE, SAVE, DIMENSION(:,:) :: rmskkatay  !: array for katamask (T-point)
-#endif
 
+  ! Lionel Renault parametrization
+  LOGICAL  ::  ln_LR =.FALSE.   ! Lionel Renault flag
+  REAL(wp) ::  rn_lra, rn_lrb   ! Alpha and Beta use in stau computation for LR param.
+#endif
    !! * Substitutions
 #  include "vectopt_loop_substitute.h90"
    !!----------------------------------------------------------------------
@@ -171,7 +183,6 @@ CONTAINS
    END FUNCTION sbc_kata_alloc
 #endif
 
-
    SUBROUTINE sbc_blk_init
       !!---------------------------------------------------------------------
       !!                    ***  ROUTINE sbc_blk_init  ***
@@ -183,6 +194,9 @@ CONTAINS
       !!----------------------------------------------------------------------
       INTEGER  ::   ifpr, jfld            ! dummy loop indice and argument
       INTEGER  ::   ios, ierror, ioptio   ! Local integer
+#if defined key_drakkar
+      LOGICAL :: ll_clim
+#endif
       !!
       CHARACTER(len=100)            ::   cn_dir                ! Root directory for location of atmospheric forcing files
       TYPE(FLD_N), DIMENSION(jpfld) ::   slf_i                 ! array of namelist informations on the fields to read
@@ -195,8 +209,8 @@ CONTAINS
          &                 cn_dir , ln_taudif, rn_zqt, rn_zu,                         & 
          &                 rn_pfac, rn_efac, rn_vfac, ln_Cd_L12, ln_Cd_L15
 #if defined key_drakkar
-      TYPE(FLD_N) :: sn_kati, sn_katj
-      NAMELIST/namsbc_blk_drk/ ln_kata, sn_kati, sn_katj
+      TYPE(FLD_N) :: sn_kati, sn_katj, sn_wmod, sn_uw, sn_vw
+      NAMELIST/namsbc_blk_drk/ ln_kata, sn_kati, sn_katj, ln_LR, rn_lra, rn_lrb, ln_clim_forcing,sn_wmod, sn_uw, sn_vw
 #endif
       !!---------------------------------------------------------------------
       !
@@ -213,7 +227,6 @@ CONTAINS
 902   IF( ios >  0 )   CALL ctl_nam ( ios , 'namsbc_blk in configuration namelist', lwp )
       !
       IF(lwm) WRITE( numond, namsbc_blk )
-
 #if defined key_drakkar
       !                             !** read bulk namelist  
       REWIND( numnam_ref )                !* Namelist namsbc_blk in reference namelist : bulk parameters
@@ -252,9 +265,20 @@ CONTAINS
       slf_i(jp_tair) = sn_tair   ;   slf_i(jp_humi) = sn_humi
       slf_i(jp_prec) = sn_prec   ;   slf_i(jp_snow) = sn_snow
       slf_i(jp_slp)  = sn_slp    ;   slf_i(jp_tdif) = sn_tdif
+#if defined key_drakkar
+      IF ( ln_clim_forcing ) THEN
+        ! in this case uw and vw replace wndi and wndj, and wmod replace tdif
+        slf_i(jp_wmod)  = sn_wmod  ;   slf_i(jp_uw) = sn_uw ; slf_i(jp_vw) = sn_vw
+      ENDIF
+#endif
       !
       lhftau = ln_taudif                     !- add an extra field if HF stress is used
       jfld = jpfld - COUNT( (/.NOT.lhftau/) )
+#if defined key_drakkar
+      ! Hard coded here cannot use both tdif and clim_forcing
+      ll_clim = ln_clim_forcing
+      jfld = jpfld - COUNT( (/.NOT.ll_clim/) )
+#endif
       !
       !                                      !- allocate the bulk structure
       ALLOCATE( sf(jfld), STAT=ierror )
@@ -269,7 +293,6 @@ CONTAINS
       END DO
       !                                      !- fill the bulk structure with namelist informations
       CALL fld_fill( sf, slf_i, cn_dir, 'sbc_blk_init', 'surface boundary condition -- bulk formulae', 'namsbc_blk' )
-
 #if defined key_drakkar
       IF ( ln_kata ) THEN
          ! katabatik mask (read in NetCDF file)
@@ -316,6 +339,10 @@ CONTAINS
          WRITE(numout,*) '      "COARE 3.0" algorithm   (Fairall et al. 2003)       ln_COARE_3p0 = ', ln_COARE_3p0
          WRITE(numout,*) '      "COARE 3.5" algorithm   (Edson et al. 2013)         ln_COARE_3p5 = ', ln_COARE_3p0
          WRITE(numout,*) '      "ECMWF"     algorithm   (IFS cycle 31)              ln_ECMWF     = ', ln_ECMWF
+#if defined key_drakkar
+         WRITE(numout,*) '      Use Lionel Renault CFB tau parameterization         ln_LR        = ', ln_LR
+         WRITE(numout,*) '      Use climatolofical forcing formulation           ln_clim_forcing = ', ln_clim_forcing
+#endif
          WRITE(numout,*) '      add High freq.contribution to the stress module     ln_taudif    = ', ln_taudif
          WRITE(numout,*) '      Air temperature and humidity reference height (m)   rn_zqt       = ', rn_zqt
          WRITE(numout,*) '      Wind vector reference height (m)                    rn_zu        = ', rn_zu
@@ -434,6 +461,12 @@ CONTAINS
       REAL(wp), DIMENSION(jpi,jpj) ::   zU_zu             ! bulk wind speed at height zu  [m/s]
       REAL(wp), DIMENSION(jpi,jpj) ::   ztpot             ! potential temperature of air at z=rn_zqt [K]
       REAL(wp), DIMENSION(jpi,jpj) ::   zrhoa             ! density of air   [kg/m^3]
+#ifdef key_drakkar
+      REAL(wp), DIMENSION(jpi,jpj) ::   zssu              ! Ocean surface U velocity
+      REAL(wp), DIMENSION(jpi,jpj) ::   zssv              ! Ocean surface V velocity
+      REAL(wp) ::   zUo                  ! local variable
+      REAL(wp) ::   zstau                ! local variable
+#endif
       !!---------------------------------------------------------------------
       !
       ! local scalars ( place there for vector optimisation purposes)
@@ -456,6 +489,23 @@ CONTAINS
          END DO
       END DO
 #endif
+#if defined key_drakkar
+      ! keep Ocean Surface current components for furher use
+      DO jj = 2, jpjm1
+         DO ji = fs_2, fs_jpim1   ! vect. opt.
+           ! zssu and zssv are used in LR parametrization
+           zssu(ji,jj) = 0.5 * ( pu(ji-1,jj  ) + pu(ji,jj) )
+           zssv(ji,jj) = 0.5 * ( pv(ji  ,jj-1) + pv(ji,jj) )
+         ENDDO
+      ENDDO
+      CALL lbc_lnk_multi( 'sbcblk', zssu, 'T', -1. , zssv, 'T', -1. )
+
+      IF ( ln_clim_forcing ) THEN
+        wndm(:,:) = sf(jp_wmod)%fnow(:,:,1) * tmask(:,:,1)
+      ELSE
+        zwnd_i(:,:) = (  sf(jp_wndi)%fnow(:,:,1) - rn_vfac * zssu(:,:)  )
+        zwnd_j(:,:) = (  sf(jp_wndj)%fnow(:,:,1) - rn_vfac * zssv(:,:)  )
+#else
       DO jj = 2, jpjm1
          DO ji = fs_2, fs_jpim1   ! vect. opt.
             zwnd_i(ji,jj) = (  sf(jp_wndi)%fnow(ji,jj,1) - rn_vfac * 0.5 * ( pu(ji-1,jj  ) + pu(ji,jj) )  )
@@ -463,9 +513,13 @@ CONTAINS
          END DO
       END DO
       CALL lbc_lnk_multi( 'sbcblk', zwnd_i, 'T', -1., zwnd_j, 'T', -1. )
+#endif
       ! ... scalar wind ( = | U10m - U_oce | ) at T-point (masked)
       wndm(:,:) = SQRT(  zwnd_i(:,:) * zwnd_i(:,:)   &
          &             + zwnd_j(:,:) * zwnd_j(:,:)  ) * tmask(:,:,1)
+#if defined key_drakkar
+      ENDIF  ! ln_clim_forcing
+#endif
 
       ! ----------------------------------------------------------------------------- !
       !      I   Radiative FLUXES                                                     !
@@ -514,23 +568,53 @@ CONTAINS
 
 !!      CALL iom_put( "Cd_oce", Cd_atm)  ! output value of pure ocean-atm. transfer coef.
 !!      CALL iom_put( "Ch_oce", Ch_atm)  ! output value of pure ocean-atm. transfer coef.
-
+#if defined key_drakkar
+    IF ( ln_clim_forcing ) THEN
+      DO jj = 1, jpj             ! tau module, i and j component
+         DO ji = 1, jpi
+            IF ( ln_LR ) THEN
+               zstau = rn_lra * wndm  (ji,jj) + rn_lrb
+               zUo   = SQRT ( zssu(ji,jj)*zssu(ji,jj) +  zssv(ji,jj)*zssv(ji,jj) )
+            ELSE
+               zstau = 0._wp
+               zUo   = 0._wp
+            ENDIF
+            zztmp = zrhoa(ji,jj)  * Cd_atm(ji,jj)   !
+            taum  (ji,jj) = zztmp * wndm  (ji,jj) * zU_zu(ji,jj) + zstau * zUo
+            zwnd_i(ji,jj) = zztmp * sf(jp_uw)%fnow(ji,jj,1)      + zstau * zssu(ji,jj)
+            zwnd_j(ji,jj) = zztmp * sf(jp_vw)%fnow(ji,jj,1)      + zstau * zssv(ji,jj) 
+         END DO
+      END DO
+    ELSE
+#endif
       DO jj = 1, jpj             ! tau module, i and j component
          DO ji = 1, jpi
             zztmp = zrhoa(ji,jj)  * zU_zu(ji,jj) * Cd_atm(ji,jj)   ! using bulk wind speed
-            taum  (ji,jj) = zztmp * wndm  (ji,jj)
-            zwnd_i(ji,jj) = zztmp * zwnd_i(ji,jj)
-            zwnd_j(ji,jj) = zztmp * zwnd_j(ji,jj)
+#if defined key_drakkar
+            IF ( ln_LR )  THEN    ! LIONEL RENAULT HERE !
+              zstau = rn_lra * wndm  (ji,jj) + rn_lrb
+              zUo = SQRT ( zssu(ji,jj)**2 +  zssv(ji,jj)**2 )
+              taum (ji,jj) =  zztmp * wndm  (ji,jj) + zstau * zUo   
+              zwnd_i(ji,jj) = zztmp * zwnd_i(ji,jj) + zstau * zssu(ji,jj)
+              zwnd_j(ji,jj) = zztmp * zwnd_j(ji,jj) + zstau * zssv(ji,jj)
+            ELSE
+#endif
+              taum  (ji,jj) = zztmp * wndm  (ji,jj)
+              zwnd_i(ji,jj) = zztmp * zwnd_i(ji,jj)
+              zwnd_j(ji,jj) = zztmp * zwnd_j(ji,jj)
+#if defined key_drakkar
+            ENDIF
+#endif
          END DO
       END DO
 
 #if defined key_drakkar
+    ENDIF  ! climatological forcing
       IF ( ln_kata )   THEN   ! correction of wind stress at T point only ( no impact on wind speed)
         zwnd_i(:,:) = rmskkatax(:,:)*zwnd_i(:,:)
         zwnd_j(:,:) = rmskkatay(:,:)*zwnd_j(:,:)
       ENDIF
 #endif
-
       !                          ! add the HF tau contribution to the wind stress module
       IF( lhftau )   taum(:,:) = taum(:,:) + sf(jp_tdif)%fnow(:,:,1)
 
@@ -782,6 +866,11 @@ CONTAINS
       !    Wind module relative to the moving ice ( U10m - U_ice )   !
       ! ------------------------------------------------------------ !
       ! C-grid ice dynamics :   U & V-points (same as ocean)
+#if defined key_drakkar
+      IF ( ln_clim_forcing ) THEN
+           wndm_ice(:,:) = sf(jp_wmod)%fnow(:,:,1) * tmask(:,:,1)
+      ELSE
+#endif
       DO jj = 2, jpjm1
          DO ji = fs_2, fs_jpim1   ! vect. opt.
             zwndi_t = (  sf(jp_wndi)%fnow(ji,jj,1) - rn_vfac * 0.5 * ( u_ice(ji-1,jj  ) + u_ice(ji,jj) )  )
@@ -790,6 +879,9 @@ CONTAINS
          END DO
       END DO
       CALL lbc_lnk( 'sbcblk', wndm_ice, 'T',  1. )
+#if defined key_drakkar
+      ENDIF
+#endif
       !
       ! Make ice-atm. drag dependent on ice concentration
       IF    ( ln_Cd_L12 ) THEN   ! calculate new drag from Lupkes(2012) equations

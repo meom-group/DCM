@@ -307,6 +307,23 @@
    !       !                        !  (if <0  months)  !   name   . !   (logical) !  (T/F)  ! 'monthly' !                  !  paring  !               !
    sn_kati     =     'katamask'     ,      -1           , 'katamaskx',    .false.  , .true.  , 'yearly'  , ''               , ''       ,  ''
    sn_katj     =     'katamask'     ,      -1           , 'katamasky',    .false.  , .true.  , 'yearly'  , ''               , ''       ,  ''
+!-----------------------------------------------------------------------
+   ln_LR         = .false.    ! Lionel Renault current feedback parameterization
+                              ! alpha and beta coefficient recommended by L. Renault are -2.0e-3 and 0.008
+     rn_lra      = -2.9e-3    ! alpha coefficient in Stau equation  !   Stau = alpha*Ua + beta
+     rn_lrb      =  0.008     ! beta coefficient in Stau equation   !   Tau = Tau_a + Stau*Uo
+!-----------------------------------------------------------------------
+   ln_clim_forcing  = .false.  ! Climatological forcing : T else interannual forcing
+                               ! If T need to provide the following dataset : wmod = wind module climatology (clim of w10=sqrt(u10^2+v10^2) )
+                               !                                              uw   = pseudo-stress_u climatology ( climatology of u10*w10
+                               !                                              vw   = pseudo-stress_v climatology ( climatology of v10*w10
+   !_______!________________________!___________________!____________!_____________!_________!___________!__________________!__________!_______________!
+   !       !  file name             ! frequency (hours) ! variable   ! time interp.!  clim   ! 'yearly'/ ! weights filename ! rotation !  lsm          !
+   !       !                        !  (if <0  months)  !   name   . !   (logical) !  (T/F)  ! 'monthly' !                  !  paring  !               !
+   sn_wmod = 'drowned_w10_DFS4.4_CLIM_0001'  , 24       , 'w10'      ,  .true.     , .true.  , 'yearly'  , 'wght_ERA40_NNATL12_bilin.nc' , '' ,  ''
+   sn_uw   = 'drowned_wu10_DFS4.4_CLIM_0001' , 24       , 'wu10'     ,  .true.     , .true.  , 'yearly'  , 'wght_ERA40_NNATL12_bicub.nc' , 'U2' ,  ''
+   sn_vw   = 'drowned_wv10_DFS4.4_CLIM_0001' , 24       , 'wv10'     ,  .true.     , .true.  , 'yearly'  , 'wght_ERA40_NNATL12_bicub.nc' , 'V2' ,  ''
+
 /
 !-----------------------------------------------------------------------
 &namsbc_cpl    !   coupled ocean/atmosphere model                       ("key_oasis3")
