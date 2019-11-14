@@ -289,7 +289,7 @@
        <field id="TDETSED"     long_name="TDETSED"                                 unit=""  /> 
      </field_group>
 
-     <field_group id="tracer_scalar"  grid_ref="grid_T_2D"  >
+     <field_group id="tracer_scalar"  grid_ref="grid_scalar"  >
      <!-- PISCES scalar  -->
        <field id="pno3tot"         long_name="Global mean nitrate concentration"                  unit="mol/m3"   />
        <field id="ppo4tot"         long_name="global mean phosphorus concentration"               unit="mol/m3"   />

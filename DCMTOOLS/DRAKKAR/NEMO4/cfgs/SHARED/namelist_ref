@@ -53,10 +53,14 @@
    ln_iscpl    = .false.   !  cavity evolution forcing or coupling to ice sheet model
    nn_istate   =       0   !  output the initial state (1) or not (0)
    ln_rst_list = .false.   !  output restarts at list of times using nn_stocklist (T) or at set frequency with nn_stock (F)
-   nn_stock    =    0      !  frequency of creation of a restart file (modulo referenced to 1)
+   nn_stock    =       0   !  used only if ln_rst_list = F: output restart freqeuncy (modulo referenced to 1)
+      !                          !    =  0 force to write restart files only at the end of the run
+      !                          !    = -1 do not do any restart
    nn_stocklist = 0,0,0,0,0,0,0,0,0,0 ! List of timesteps when a restart file is to be written
-   nn_write    =    5475   !  frequency of write in the output file   (modulo referenced to nn_it000)
-   ln_mskland  = .false.   !  mask land points in NetCDF outputs (costly: + ~15%)
+   nn_write    =       0   !  used only if key_iomput is not defined: output frequency (modulo referenced to nn_it000)
+      !                          !    =  0 force to write output files only at the end of the run
+      !                          !    = -1 do not do any output file
+   ln_mskland  = .false.   !  mask land points in NetCDF outputs
    ln_cfmeta   = .false.   !  output additional data to netCDF files required for compliance with the CF metadata standard
    ln_clobber  = .true.    !  clobber (overwrite) an existing file
    nn_chunksz  =       0   !  chunksize (bytes) for NetCDF file (works only with iom_nf90 routines)
@@ -106,8 +110,8 @@
    !___________!_________________________!___________________!___________!_____________!________!___________!__________________!__________!_______________!
    !           !  file name              ! frequency (hours) ! variable  ! time interp.!  clim  ! 'yearly'/ ! weights filename ! rotation ! land/sea mask !
    !           !                         !  (if <0  months)  !   name    !   (logical) !  (T/F) ! 'monthly' !                  ! pairing  !    filename   !
-   sn_tem = 'data_1m_potential_temperature_nomask',  -1      , 'votemper',   .true.    , .true. , 'yearly'  ,    ''            ,    ''    ,    ''
-   sn_sal = 'data_1m_salinity_nomask'             ,  -1      , 'vosaline',   .true.    , .true. , 'yearly'  ,    ''            ,    ''    ,    ''
+   sn_tem = 'data_1m_potential_temperature_nomask',  -1.      , 'votemper',   .true.    , .true. , 'yearly'  ,    ''            ,    ''    ,    ''
+   sn_sal = 'data_1m_salinity_nomask'             ,  -1.      , 'vosaline',   .true.    , .true. , 'yearly'  ,    ''            ,    ''    ,    ''
 /
 !-----------------------------------------------------------------------
 &namtsd_drk    !    Temperature & Salinity Data  (init/dmp)             (default: OFF)
@@ -121,11 +125,11 @@
    !           !  file name                          ! frequency (hours) ! variable  ! time interp.!  clim  ! 'yearly'/ ! weights     ! rotation ! land/sea mask !
    !           !                                     !  (if <0  months)  !   name    !   (logical) !  (T/F) ! 'monthly' !   filename  ! pairing  !    filename   !
    ! data used for initial condition (istate)
-   sn_tem_ini  = 'TS_Black_Sea_Climatology_Belokopytov-BSAS12_CLIM' , -1, 'votemper',  .false.     , .true., 'yearly'   ,  ''         , ' '      , ' '
-   sn_sal_ini  = 'TS_Black_Sea_Climatology_Belokopytov-BSAS12_CLIM' , -1, 'vosaline',  .false.     , .true., 'yearly'   ,  ''         , ' '      , ' '
+   sn_tem_ini  = 'TS_Black_Sea_Climatology_Belokopytov-BSAS12_CLIM' , -1., 'votemper',  .false.     , .true., 'yearly'   ,  ''         , ' '      , ' '
+   sn_sal_ini  = 'TS_Black_Sea_Climatology_Belokopytov-BSAS12_CLIM' , -1., 'vosaline',  .false.     , .true., 'yearly'   ,  ''         , ' '      , ' '
    ! data used for damping ( tradmp)
-   sn_tem_dmp  = 'TS_Black_Sea_Climatology_Belokopytov-BSAS12_CLIM' , -1, 'votemper',  .true.      , .true., 'yearly'   ,  ''         , ' '      , ' '
-   sn_sal_dmp  = 'TS_Black_Sea_Climatology_Belokopytov-BSAS12_CLIM' , -1, 'vosaline',  .true.      , .true., 'yearly'   ,  ''         , ' '      , ' '
+   sn_tem_dmp  = 'TS_Black_Sea_Climatology_Belokopytov-BSAS12_CLIM' , -1., 'votemper',  .true.      , .true., 'yearly'   ,  ''         , ' '      , ' '
+   sn_sal_dmp  = 'TS_Black_Sea_Climatology_Belokopytov-BSAS12_CLIM' , -1., 'vosaline',  .true.      , .true., 'yearly'   ,  ''         , ' '      , ' '
    !
 /
 !-----------------------------------------------------------------------
@@ -181,8 +185,8 @@
    !___________!_________________________!___________________!___________!_____________!________!___________!__________________!__________!_______________!
    !           !  file name              ! frequency (hours) ! variable  ! time interp.!  clim  ! 'yearly'/ ! weights filename ! rotation ! land/sea mask !
    !           !                         !  (if <0  months)  !   name    !   (logical) !  (T/F) ! 'monthly' !                  ! pairing  !    filename   !
-   sn_ucur     = 'ucurrent'              ,         -1        ,'u_current',   .false.   , .true. , 'monthly' ,  ''              ,  'Ume'   , ''
-   sn_vcur     = 'vcurrent'              ,         -1        ,'v_current',   .false.   , .true. , 'monthly' ,  ''              ,  'Vme'   , ''
+   sn_ucur     = 'ucurrent'              ,         -1.       ,'u_current',   .false.   , .true. , 'monthly' ,  ''              ,  'Ume'   , ''
+   sn_vcur     = 'vcurrent'              ,         -1.       ,'v_current',   .false.   , .true. , 'monthly' ,  ''              ,  'Vme'   , ''
 /
 
 !!======================================================================
@@ -257,11 +261,11 @@
    !___________!_________________________!___________________!___________!_____________!________!___________!__________________!__________!_______________!
    !           !  file name              ! frequency (hours) ! variable  ! time interp.!  clim  ! 'yearly'/ ! weights filename ! rotation ! land/sea mask !
    !           !                         !  (if <0  months)  !   name    !   (logical) !  (T/F) ! 'monthly' !                  ! pairing  !    filename   !
-   sn_utau     = 'utau'                  ,        24         , 'utau'    , .false.     , .false., 'yearly'  , ''               , ''       , ''
-   sn_vtau     = 'vtau'                  ,        24         , 'vtau'    , .false.     , .false., 'yearly'  , ''               , ''       , ''
-   sn_qtot     = 'qtot'                  ,        24         , 'qtot'    , .false.     , .false., 'yearly'  , ''               , ''       , ''
-   sn_qsr      = 'qsr'                   ,        24         , 'qsr'     , .false.     , .false., 'yearly'  , ''               , ''       , ''
-   sn_emp      = 'emp'                   ,        24         , 'emp'     , .false.     , .false., 'yearly'  , ''               , ''       , ''
+   sn_utau     = 'utau'                  ,        24.        , 'utau'    , .false.     , .false., 'yearly'  , ''               , ''       , ''
+   sn_vtau     = 'vtau'                  ,        24.        , 'vtau'    , .false.     , .false., 'yearly'  , ''               , ''       , ''
+   sn_qtot     = 'qtot'                  ,        24.        , 'qtot'    , .false.     , .false., 'yearly'  , ''               , ''       , ''
+   sn_qsr      = 'qsr'                   ,        24.        , 'qsr'     , .false.     , .false., 'yearly'  , ''               , ''       , ''
+   sn_emp      = 'emp'                   ,        24.        , 'emp'     , .false.     , .false., 'yearly'  , ''               , ''       , ''
 /
 !-----------------------------------------------------------------------
 &namsbc_blk    !   namsbc_blk  generic Bulk formula                     (ln_blk =T)
@@ -286,16 +290,16 @@
    !_______!_________________________!___________________!___________!_____________!_________!___________!_____________________________________!__________!_______________!
    !       !  file name              ! frequency (hours) ! variable  ! time interp.!  clim   ! 'yearly'/ !       weights filename              ! rotation !  lsm          !
    !       !                         !  (if <0  months)  !   name    !   (logical) !  (T/F)  ! 'monthly' !                                     !  paring  !               !
-   sn_wndi =    'drowned_u10_ERA_BSAS_interim'   ,     3 ,  'u10'    ,    .true.   , .false. , 'yearly'  , 'wght_ERAi_BSAS-BSAS12_v4_bicub.nc' , 'U1'     ,   ''
-   sn_wndj =    'drowned_v10_ERA_BSAS_interim'   ,     3 ,  'v10'    ,    .true.   , .false. , 'yearly'  , 'wght_ERAi_BSAS-BSAS12_v4_bicub.nc' , 'V1'     ,   ''
-   sn_qsr  =    'drowned_radsw_ERA_BSAS_interim' ,    24 ,  'radsw'  ,    .false.  , .false. , 'yearly'  , 'wght_ERAi_BSAS-BSAS12_v4_bilin.nc' , ''       ,   ''
-   sn_qlw  =    'drowned_radlw_ERA_BSAS_interim' ,    24 ,  'radlw'  ,    .false.  , .false. , 'yearly'  , 'wght_ERAi_BSAS-BSAS12_v4_bilin.nc' , ''       ,   ''
-   sn_tair =    'drowned_t2_ERA_BSAS_interim'    ,     3 ,  't2'     ,    .true.   , .false. , 'yearly'  , 'wght_ERAi_BSAS-BSAS12_v4_bilin.nc' , ''       ,   ''
-   sn_humi =    'drowned_q2_ERA_BSAS_interim'    ,     3 ,  'q2'     ,    .true.   , .false. , 'yearly'  , 'wght_ERAi_BSAS-BSAS12_v4_bilin.nc' , ''       ,   ''
-   sn_prec =    'drowned_precip_ERA_BSAS_interim' ,   24 ,  'precip' ,    .true.   , .false. , 'yearly'  , 'wght_ERAi_BSAS-BSAS12_v4_bilin.nc' , ''       ,   ''
-   sn_snow =    'drowned_snow_ERA_BSAS_interim'  ,    24 ,  'snow'   ,    .true.   , .false. , 'yearly'  , 'wght_ERAi_BSAS-BSAS12_v4_bilin.nc' , ''       ,   ''
-   sn_slp  =    'drowned_msl_ERAinterim'         ,     3 , 'msl'     ,    .true.   , .false. , 'yearly'  , 'wght_ERAi-BSAS12_v4_bilin.nc'      , ''       ,   ''
-   sn_tdif =    'taudif_core'                    ,    24 , 'taudif'  ,   .false.   , .true.  , 'yearly'  , 'weights_core_orca2_bilinear_noc'   , ''       ,   ''
+   sn_wndi =    'drowned_u10_ERA_BSAS_interim'   ,     3. ,  'u10'    ,    .true.   , .false. , 'yearly'  , 'wght_ERAi_BSAS-BSAS12_v4_bicub.nc' , 'U1'     ,   ''
+   sn_wndj =    'drowned_v10_ERA_BSAS_interim'   ,     3.,  'v10'    ,    .true.   , .false. , 'yearly'  , 'wght_ERAi_BSAS-BSAS12_v4_bicub.nc' , 'V1'     ,   ''
+   sn_qsr  =    'drowned_radsw_ERA_BSAS_interim' ,    24.,  'radsw'  ,    .false.  , .false. , 'yearly'  , 'wght_ERAi_BSAS-BSAS12_v4_bilin.nc' , ''       ,   ''
+   sn_qlw  =    'drowned_radlw_ERA_BSAS_interim' ,    24.,  'radlw'  ,    .false.  , .false. , 'yearly'  , 'wght_ERAi_BSAS-BSAS12_v4_bilin.nc' , ''       ,   ''
+   sn_tair =    'drowned_t2_ERA_BSAS_interim'    ,     3.,  't2'     ,    .true.   , .false. , 'yearly'  , 'wght_ERAi_BSAS-BSAS12_v4_bilin.nc' , ''       ,   ''
+   sn_humi =    'drowned_q2_ERA_BSAS_interim'    ,     3.,  'q2'     ,    .true.   , .false. , 'yearly'  , 'wght_ERAi_BSAS-BSAS12_v4_bilin.nc' , ''       ,   ''
+   sn_prec =    'drowned_precip_ERA_BSAS_interim' ,   24.,  'precip' ,    .true.   , .false. , 'yearly'  , 'wght_ERAi_BSAS-BSAS12_v4_bilin.nc' , ''       ,   ''
+   sn_snow =    'drowned_snow_ERA_BSAS_interim'  ,    24.,  'snow'   ,    .true.   , .false. , 'yearly'  , 'wght_ERAi_BSAS-BSAS12_v4_bilin.nc' , ''       ,   ''
+   sn_slp  =    'drowned_msl_ERAinterim'         ,     3., 'msl'     ,    .true.   , .false. , 'yearly'  , 'wght_ERAi-BSAS12_v4_bilin.nc'      , ''       ,   ''
+   sn_tdif =    'taudif_core'                    ,    24., 'taudif'  ,   .false.   , .true.  , 'yearly'  , 'weights_core_orca2_bilinear_noc'   , ''       ,   ''
 
 / 
 !-----------------------------------------------------------------------
@@ -305,8 +309,8 @@
    !_______!________________________!___________________!____________!_____________!_________!___________!__________________!__________!_______________!
    !       !  file name             ! frequency (hours) ! variable   ! time interp.!  clim   ! 'yearly'/ ! weights filename ! rotation !  lsm          !
    !       !                        !  (if <0  months)  !   name   . !   (logical) !  (T/F)  ! 'monthly' !                  !  paring  !               !
-   sn_kati     =     'katamask'     ,      -1           , 'katamaskx',    .false.  , .true.  , 'yearly'  , ''               , ''       ,  ''
-   sn_katj     =     'katamask'     ,      -1           , 'katamasky',    .false.  , .true.  , 'yearly'  , ''               , ''       ,  ''
+   sn_kati     =     'katamask'     ,      -1.          , 'katamaskx',    .false.  , .true.  , 'yearly'  , ''               , ''       ,  ''
+   sn_katj     =     'katamask'     ,      -1.          , 'katamasky',    .false.  , .true.  , 'yearly'  , ''               , ''       ,  ''
 !-----------------------------------------------------------------------
    ln_LR         = .false.    ! Lionel Renault current feedback parameterization
                               ! alpha and beta coefficient recommended by L. Renault are -2.0e-3 and 0.008
@@ -320,9 +324,9 @@
    !_______!________________________!___________________!____________!_____________!_________!___________!__________________!__________!_______________!
    !       !  file name             ! frequency (hours) ! variable   ! time interp.!  clim   ! 'yearly'/ ! weights filename ! rotation !  lsm          !
    !       !                        !  (if <0  months)  !   name   . !   (logical) !  (T/F)  ! 'monthly' !                  !  paring  !               !
-   sn_wmod = 'drowned_w10_DFS4.4_CLIM_0001'  , 24       , 'w10'      ,  .true.     , .true.  , 'yearly'  , 'wght_ERA40_NNATL12_bilin.nc' , '' ,  ''
-   sn_uw   = 'drowned_wu10_DFS4.4_CLIM_0001' , 24       , 'wu10'     ,  .true.     , .true.  , 'yearly'  , 'wght_ERA40_NNATL12_bicub.nc' , 'U2' ,  ''
-   sn_vw   = 'drowned_wv10_DFS4.4_CLIM_0001' , 24       , 'wv10'     ,  .true.     , .true.  , 'yearly'  , 'wght_ERA40_NNATL12_bicub.nc' , 'V2' ,  ''
+   sn_wmod = 'drowned_w10_DFS4.4_CLIM_0001'  , 24.      , 'w10'      ,  .true.     , .true.  , 'yearly'  , 'wght_ERA40_NNATL12_bilin.nc' , '' ,  ''
+   sn_uw   = 'drowned_wu10_DFS4.4_CLIM_0001' , 24.      , 'wu10'     ,  .true.     , .true.  , 'yearly'  , 'wght_ERA40_NNATL12_bicub.nc' , 'U2' ,  ''
+   sn_vw   = 'drowned_wv10_DFS4.4_CLIM_0001' , 24.      , 'wv10'     ,  .true.     , .true.  , 'yearly'  , 'wght_ERA40_NNATL12_bicub.nc' , 'V2' ,  ''
 
 /
 !-----------------------------------------------------------------------
@@ -332,7 +336,6 @@
    ln_usecplmask = .false. !  use a coupling mask file to merge data received from several models
    !                       !   -> file cplmask.nc with the float variable called cplmask (jpi,jpj,nn_cplmodel)
    nn_cats_cpl   =     5   !  Number of sea ice categories over which coupling is to be carried out (if not 1)
-
    !_____________!__________________________!____________!_____________!______________________!________!
    !             !        description       !  multiple  !    vector   !       vector         ! vector !
    !             !                          ! categories !  reference  !     orientation      ! grids  !
@@ -369,7 +372,7 @@
    sn_rcv_sdrfy  =   'none'                 ,    'no'    ,     ''      ,         ''           ,   ''
    sn_rcv_wper   =   'none'                 ,    'no'    ,     ''      ,         ''           ,   ''
    sn_rcv_wnum   =   'none'                 ,    'no'    ,     ''      ,         ''           ,   ''
-   sn_rcv_wstrf  =   'none'                 ,    'no'    ,     ''      ,         ''           ,   ''
+   sn_rcv_wfreq  =   'none'                 ,    'no'    ,     ''      ,         ''           ,   ''
    sn_rcv_wdrag  =   'none'                 ,    'no'    ,     ''      ,         ''           ,   ''
    sn_rcv_ts_ice =   'none'                 ,    'no'    ,     ''      ,         ''           ,   ''
    sn_rcv_isf    =   'none'                 ,    'no'    ,     ''      ,         ''           ,   ''
@@ -389,13 +392,13 @@
    !___________!_________________________!___________________!___________!_____________!________!___________!__________________!__________!_______________!
    !           !  file name              ! frequency (hours) ! variable  ! time interp.!  clim  ! 'yearly'/ ! weights filename ! rotation ! land/sea mask !
    !           !                         !  (if <0  months)  !   name    !   (logical) !  (T/F) ! 'monthly' !                  ! pairing  !    filename   !
-   sn_usp      = 'sas_grid_U'            ,       120         , 'uos'     ,   .true.    , .true. , 'yearly'  ,    ''            ,    ''    ,    ''
-   sn_vsp      = 'sas_grid_V'            ,       120         , 'vos'     ,   .true.    , .true. , 'yearly'  ,    ''            ,    ''    ,    ''
-   sn_tem      = 'sas_grid_T'            ,       120         , 'sosstsst',   .true.    , .true. , 'yearly'  ,    ''            ,    ''    ,    ''
-   sn_sal      = 'sas_grid_T'            ,       120         , 'sosaline',   .true.    , .true. , 'yearly'  ,    ''            ,    ''    ,    ''
-   sn_ssh      = 'sas_grid_T'            ,       120         , 'sossheig',   .true.    , .true. , 'yearly'  ,    ''            ,    ''    ,    ''
-   sn_e3t      = 'sas_grid_T'            ,       120         , 'e3t_m'   ,   .true.    , .true. , 'yearly'  ,    ''            ,    ''    ,    ''
-   sn_frq      = 'sas_grid_T'            ,       120         , 'frq_m'   ,   .true.    , .true. , 'yearly'  ,    ''            ,    ''    ,    ''
+   sn_usp      = 'sas_grid_U'            ,       120.        , 'uos'     ,   .true.    , .true. , 'yearly'  ,    ''            ,    ''    ,    ''
+   sn_vsp      = 'sas_grid_V'            ,       120.        , 'vos'     ,   .true.    , .true. , 'yearly'  ,    ''            ,    ''    ,    ''
+   sn_tem      = 'sas_grid_T'            ,       120.        , 'sosstsst',   .true.    , .true. , 'yearly'  ,    ''            ,    ''    ,    ''
+   sn_sal      = 'sas_grid_T'            ,       120.        , 'sosaline',   .true.    , .true. , 'yearly'  ,    ''            ,    ''    ,    ''
+   sn_ssh      = 'sas_grid_T'            ,       120.        , 'sossheig',   .true.    , .true. , 'yearly'  ,    ''            ,    ''    ,    ''
+   sn_e3t      = 'sas_grid_T'            ,       120.        , 'e3t_m'   ,   .true.    , .true. , 'yearly'  ,    ''            ,    ''    ,    ''
+   sn_frq      = 'sas_grid_T'            ,       120.        , 'frq_m'   ,   .true.    , .true. , 'yearly'  ,    ''            ,    ''    ,    ''
 /
 !-----------------------------------------------------------------------
 &namsbc_iif    !   Ice-IF : use observed ice cover                      (nn_ice = 1)
@@ -423,7 +426,7 @@
    !___________!_________________________!___________________!___________!_____________!________!___________!__________!__________!_______________!
    !           !  file name              ! frequency (hours) ! variable  ! time interp.!  clim  ! 'yearly'/ ! weights  ! rotation ! land/sea mask !
    !           !                         !  (if <0  months)  !   name    !   (logical) !  (T/F) ! 'monthly' ! filename ! pairing  !    filename   !
-   sn_chl      = 'BSAS12_chlaseawifs_c1m-99-05_smooth' , -1  , 'CHLA'    ,   .true.    , .true. , 'yearly'  , ''       , ''       , ''
+   sn_chl      = 'BSAS12_chlaseawifs_c1m-99-05_smooth' , -1. , 'CHLA'    ,   .true.    , .true. , 'yearly'  , ''       , ''       , ''
 /
 !-----------------------------------------------------------------------
 &namsbc_ssr    !   surface boundary condition : sea surface restoring   (ln_ssr =T)
@@ -440,8 +443,8 @@
    !___________!_________________________!___________________!___________!_____________!________!___________!___________!__________!_______________!
    !           !  file name              ! frequency (hours) ! variable  ! time interp.!  clim  ! 'yearly'/ ! weights e ! rotation ! land/sea mask !
    !           !                         !  (if <0  months)  !   name    !   (logical) !  (T/F) ! 'monthly' !  filename ! pairing  !    filename   !
-   sn_sst      = 'sst_data'              ,        24         ,  'sst'    ,    .false.  , .false., 'yearly'  ,    ''     ,    ''    ,     ''
-   sn_sss      = 'BSAS12-MJM03_y1992m01d02.1d_gridTsurf' , -12 , 'sosaline' , .false.  , .true. , 'yearly'  ,    ''     ,    ''    ,     ''
+   sn_sst      = 'sst_data'              ,        24.        ,  'sst'    ,    .false.  , .false., 'yearly'  ,    ''     ,    ''    ,     ''
+   sn_sss      = 'BSAS12-MJM03_y1992m01d02.1d_gridTsurf' , -12., 'sosaline' , .false.  , .true. , 'yearly'  ,    ''     ,    ''    ,     ''
 /
 !-----------------------------------------------------------------------
 &namsbc_ssr_drk !   surface boundary condition : sea surface restoring   (ln_ssr =T)
@@ -452,7 +455,7 @@
    !___________!____________________!___________________!__________!_____________!________!___________!__________!__________!_______________!
    !           !  file name         ! frequency (hours) ! variable ! time interp.!  clim  ! 'yearly'/ ! weights  ! rotation ! land/sea mask !
    !           !                    !  (if <0  months)  !   name   !   (logical) !  (T/F) ! 'monthly' ! filename ! pairing  !    filename   !
-   sn_coast    = 'BSAS12_distcoast' , 0                 , 'Tcoast' , .false.     , .true. , 'yearly'  ,  ''      , ''       , ''
+   sn_coast    = 'BSAS12_distcoast' , 0.                , 'Tcoast' , .false.     , .true. , 'yearly'  ,  ''      , ''       , ''
 
    rn_dist    =  20.      ! distance to the coast
 /      
@@ -475,11 +478,11 @@
    !___________!_________________________!___________________!___________!_____________!________!___________!__________________!__________!_______________!
    !           !  file name              ! frequency (hours) ! variable  ! time interp.!  clim  ! 'yearly'/ ! weights filename ! rotation ! land/sea mask !
    !           !                         !  (if <0  months)  !   name    !   (logical) !  (T/F) ! 'monthly' !                  ! pairing  !    filename   !
-   sn_rnf      = 'runoff_BSAS12_v4.3bis' , -1 , 'sorunoff', .true.  , .true. , 'yearly'  , ''       , '' , ''
-   sn_cnf      = 'runoff_BSAS12_v4.3bis' ,  0 , 'socoefr',  .false. , .true. , 'yearly'  , ''       , '' , ''
-   sn_s_rnf    = ' '            ,        24        , 'rosaline',   .true.     , .true. , 'yearly'  , ''       , '' , ''
-   sn_t_rnf    = ' '            ,        24        , 'rotemper',   .true.     , .true. , 'yearly'  , ''       , '' , ''
-   sn_dep_rnf  = ' '            ,         0        , 'rodepth' ,   .false.    , .true. , 'yearly'  , ''       , '' , ''
+   sn_rnf      = 'runoff_BSAS12_v4.3bis' , -1., 'sorunoff', .true.  , .true. , 'yearly'  , ''       , '' , ''
+   sn_cnf      = 'runoff_BSAS12_v4.3bis' ,  0., 'socoefr',  .false. , .true. , 'yearly'  , ''       , '' , ''
+   sn_s_rnf    = ' '            ,        24.       , 'rosaline',   .true.     , .true. , 'yearly'  , ''       , '' , ''
+   sn_t_rnf    = ' '            ,        24.       , 'rotemper',   .true.     , .true. , 'yearly'  , ''       , '' , ''
+   sn_dep_rnf  = ' '            ,         0.       , 'rodepth' ,   .false.    , .true. , 'yearly'  , ''       , '' , ''
 /
 !-----------------------------------------------------------------------
 &namsbc_apr    !   Atmospheric pressure used as ocean forcing           (ln_apr_dyn =T)
@@ -492,7 +495,7 @@
    !___________!_________________________!___________________!___________!_____________!________!___________!__________________!__________!_______________!
    !           !  file name              ! frequency (hours) ! variable  ! time interp.!  clim  ! 'yearly'/ ! weights filename ! rotation ! land/sea mask !
    !           !                         !  (if <0  months)  !   name    !   (logical) !  (T/F) ! 'monthly' !                  ! pairing  !    filename   !
-   sn_apr      = 'patm'                  ,         -1        ,'somslpre' ,   .true.    , .true. , 'yearly'  ,    ''            ,    ''    ,      ''
+   sn_apr      = 'patm'                  ,         -1.       ,'somslpre' ,   .true.    , .true. , 'yearly'  ,    ''            ,    ''    ,      ''
 /
 !-----------------------------------------------------------------------
 &namsbc_isf    !  Top boundary layer (ISF)                              (ln_isfcav =T : read (ln_read_cfg=T) 
@@ -519,14 +522,14 @@
    !           !  file name  ! frequency (hours) ! variable  ! time interp.!  clim   ! 'yearly'/ ! weights  ! rotation ! land/sea mask !
    !           !             !  (if <0  months)  !   name    !  (logical)  !  (T/F)  ! 'monthly' ! filename ! pairing  ! filename      !
 !* nn_isf = 4 case
-   sn_fwfisf   = 'rnfisf'    ,         -12       ,'sowflisf' ,  .false.    , .true.  , 'yearly'  ,    ''    ,   ''     ,    ''
+   sn_fwfisf   = 'rnfisf'    ,         -12.      ,'sowflisf' ,  .false.    , .true.  , 'yearly'  ,    ''    ,   ''     ,    ''
 !* nn_isf = 3 case
-   sn_rnfisf   = 'rnfisf'    ,         -12       ,'sofwfisf' ,  .false.    , .true.  , 'yearly'  ,    ''    ,   ''     ,    ''
+   sn_rnfisf   = 'rnfisf'    ,         -12.      ,'sofwfisf' ,  .false.    , .true.  , 'yearly'  ,    ''    ,   ''     ,    ''
 !* nn_isf = 2 and 3 cases 
-   sn_depmax_isf ='rnfisf'    ,         -12       ,'sozisfmax',  .false.    , .true.  , 'yearly'  ,    ''    ,   ''     ,    ''
-   sn_depmin_isf ='rnfisf'    ,         -12       ,'sozisfmin',  .false.    , .true.  , 'yearly'  ,    ''    ,   ''     ,    ''
+   sn_depmax_isf ='rnfisf'   ,         -12.      ,'sozisfmax',  .false.    , .true.  , 'yearly'  ,    ''    ,   ''     ,    ''
+   sn_depmin_isf ='rnfisf'   ,         -12.      ,'sozisfmin',  .false.    , .true.  , 'yearly'  ,    ''    ,   ''     ,    ''
 !* nn_isf = 2 case
-   sn_Leff_isf = 'rnfisf'    ,         -12       ,'Leff'     ,  .false.    , .true.  , 'yearly'  ,    ''    ,   ''     ,    ''
+   sn_Leff_isf = 'rnfisf'    ,         -12.      ,'Leff'     ,  .false.    , .true.  , 'yearly'  ,    ''    ,   ''     ,    ''
 /
 !-----------------------------------------------------------------------
 &namsbc_iscpl  !   land ice / ocean coupling option                     (ln_isfcav =T : read (ln_read_cfg=T) 
@@ -542,16 +545,16 @@
    !___________!_________________________!___________________!___________!_____________!________!___________!__________________!__________!_______________!
    !           !  file name              ! frequency (hours) ! variable  ! time interp.!  clim  ! 'yearly'/ ! weights filename ! rotation ! land/sea mask !
    !           !                         !  (if <0  months)  !   name    !   (logical) !  (T/F) ! 'monthly' !                  ! pairing  !    filename   !
-   sn_cdg      =  'sdw_ecwaves_orca2'    ,        6          , 'drag_coeff' ,  .true.  , .true. , 'yearly'  ,  ''              , ''       , ''
-   sn_usd      =  'sdw_ecwaves_orca2'    ,        6          , 'u_sd2d'     ,  .true.  , .true. , 'yearly'  ,  ''              , ''       , ''
-   sn_vsd      =  'sdw_ecwaves_orca2'    ,        6          , 'v_sd2d'     ,  .true.  , .true. , 'yearly'  ,  ''              , ''       , ''
-   sn_hsw      =  'sdw_ecwaves_orca2'    ,        6          , 'hs'         ,  .true.  , .true. , 'yearly'  ,  ''              , ''       , ''
-   sn_wmp      =  'sdw_ecwaves_orca2'    ,        6          , 'wmp'        ,  .true.  , .true. , 'yearly'  ,  ''              , ''       , ''
-   sn_wfr      =  'sdw_ecwaves_orca2'    ,        6          , 'wfr'        ,  .true.  , .true. , 'yearly'  ,  ''              , ''       , ''
-   sn_wnum     =  'sdw_ecwaves_orca2'    ,        6          , 'wave_num'   ,  .true.  , .true. , 'yearly'  ,  ''              , ''       , ''
-   sn_tauwoc   =  'sdw_ecwaves_orca2'    ,        6          , 'wave_stress',  .true.  , .true. , 'yearly'  ,  ''              , ''       , ''
-   sn_tauwx    =  'sdw_ecwaves_orca2'    ,        6          , 'wave_stress',  .true.  , .true. , 'yearly'  ,  ''              , ''       , ''
-   sn_tauwy    =  'sdw_ecwaves_orca2'    ,        6          , 'wave_stress',  .true.  , .true. , 'yearly'  ,  ''              , ''       , ''
+   sn_cdg      =  'sdw_ecwaves_orca2'    ,        6.         , 'drag_coeff' ,  .true.  , .true. , 'yearly'  ,  ''              , ''       , ''
+   sn_usd      =  'sdw_ecwaves_orca2'    ,        6.         , 'u_sd2d'     ,  .true.  , .true. , 'yearly'  ,  ''              , ''       , ''
+   sn_vsd      =  'sdw_ecwaves_orca2'    ,        6.         , 'v_sd2d'     ,  .true.  , .true. , 'yearly'  ,  ''              , ''       , ''
+   sn_hsw      =  'sdw_ecwaves_orca2'    ,        6.         , 'hs'         ,  .true.  , .true. , 'yearly'  ,  ''              , ''       , ''
+   sn_wmp      =  'sdw_ecwaves_orca2'    ,        6.         , 'wmp'        ,  .true.  , .true. , 'yearly'  ,  ''              , ''       , ''
+   sn_wfr      =  'sdw_ecwaves_orca2'    ,        6.         , 'wfr'        ,  .true.  , .true. , 'yearly'  ,  ''              , ''       , ''
+   sn_wnum     =  'sdw_ecwaves_orca2'    ,        6.         , 'wave_num'   ,  .true.  , .true. , 'yearly'  ,  ''              , ''       , ''
+   sn_tauwoc   =  'sdw_ecwaves_orca2'    ,        6.         , 'wave_stress',  .true.  , .true. , 'yearly'  ,  ''              , ''       , ''
+   sn_tauwx    =  'sdw_ecwaves_orca2'    ,        6.         , 'wave_stress',  .true.  , .true. , 'yearly'  ,  ''              , ''       , ''
+   sn_tauwy    =  'sdw_ecwaves_orca2'    ,        6.         , 'wave_stress',  .true.  , .true. , 'yearly'  ,  ''              , ''       , ''
 /
 !-----------------------------------------------------------------------
 &namberg       !   iceberg parameters                                   (default: OFF)
@@ -591,7 +594,7 @@
    !___________!_________________________!___________________!___________!_____________!________!___________!__________________!__________!_______________!
    !           !  file name              ! frequency (hours) ! variable  ! time interp.!  clim  ! 'yearly'/ ! weights filename ! rotation ! land/sea mask !
    !           !                         !  (if <0  months)  !   name    !   (logical) !  (T/F) ! 'monthly' !                  ! pairing  !    filename   !
-   sn_icb     =  'calving'              ,         -1         ,'calvingmask',  .true.   , .true. , 'yearly'  , ''               , ''       , ''
+   sn_icb     =  'calving'              ,         -1.        ,'calvingmask',  .true.   , .true. , 'yearly'  , ''               , ''       , ''
 /
 
 !!======================================================================
@@ -620,7 +623,7 @@
    !___________!____________________!___________________!___________!_____________!________!___________!__________________!__________!_______________!
    !           !  file name         ! frequency (hours) ! variable  ! time interp.!  clim  ! 'yearly'/ ! weights filename ! rotation ! land/sea mask !
    !           !                    !  (if <0  months)  !   name    !   (logical) !  (T/F) ! 'monthly' !                  ! pairing  !    filename   !
-   sn_shlat2d = 'BSAS12_shlat2_v3' , -12                , 'shlatcoef' , .false.   , .true. ,  'yearly' , ''               , ''       , ''
+   sn_shlat2d = 'BSAS12_shlat2_v3' , -12.               , 'shlatcoef' , .false.   , .true. ,  'yearly' , ''               , ''       , ''
 /
 !-----------------------------------------------------------------------
 &namagrif      !  AGRIF zoom                                            ("key_agrif")
@@ -667,9 +670,6 @@
    cn_ice        =  'none'    !
    nn_ice_dta    =  0         !  = 0, bdy data are equal to the initial state
    !                          !  = 1, bdy data are read in 'bdydata   .nc' files
-   rn_ice_tem    = 270.       !  si3 only: arbitrary temperature of incoming sea ice
-   rn_ice_sal    = 10.        !  si3 only:      --   salinity           --
-   rn_ice_age    = 30.        !  si3 only:      --   age                --
    !
    ln_tra_dmp    =.false.     !  open boudaries conditions for tracers
    ln_dyn3d_dmp  =.false.     !  open boundary condition for baroclinic velocities
@@ -690,22 +690,39 @@
 !-----------------------------------------------------------------------
 &nambdy_dta      !  open boundaries - external data ("key_bdy")  BSAS12_BDY_gridT.nc
 !-----------------------------------------------------------------------
-   ln_full_vel = .true.
-   cn_dir  =    './'
-   !___________!_____________________!___________________!____________!_____________!________!___________!__________________!__________!_______________!
+   ln_zinterp  = .false.      !  T if a vertical interpolation is required. Variables gdep[tuv] and e3[tuv] must exist in the file
+   !                          !  automatically defined to T if the number of vertical levels in bdy dta /= jpk
+   ln_full_vel = .true.       !  T if [uv]3d are "full" velocities and not only its baroclinic components
+   !                          !  in this case, baroclinic and barotropic velocities will be recomputed -> [uv]2d not needed
+   !
+   cn_dir      = './'         !  root directory for the BDY data location
+   !___________!_________________________!___________________!___________!_____________!________!___________!__________________!__________!_______________!
    !           !  file name          ! frequency (hours) ! variable   ! time interp.!  clim  ! 'yearly'/ ! weights filename ! rotation ! land/sea mask !
    !           !                     !  (if <0  months)  !   name     !   (logical) !  (T/F) ! 'monthly' !                  ! pairing  !    filename   !
-   bn_ssh =     'BSAS12_BDY5_SSH   ' , -1                , 'sossheig' ,  .true.     , .true. , 'yearly'  ,    ''            , ''       , ''
-   bn_u3d  =    'BSAS12_BDY5_gridU'  , -1                , 'vozocrtx' ,  .true.     , .true. , 'yearly'  ,    ''            , ''       , ''
-   bn_u2d  =    'BSAS12_BDY5_gridU'  , -1                , 'vobtcrtx' ,  .true.     , .true. , 'yearly'  ,    ''            , ''       , ''
-   bn_v3d  =    'BSAS12_BDY5_gridV'  , -1                , 'vomecrty' ,  .true.     , .true. , 'yearly'  ,    ''            , ''       , ''
-   bn_v2d  =    'BSAS12_BDY5_gridV'  , -1                , 'vobtcrty' ,  .true.     , .true. , 'yearly'  ,    ''            , ''       , ''
-   bn_tem  =    'BSAS12_BDY5_gridT'  , -1                , 'votemper' ,  .true.     , .true. , 'yearly'  ,    ''            , ''       , ''
-   bn_sal  =    'BSAS12_BDY5_gridS'  , -1                , 'vosaline' ,  .true.     , .true. , 'yearly'  ,    ''            , ''       , ''
+   bn_ssh =     'BSAS12_BDY5_SSH   ' , -1.               , 'sossheig' ,  .true.     , .true. , 'yearly'  ,    ''            , ''       , ''
+   bn_u3d  =    'BSAS12_BDY5_gridU'  , -1.               , 'vozocrtx' ,  .true.     , .true. , 'yearly'  ,    ''            , ''       , ''
+   bn_u2d  =    'BSAS12_BDY5_gridU'  , -1.               , 'vobtcrtx' ,  .true.     , .true. , 'yearly'  ,    ''            , ''       , ''
+   bn_v3d  =    'BSAS12_BDY5_gridV'  , -1.               , 'vomecrty' ,  .true.     , .true. , 'yearly'  ,    ''            , ''       , ''
+   bn_v2d  =    'BSAS12_BDY5_gridV'  , -1.               , 'vobtcrty' ,  .true.     , .true. , 'yearly'  ,    ''            , ''       , ''
+   bn_tem  =    'BSAS12_BDY5_gridT'  , -1.               , 'votemper' ,  .true.     , .true. , 'yearly'  ,    ''            , ''       , ''
+   bn_sal  =    'BSAS12_BDY5_gridS'  , -1.               , 'vosaline' ,  .true.     , .true. , 'yearly'  ,    ''            , ''       , ''
 !* for si3
-!   bn_a_i     = 'amm12_bdyT_ice'        ,         24        , 'ileadfra',    .true.   , .false.,  'daily'  ,    ''            ,   ''     ,     ''
-!   bn_h_i     = 'amm12_bdyT_ice'        ,         24        , 'iicethic',    .true.   , .false.,  'daily'  ,    ''            ,   ''     ,     ''
-!   bn_h_s     = 'amm12_bdyT_ice'        ,         24        , 'isnowthi',    .true.   , .false.,  'daily'  ,    ''            ,   ''     ,     ''
+!   bn_a_i     = 'amm12_bdyT_ice'    , 24.               , 'ileadfra',    .true.    , .false., 'daily'   ,    ''            ,   ''     ,     ''
+!   bn_h_i     = 'amm12_bdyT_ice'    , 24.               , 'iicethic',    .true.    , .false., 'daily'   ,    ''            ,   ''     ,     ''
+!   bn_h_s     = 'amm12_bdyT_ice'    , 24.               , 'isnowthi',    .true.    , .false., 'daily'   ,    ''            ,   ''     ,     ''
+   bn_t_i      = 'NOT USED'              ,         24.       , 'sitemp'  ,    .true.   , .false.,  'daily'  ,    ''            ,   ''     ,     ''
+   bn_t_s      = 'NOT USED'              ,         24.       , 'sntemp'  ,    .true.   , .false.,  'daily'  ,    ''            ,   ''     ,     ''
+   bn_tsu      = 'NOT USED'              ,         24.       , 'sittop'  ,    .true.   , .false.,  'daily'  ,    ''            ,   ''     ,     ''
+   bn_s_i      = 'NOT USED'              ,         24.       , 'sisalt'  ,    .true.   , .false.,  'daily'  ,    ''            ,   ''     ,     ''
+   ! melt ponds (be careful, bn_aip is the pond concentration (not fraction), so it differs from rn_iceapnd)
+   bn_aip      = 'NOT USED'              ,         24.       , 'siapnd'  ,    .true.   , .false.,  'daily'  ,    ''            ,   ''     ,     ''
+   bn_hip      = 'NOT USED'              ,         24.       , 'sihpnd'  ,    .true.   , .false.,  'daily'  ,    ''            ,   ''     ,     ''
+   ! if bn_t_i etc are "not used", then define arbitrary temperatures and salinity and ponds
+   rn_ice_tem  = 270.         !  arbitrary temperature               of incoming sea ice
+   rn_ice_sal  = 10.          !       --   salinity                            --
+   rn_ice_age  = 30.          !       --   age                                 --
+   rn_ice_apnd = 0.2          !       --   pond fraction = a_ip/a_i            --
+   rn_ice_hpnd = 0.05         !       --   pond depth                          --
 /
 !-----------------------------------------------------------------------
 &nambdy_tide   !  tidal forcing at open boundaries                      (default: OFF)
@@ -841,7 +858,7 @@
       nn_cen_v   =  4            !  =2/4, vertical   2nd order CEN / 4th order COMPACT
    ln_traadv_fct = .true.  !  FCT scheme
       nn_fct_h   =  4            !  =2/4, horizontal 2nd / 4th order
-      nn_fct_v   =  4            !  =2/4, vertical   2nd / COMPACT 4th order
+      nn_fct_v   =  2            !  =2/4, vertical   2nd / COMPACT 4th order
    ln_traadv_mus = .false. !  MUSCL scheme
       ln_mus_ups = .false.       !  use upstream scheme near river mouths
    ln_traadv_ubs = .false. !  UBS scheme
@@ -1078,20 +1095,20 @@
    !___________!_________________________!___________________!___________!_____________!________!___________!__________________!__________!_______________!
    !           !  file name              ! frequency (hours) ! variable  ! time interp.!  clim  ! 'yearly'/ ! weights filename ! rotation ! land/sea mask !
    !           !                         !  (if <0  months)  !   name    !   (logical) !  (T/F) ! 'monthly' !                  ! pairing  !    filename   !
-   sn_tem      = 'dyna_grid_T'           ,       120         , 'votemper'  ,  .true.   , .true. , 'yearly'  , ''               , ''       , ''
-   sn_sal      = 'dyna_grid_T'           ,       120         , 'vosaline'  ,  .true.   , .true. , 'yearly'  , ''               , ''       , ''
-   sn_mld      = 'dyna_grid_T'           ,       120         , 'somixhgt'  ,  .true.   , .true. , 'yearly'  , ''               , ''       , ''
-   sn_emp      = 'dyna_grid_T'           ,       120         , 'sowaflup'  ,  .true.   , .true. , 'yearly'  , ''               , ''       , ''
-   sn_fmf      = 'dyna_grid_T'           ,       120         , 'iowaflup'  ,  .true.   , .true. , 'yearly'  , ''               , ''       , ''
-   sn_ice      = 'dyna_grid_T'           ,       120         , 'soicecov'  ,  .true.   , .true. , 'yearly'  , ''               , ''       , ''
-   sn_qsr      = 'dyna_grid_T'           ,       120         , 'soshfldo'  ,  .true.   , .true. , 'yearly'  , ''               , ''       , ''
-   sn_wnd      = 'dyna_grid_T'           ,       120         , 'sowindsp'  ,  .true.   , .true. , 'yearly'  , ''               , ''       , ''
-   sn_uwd      = 'dyna_grid_U'           ,       120         , 'uocetr_eff',  .true.   , .true. , 'yearly'  , ''               , ''       , ''
-   sn_vwd      = 'dyna_grid_V'           ,       120         , 'vocetr_eff',  .true.   , .true. , 'yearly'  , ''               , ''       , ''
-   sn_wwd      = 'dyna_grid_W'           ,       120         , 'wocetr_eff',  .true.   , .true. , 'yearly'  , ''               , ''       , ''
-   sn_avt      = 'dyna_grid_W'           ,       120         , 'voddmavs'  ,  .true.   , .true. , 'yearly'  , ''               , ''       , ''
-   sn_ubl      = 'dyna_grid_U'           ,       120         , 'sobblcox'  ,  .true.   , .true. , 'yearly'  , ''               , ''       , ''
-   sn_vbl      = 'dyna_grid_V'           ,       120         , 'sobblcoy'  ,  .true.   , .true. , 'yearly'  , ''               , ''       , ''
+   sn_tem      = 'dyna_grid_T'           ,       120.        , 'votemper'  ,  .true.   , .true. , 'yearly'  , ''               , ''       , ''
+   sn_sal      = 'dyna_grid_T'           ,       120.        , 'vosaline'  ,  .true.   , .true. , 'yearly'  , ''               , ''       , ''
+   sn_mld      = 'dyna_grid_T'           ,       120.        , 'somixhgt'  ,  .true.   , .true. , 'yearly'  , ''               , ''       , ''
+   sn_emp      = 'dyna_grid_T'           ,       120.        , 'sowaflup'  ,  .true.   , .true. , 'yearly'  , ''               , ''       , ''
+   sn_fmf      = 'dyna_grid_T'           ,       120.        , 'iowaflup'  ,  .true.   , .true. , 'yearly'  , ''               , ''       , ''
+   sn_ice      = 'dyna_grid_T'           ,       120.        , 'soicecov'  ,  .true.   , .true. , 'yearly'  , ''               , ''       , ''
+   sn_qsr      = 'dyna_grid_T'           ,       120.        , 'soshfldo'  ,  .true.   , .true. , 'yearly'  , ''               , ''       , ''
+   sn_wnd      = 'dyna_grid_T'           ,       120.        , 'sowindsp'  ,  .true.   , .true. , 'yearly'  , ''               , ''       , ''
+   sn_uwd      = 'dyna_grid_U'           ,       120.        , 'uocetr_eff',  .true.   , .true. , 'yearly'  , ''               , ''       , ''
+   sn_vwd      = 'dyna_grid_V'           ,       120.        , 'vocetr_eff',  .true.   , .true. , 'yearly'  , ''               , ''       , ''
+   sn_wwd      = 'dyna_grid_W'           ,       120.        , 'wocetr_eff',  .true.   , .true. , 'yearly'  , ''               , ''       , ''
+   sn_avt      = 'dyna_grid_W'           ,       120.        , 'voddmavs'  ,  .true.   , .true. , 'yearly'  , ''               , ''       , ''
+   sn_ubl      = 'dyna_grid_U'           ,       120.        , 'sobblcox'  ,  .true.   , .true. , 'yearly'  , ''               , ''       , ''
+   sn_vbl      = 'dyna_grid_V'           ,       120.        , 'sobblcoy'  ,  .true.   , .true. , 'yearly'  , ''               , ''       , ''
 /
 
 !!======================================================================
@@ -1236,9 +1253,9 @@
 !!   namhsb       Heat and salt budgets                                 (default: OFF)
 !!   namdiu       Cool skin and warm layer models                       (default: OFF)
 !!   namdiu       Cool skin and warm layer models                       (default: OFF)
-!!   namflo       float parameters                                      ("key_float")
-!!   nam_diaharm  Harmonic analysis of tidal constituents               ("key_diaharm")
-!!   namdct       transports through some sections                      ("key_diadct")
+!!   namflo       float parameters                                      (default: OFF)
+!!   nam_diaharm  Harmonic analysis of tidal constituents               (default: OFF)
+!!   nam_diadct   transports through some sections                      (default: OFF)
 !!   nam_diatmb   Top Middle Bottom Output                              (default: OFF)
 !!   nam_dia25h   25h Mean Output                                       (default: OFF)
 !!   namnc4       netcdf4 chunking and compression settings             ("key_netcdf4")
@@ -1273,7 +1290,7 @@
 !-----------------------------------------------------------------------
 &namhsb        !  Heat and salt budgets                                 (default: OFF)
 !-----------------------------------------------------------------------
-   ln_diahsb   = .false.   !  check the heat and salt budgets (T) or not (F)
+   ln_diahsb   = .false.   !  output the heat and salt budgets (T) or not (F)
 /
 !-----------------------------------------------------------------------
 &namdiu        !   Cool skin and warm layer models                      (default: OFF)
@@ -1282,8 +1299,9 @@
    ln_diurnal_only = .false.   !
 /
 !-----------------------------------------------------------------------
-&namflo        !   float parameters                                     ("key_float")
+&namflo        !   float parameters                                     (default: OFF)
 !-----------------------------------------------------------------------
+   ln_floats   = .false.      ! activate floats or not
    jpnfl       = 1         !  total number of floats during the run
    jpnnewflo   = 0         !  number of floats for the restart
    ln_rstflo   = .false.   !  float restart (T) or not (F)
@@ -1296,17 +1314,19 @@
    ln_flo_ascii = .true.    !  Output with Ariane tool netcdf convention(F) or ascii file (T)
 /
 !-----------------------------------------------------------------------
-&nam_diaharm   !   Harmonic analysis of tidal constituents              ("key_diaharm")
+&nam_diaharm   !   Harmonic analysis of tidal constituents              (default: OFF)
 !-----------------------------------------------------------------------
+    ln_diaharm = .false.   ! Choose tidal harmonic output or not
     nit000_han = 1         ! First time step used for harmonic analysis
     nitend_han = 75        ! Last time step used for harmonic analysis
     nstep_han  = 15        ! Time step frequency for harmonic analysis
     tname(1)   = 'M2'      ! Name of tidal constituents
-    tname(2)   = 'K1'
+    tname(2)   = 'K1'      !              ---
 /
 !-----------------------------------------------------------------------
-&namdct        ! transports through some sections                       ("key_diadct")
+&nam_diadct    !   transports through some sections                     (default: OFF)
 !-----------------------------------------------------------------------
+    ln_diadct  = .false.   ! Calculate transport thru sections or not
     nn_dct     = 15        !  time step frequency for transports computing
     nn_dctwri  = 15        !  time step frequency for transports writing
     nn_secdebug = 112       !      0 : no section to debug
@@ -1429,12 +1449,11 @@
 !-----------------------------------------------------------------------
 &nammpp        !   Massively Parallel Processing                        ("key_mpp_mpi")
 !-----------------------------------------------------------------------
-   cn_mpi_send =  'I'      !  mpi send/recieve type   ='S', 'B', or 'I' for standard send,
-   !                       !  buffer blocking send or immediate non-blocking sends, resp.
-   nn_buffer   =   0       !  size in bytes of exported buffer ('B' case), 0 no exportation
+   ln_listonly =  .false.  !  do nothing else than listing the best domain decompositions (with land domains suppression)
+   !                       !  if T: the largest number of cores tested is defined by max(mppsize, jpni*jpnj)
    ln_nnogather =  .true.  !  activate code to avoid mpi_allgather use at the northfold
-   jpni        =   0       !  jpni   number of processors following i (set automatically if < 1)
-   jpnj        =   0       !  jpnj   number of processors following j (set automatically if < 1)
+   jpni        =   0       !  number of processors following i (set automatically if < 1), see also ln_listonly = T
+   jpnj        =   0       !  number of processors following j (set automatically if < 1), see also ln_listonly = T
 /
 !-----------------------------------------------------------------------
 &namctl        !   Control prints                                       (default: OFF)

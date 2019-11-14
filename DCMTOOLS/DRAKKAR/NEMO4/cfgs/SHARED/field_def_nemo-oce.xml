@@ -345,9 +345,6 @@
         <field id="qair"         long_name="air Specific Humidity"                                        unit="kg/kg"    />
 	</field_group>
 	
-	<!-- scalar variables -->
-	<field_group id="SBC_0D"  grid_ref="grid_1point" >
-	</field_group>
 
       </field_group> <!-- SBC -->
 
@@ -517,7 +514,7 @@
       <field id="ahmf_2d"      long_name=" surface f-eddy viscosity coefficient"   unit="m2/s or m4/s" />
       <field id="ahmf_3d"      long_name=" 3D      f-eddy viscosity coefficient"   unit="m2/s or m4/s"  grid_ref="grid_T_3D"/>
 
-      <field_group id="scalar"  grid_ref="grid_T_2D"  >
+      <field_group id="scalar"  grid_ref="grid_scalar"  >
       	<!-- Need to have a salinity reference climatological file : sali_ref_clim_monthly -->
         <field id="voltot"     long_name="global total volume"                          standard_name="sea_water_volume"                               unit="m3"   />
         <field id="sshtot"     long_name="global mean ssh"                              standard_name="global_average_sea_level_change"                unit="m"    />
@@ -544,7 +541,7 @@
         <field id="bgmissal"     long_name="global mean salinity error due to free surface (linssh true)"                                                                          unit="1e-3"     />
       </field_group>
       
-      <!-- variables available with key_float -->
+      <!-- variables available with ln_floats -->
 
       <field_group id="floatvar" grid_ref="grid_T_nfloat"  operation="instant" >
         <field id="traj_lon"      long_name="floats longitude"                                                           unit="degrees_east"  />

@@ -55,14 +55,11 @@
       rn_vice       =   0.5           !        prescribed ice v-velocity
    rn_ishlat        =   2.            !  lbc : free slip (0) ; partial slip (0-2) ; no slip (2) ; strong slip (>2)
    ln_landfast_L16  = .false.         !  landfast: parameterization from Lemieux 2016
-   ln_landfast_home = .false.         !  landfast: parameterization from "home made"
       rn_depfra     =   0.125         !        fraction of ocean depth that ice must reach to initiate landfast
-                                      !          recommended range: [0.1 ; 0.25] - L16=0.125 - home=0.15
-      rn_icebfr     =  15.            !        ln_landfast_L16:  maximum bottom stress per unit volume [N/m3]
-                                      !        ln_landfast_home: maximum bottom stress per unit area of contact [N/m2]
-                                      !          recommended range: ?? L16=15 - home=10
+                                      !          recommended range: [0.1 ; 0.25]
+      rn_icebfr     =  15.            !        maximum bottom stress per unit volume [N/m3]
       rn_lfrelax    =   1.e-5         !        relaxation time scale to reach static friction [s-1]
-      rn_tensile    =   0.2           !        ln_landfast_L16: isotropic tensile strength
+      rn_tensile    =   0.05          !        isotropic tensile strength [0-0.5??]
 /
 !------------------------------------------------------------------------------
 &namdyn_rdgrft  !   Ice ridging/rafting
@@ -103,8 +100,8 @@
 !------------------------------------------------------------------------------
 &namdyn_adv     !   Ice advection
 !------------------------------------------------------------------------------
-   ln_adv_Pra       = .false.         !  Advection scheme (Prather)
-   ln_adv_UMx       = .true.          !  Advection scheme (Ultimate-Macho)
+   ln_adv_Pra       = .true.         !  Advection scheme (Prather)
+   ln_adv_UMx       = .false.          !  Advection scheme (Ultimate-Macho)
       nn_UMx        =   5             !     order of the scheme for UMx (1-5 ; 20=centered 2nd order)
 /
 !------------------------------------------------------------------------------
@@ -177,6 +174,7 @@
 !------------------------------------------------------------------------------
 &namthd_pnd     !   Melt ponds
 !------------------------------------------------------------------------------
+   ln_pnd           = .false.         !  activate melt ponds or not
    ln_pnd_H12       = .false.         !  activate evolutive melt ponds (from Holland et al 2012)
    ln_pnd_CST       = .false.         !  activate constant  melt ponds
       rn_apnd       =   0.2           !     prescribed pond fraction, at Tsu=0 degC
@@ -188,24 +186,36 @@
 !------------------------------------------------------------------------------
    ln_iceini        = .true.          !  activate ice initialization (T) or not (F)
    ln_iceini_file   = .false.         !  netcdf file provided for initialization (T) or not (F)
-   rn_thres_sst     =   2.0           !  max delta temp. above Tfreeze with initial ice = (sst - tfreeze)
-   rn_hts_ini_n     =   0.3           !  initial real snow thickness (m), North
-   rn_hts_ini_s     =   0.3           !        "            "             South
-   rn_hti_ini_n     =   3.0           !  initial real ice thickness  (m), North
+   rn_thres_sst     =   2.0           !  max temp. above Tfreeze with initial ice = (sst - tfreeze)
+   rn_hti_ini_n     =   3.0           !  initial ice thickness       (m), North
    rn_hti_ini_s     =   1.0           !        "            "             South
+   rn_hts_ini_n     =   0.3           !  initial snow thickness      (m), North
+   rn_hts_ini_s     =   0.3           !        "            "             South
    rn_ati_ini_n     =   0.9           !  initial ice concentration   (-), North
    rn_ati_ini_s     =   0.9           !        "            "             South
    rn_smi_ini_n     =   6.3           !  initial ice salinity     (g/kg), North
    rn_smi_ini_s     =   6.3           !        "            "             South
-   rn_tmi_ini_n     = 270.            !  initial ice/snw temperature (K), North
+   rn_tmi_ini_n     = 270.            !  initial ice temperature     (K), North
    rn_tmi_ini_s     = 270.            !        "            "             South
-
+   rn_tsu_ini_n     = 270.            !  initial surface temperature (K), North
+   rn_tsu_ini_s     = 270.            !        "            "             South
+   rn_tms_ini_n     = 270.            !  initial snw temperature     (K), North
+   rn_tms_ini_s     = 270.            !        "            "             South
+   rn_apd_ini_n     =   0.2           !  initial pond fraction       (-), North
+   rn_apd_ini_s     =   0.2           !        "            "             South
+   rn_hpd_ini_n     =   0.05          !  initial pond depth          (m), North
+   rn_hpd_ini_s     =   0.05          !        "            "             South
+   ! -- for ln_iceini_file = T
    sn_hti = 'Ice_initialization'    , -12 ,'hti'   ,  .false.  , .true., 'yearly'  , '' , '', ''
    sn_hts = 'Ice_initialization'    , -12 ,'hts'   ,  .false.  , .true., 'yearly'  , '' , '', ''
    sn_ati = 'Ice_initialization'    , -12 ,'ati'   ,  .false.  , .true., 'yearly'  , '' , '', ''
-   sn_tsu = 'Ice_initialization'    , -12 ,'tsu'   ,  .false.  , .true., 'yearly'  , '' , '', ''
-   sn_tmi = 'Ice_initialization'    , -12 ,'tmi'   ,  .false.  , .true., 'yearly'  , '' , '', ''
    sn_smi = 'Ice_initialization'    , -12 ,'smi'   ,  .false.  , .true., 'yearly'  , '' , '', ''
+   sn_tmi = 'Ice_initialization'    , -12 ,'tmi'   ,  .false.  , .true., 'yearly'  , '' , '', ''
+   sn_tsu = 'Ice_initialization'    , -12 ,'tsu'   ,  .false.  , .true., 'yearly'  , '' , '', ''
+   sn_tms = 'NOT USED'              , -12 ,'tms'   ,  .false.  , .true., 'yearly'  , '' , '', ''
+   !      melt ponds (be careful, sn_apd is the pond concentration (not fraction), so it differs from rn_apd)
+   sn_apd = 'NOT USED'              , -12 ,'apd'   ,  .false.  , .true., 'yearly'  , '' , '', ''
+   sn_hpd = 'NOT USED'              , -12 ,'hpd'   ,  .false.  , .true., 'yearly'  , '' , '', ''
    cn_dir='./'
 /
 !------------------------------------------------------------------------------
@@ -221,7 +231,10 @@
 !------------------------------------------------------------------------------
 &namdia         !   Diagnostics
 !------------------------------------------------------------------------------
-   ln_icediachk     = .false.         !  check online the heat, mass & salt budgets (T) or not (F)
+   ln_icediachk     = .false.         !  check online heat, mass & salt budgets
+      !                               !   rate of ice spuriously gained/lost at each time step => rn_icechk=1 <=> 1.e-6 m/hour
+      rn_icechk_cel =  100.           !     check at each gridcell          (1.e-4m/h)=> stops the code if violated (and writes a file)
+      rn_icechk_glo =  1.             !     check over the entire ice cover (1.e-6m/h)=> only prints warnings
    ln_icediahsb     = .false.         !  output the heat, mass & salt budgets (T) or not (F)
    ln_icectl        = .false.         !  ice points output for debug (T or F)
    iiceprt          =  10             !  i-index for debug
