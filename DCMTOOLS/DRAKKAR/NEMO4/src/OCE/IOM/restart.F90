@@ -69,22 +69,24 @@ CONTAINS
          lrst_oce = .FALSE.   
          IF( ln_rst_list ) THEN
             nrst_lst = 1
-            nitrst = nstocklist( nrst_lst )
+            nitrst = nn_stocklist( nrst_lst )
          ELSE
             nitrst = nitend
          ENDIF
       ENDIF
+      
+      IF( .NOT. ln_rst_list .AND. nn_stock == -1 )   RETURN   ! we will never do any restart
 
       ! frequency-based restart dumping (nn_stock)
-      IF( .NOT. ln_rst_list .AND. MOD( kt - 1, nstock ) == 0 ) THEN   
+      IF( .NOT. ln_rst_list .AND. MOD( kt - 1, nn_stock ) == 0 ) THEN   
          ! we use kt - 1 and not kt - nit000 to keep the same periodicity from the beginning of the experiment
-         nitrst = kt + nstock - 1                  ! define the next value of nitrst for restart writing
+         nitrst = kt + nn_stock - 1                  ! define the next value of nitrst for restart writing
          IF( nitrst > nitend )   nitrst = nitend   ! make sure we write a restart at the end of the run
       ENDIF
       ! to get better performances with NetCDF format:
       ! we open and define the ocean restart file one time step before writing the data (-> at nitrst - 1)
       ! except if we write ocean restart files every time step or if an ocean restart file was writen at nitend - 1
-      IF( kt == nitrst - 1 .OR. nstock == 1 .OR. ( kt == nitend .AND. .NOT. lrst_oce ) ) THEN
+      IF( kt == nitrst - 1 .OR. nn_stock == 1 .OR. ( kt == nitend .AND. .NOT. lrst_oce ) ) THEN
          IF( nitrst <= nitend .AND. nitrst > 0 ) THEN 
             ! beware of the format used to write kt (default is i8.8, that should be large enough...)
             IF( nitrst > 999999999 ) THEN   ;   WRITE(clkt, *       ) nitrst
@@ -190,8 +192,8 @@ CONTAINS
 !!gm  not sure what to do here   ===>>>  ask to Sebastian
          lrst_oce = .FALSE.
             IF( ln_rst_list ) THEN
-               nrst_lst = MIN(nrst_lst + 1, SIZE(nstocklist,1))
-               nitrst = nstocklist( nrst_lst )
+               nrst_lst = MIN(nrst_lst + 1, SIZE(nn_stocklist,1))
+               nitrst = nn_stocklist( nrst_lst )
             ENDIF
       ENDIF
       !

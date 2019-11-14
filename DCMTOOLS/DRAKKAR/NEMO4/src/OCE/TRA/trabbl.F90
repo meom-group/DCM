@@ -491,21 +491,21 @@ CONTAINS
       !
       REWIND( numnam_ref )              ! Namelist nambbl in reference namelist : Bottom boundary layer scheme
       READ  ( numnam_ref, nambbl, IOSTAT = ios, ERR = 901)
-901   IF( ios /= 0 )   CALL ctl_nam ( ios , 'nambbl in reference namelist', lwp )
+901   IF( ios /= 0 )   CALL ctl_nam ( ios , 'nambbl in reference namelist' )
       !
       REWIND( numnam_cfg )              ! Namelist nambbl in configuration namelist : Bottom boundary layer scheme
       READ  ( numnam_cfg, nambbl, IOSTAT = ios, ERR = 902 )
-902   IF( ios >  0 )   CALL ctl_nam ( ios , 'nambbl in configuration namelist', lwp )
+902   IF( ios >  0 )   CALL ctl_nam ( ios , 'nambbl in configuration namelist' )
       IF(lwm) WRITE ( numond, nambbl )
       !
 #if defined key_drakkar
       REWIND( numnam_ref )              ! Namelist nambbl in reference namelist : Bottom boundary layer scheme
       READ  ( numnam_ref, nambbl_drk, IOSTAT = ios, ERR = 903)
-903   IF( ios /= 0 )   CALL ctl_nam ( ios , 'nambbl_drk in reference namelist', lwp )
+903   IF( ios /= 0 )   CALL ctl_nam ( ios , 'nambbl_drk in reference namelist' )
       !
       REWIND( numnam_cfg )              ! Namelist nambbl in configuration namelist : Bottom boundary layer scheme
       READ  ( numnam_cfg, nambbl_drk, IOSTAT = ios, ERR = 904 )
-904   IF( ios >  0 )   CALL ctl_nam ( ios , 'nambbl in configuration namelist', lwp )
+904   IF( ios >  0 )   CALL ctl_nam ( ios , 'nambbl in configuration namelist' )
       IF(lwm) WRITE ( numond, nambbl_drk )
       !
 #endif

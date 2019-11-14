@@ -346,6 +346,8 @@ CONTAINS
 #endif
 
       ! write output file
+      IF( lwriter ) WRITE(numtime,*) 
+      IF( lwriter ) WRITE(numtime,*) 
       IF( lwriter ) WRITE(numtime,*) 'Total timing (sum) :'
       IF( lwriter ) WRITE(numtime,*) '--------------------'
       IF( lwriter ) WRITE(numtime,"('Elapsed Time (s)  CPU Time (s)')")
@@ -661,8 +663,8 @@ CONTAINS
    
          ! Compute cpu/elapsed ratio
          zall_ratio(:) = all_ctime(:) / all_etime(:)
-         ztot_ratio    = SUM(zall_ratio(:))
-         zavg_ratio    = ztot_ratio/REAL(jpnij,wp)
+         ztot_ratio    = SUM(all_ctime(:))/SUM(all_etime(:))
+         zavg_ratio    = SUM(zall_ratio(:))/REAL(jpnij,wp)
          zmax_ratio    = MAXVAL(zall_ratio(:))
          zmin_ratio    = MINVAL(zall_ratio(:))   
    
@@ -671,8 +673,8 @@ CONTAINS
          cllignes(1)='(1x,"MPI summary report :",/,'
          cllignes(2)='1x,"--------------------",//,'
          cllignes(3)='1x,"Process Rank |"," Elapsed Time (s) |"," CPU Time (s) |"," Ratio CPU/Elapsed",/,'
-         cllignes(4)='    (1x,i4,9x,"|",f12.3,6x,"|",f12.3,2x,"|",4x,f7.3,/),'
-         WRITE(cllignes(4)(1:4),'(I4)') jpnij
+         cllignes(4)='      (4x,i6,4x,"|",f12.3,6x,"|",f12.3,2x,"|",4x,f7.3,/),'
+         WRITE(cllignes(4)(1:6),'(I6)') jpnij
          cllignes(5)='1x,"Total        |",f12.3,6x,"|",F12.3,2x,"|",4x,f7.3,/,'
          cllignes(6)='1x,"Minimum      |",f12.3,6x,"|",F12.3,2x,"|",4x,f7.3,/,'
          cllignes(7)='1x,"Maximum      |",f12.3,6x,"|",F12.3,2x,"|",4x,f7.3,/,'

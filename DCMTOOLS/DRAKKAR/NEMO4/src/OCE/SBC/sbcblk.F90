@@ -220,22 +220,22 @@ CONTAINS
       !                             !** read bulk namelist  
       REWIND( numnam_ref )                !* Namelist namsbc_blk in reference namelist : bulk parameters
       READ  ( numnam_ref, namsbc_blk, IOSTAT = ios, ERR = 901)
-901   IF( ios /= 0 )   CALL ctl_nam ( ios , 'namsbc_blk in reference namelist', lwp )
+901   IF( ios /= 0 )   CALL ctl_nam ( ios , 'namsbc_blk in reference namelist' )
       !
       REWIND( numnam_cfg )                !* Namelist namsbc_blk in configuration namelist : bulk parameters
       READ  ( numnam_cfg, namsbc_blk, IOSTAT = ios, ERR = 902 )
-902   IF( ios >  0 )   CALL ctl_nam ( ios , 'namsbc_blk in configuration namelist', lwp )
+902   IF( ios >  0 )   CALL ctl_nam ( ios , 'namsbc_blk in configuration namelist' )
       !
       IF(lwm) WRITE( numond, namsbc_blk )
 #if defined key_drakkar
       !                             !** read bulk namelist  
       REWIND( numnam_ref )                !* Namelist namsbc_blk in reference namelist : bulk parameters
       READ  ( numnam_ref, namsbc_blk_drk, IOSTAT = ios, ERR = 903)
-903   IF( ios /= 0 )   CALL ctl_nam ( ios , 'namsbc_blk_drk in reference namelist', lwp )
+903   IF( ios /= 0 )   CALL ctl_nam ( ios , 'namsbc_blk_drk in reference namelist' )
       !
       REWIND( numnam_cfg )                !* Namelist namsbc_blk in configuration namelist : bulk parameters
       READ  ( numnam_cfg, namsbc_blk_drk, IOSTAT = ios, ERR = 904 )
-904   IF( ios >  0 )   CALL ctl_nam ( ios , 'namsbc_blk_drk in configuration namelist', lwp )
+904   IF( ios >  0 )   CALL ctl_nam ( ios , 'namsbc_blk_drk in configuration namelist' )
       !
       IF(lwm) WRITE( numond, namsbc_blk_drk )
 #endif
@@ -251,7 +251,7 @@ CONTAINS
       IF( ioptio /= 1 )   CALL ctl_stop( 'sbc_blk_init: Choose one and only one bulk algorithm' )
       !
       IF( ln_dm2dc ) THEN                 !* check: diurnal cycle on Qsr
-         IF( sn_qsr%nfreqh /= 24 )   CALL ctl_stop( 'sbc_blk_init: ln_dm2dc=T only with daily short-wave input' )
+         IF( sn_qsr%freqh /= 24. )   CALL ctl_stop( 'sbc_blk_init: ln_dm2dc=T only with daily short-wave input' )
          IF( sn_qsr%ln_tint ) THEN 
             CALL ctl_warn( 'sbc_blk_init: ln_dm2dc=T daily qsr time interpolation done by sbcdcy module',   &
                &           '              ==> We force time interpolation = .false. for qsr' )
@@ -286,7 +286,7 @@ CONTAINS
       DO ifpr= 1, jfld
          ALLOCATE( sf(ifpr)%fnow(jpi,jpj,1) )
          IF( slf_i(ifpr)%ln_tint )   ALLOCATE( sf(ifpr)%fdta(jpi,jpj,1,2) )
-         IF( slf_i(ifpr)%nfreqh > 0. .AND. MOD( 3600. * slf_i(ifpr)%nfreqh , REAL(nn_fsbc) * rdt) /= 0. )   &
+         IF( slf_i(ifpr)%freqh > 0. .AND. MOD( NINT(3600. * slf_i(ifpr)%freqh), nn_fsbc * NINT(rdt) ) /= 0 )   &
             &  CALL ctl_warn( 'sbc_blk_init: sbcmod timestep rdt*nn_fsbc is NOT a submultiple of atmospheric forcing frequency.',   &
             &                 '               This is not ideal. You should consider changing either rdt or nn_fsbc value...' )
 
@@ -568,25 +568,7 @@ CONTAINS
 
 !!      CALL iom_put( "Cd_oce", Cd_atm)  ! output value of pure ocean-atm. transfer coef.
 !!      CALL iom_put( "Ch_oce", Ch_atm)  ! output value of pure ocean-atm. transfer coef.
-#if defined key_drakkar
-    IF ( ln_clim_forcing ) THEN
-      DO jj = 1, jpj             ! tau module, i and j component
-         DO ji = 1, jpi
-            IF ( ln_LR ) THEN
-               zstau = rn_lra * wndm  (ji,jj) + rn_lrb
-               zUo   = SQRT ( zssu(ji,jj)*zssu(ji,jj) +  zssv(ji,jj)*zssv(ji,jj) )
-            ELSE
-               zstau = 0._wp
-               zUo   = 0._wp
-            ENDIF
-            zztmp = zrhoa(ji,jj)  * Cd_atm(ji,jj)   !
-            taum  (ji,jj) = zztmp * wndm  (ji,jj) * zU_zu(ji,jj) + zstau * zUo
-            zwnd_i(ji,jj) = zztmp * sf(jp_uw)%fnow(ji,jj,1)      + zstau * zssu(ji,jj)
-            zwnd_j(ji,jj) = zztmp * sf(jp_vw)%fnow(ji,jj,1)      + zstau * zssv(ji,jj) 
-         END DO
-      END DO
-    ELSE
-#endif
+
       DO jj = 1, jpj             ! tau module, i and j component
          DO ji = 1, jpi
             zztmp = zrhoa(ji,jj)  * zU_zu(ji,jj) * Cd_atm(ji,jj)   ! using bulk wind speed

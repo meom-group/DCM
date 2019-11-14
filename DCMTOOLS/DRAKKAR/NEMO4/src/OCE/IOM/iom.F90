@@ -57,7 +57,7 @@ MODULE iom
 #endif
    PUBLIC iom_init, iom_swap, iom_open, iom_close, iom_setkt, iom_varid, iom_get
    PUBLIC iom_chkatt, iom_getatt, iom_putatt, iom_getszuld, iom_rstput, iom_delay_rst, iom_put
-   PUBLIC iom_use, iom_context_finalize
+   PUBLIC iom_use, iom_context_finalize, iom_miss_val
 
    PRIVATE iom_rp0d, iom_rp1d, iom_rp2d, iom_rp3d
    PRIVATE iom_g0d, iom_g1d, iom_g2d, iom_g3d, iom_get_123d
@@ -211,10 +211,7 @@ CONTAINS
           CALL iom_set_axis_attr( "depthu", bounds=zw_bnds )
           CALL iom_set_axis_attr( "depthv", bounds=zw_bnds )
           CALL iom_set_axis_attr( "depthw", bounds=zt_bnds )
-          !
-# if defined key_floats
           CALL iom_set_axis_attr( "nfloat", (/ (REAL(ji,wp), ji=1,jpnfl) /) )
-# endif
 # if defined key_si3
           CALL iom_set_axis_attr( "ncatice", (/ (REAL(ji,wp), ji=1,jpl) /) )
           ! SIMIP diagnostics (4 main arctic straits)
@@ -696,7 +693,8 @@ CONTAINS
       ! =============
       clname   = trim(cdname)
       IF ( .NOT. Agrif_Root() .AND. .NOT. lliof ) THEN
-         iln    = INDEX(clname,'/') 
+!FUS         iln    = INDEX(clname,'/') 
+         iln    = INDEX(clname,'/',BACK=.true.)  ! FUS: to insert the nest index at the right location within the string, the last / has to be found (search from the right to left)
          cltmpn = clname(1:iln)
          clname = clname(iln+1:LEN_TRIM(clname))
          clname=TRIM(cltmpn)//TRIM(Agrif_CFixed())//'_'//TRIM(clname)
@@ -834,7 +832,7 @@ CONTAINS
    END SUBROUTINE iom_close
 
 
-   FUNCTION iom_varid ( kiomid, cdvar, kdimsz, kndims, ldstop )  
+   FUNCTION iom_varid ( kiomid, cdvar, kdimsz, kndims, lduld, ldstop )  
       !!-----------------------------------------------------------------------
       !!                  ***  FUNCTION  iom_varid  ***
       !!
@@ -843,7 +841,8 @@ CONTAINS
       INTEGER              , INTENT(in   )           ::   kiomid   ! file Identifier
       CHARACTER(len=*)     , INTENT(in   )           ::   cdvar    ! name of the variable
       INTEGER, DIMENSION(:), INTENT(  out), OPTIONAL ::   kdimsz   ! size of each dimension
-      INTEGER,               INTENT(  out), OPTIONAL ::   kndims   ! size of the dimensions
+      INTEGER              , INTENT(  out), OPTIONAL ::   kndims   ! number of dimensions
+      LOGICAL              , INTENT(  out), OPTIONAL ::   lduld    ! true if the last dimension is unlimited (time)
       LOGICAL              , INTENT(in   ), OPTIONAL ::   ldstop   ! stop if looking for non-existing variable (default = .TRUE.)
       !
       INTEGER                        ::   iom_varid, iiv, i_nvd
@@ -873,7 +872,7 @@ CONTAINS
             IF( .NOT.ll_fnd ) THEN
                iiv = iiv + 1
                IF( iiv <= jpmax_vars ) THEN
-                  iom_varid = iom_nf90_varid( kiomid, cdvar, iiv, kdimsz, kndims )
+                  iom_varid = iom_nf90_varid( kiomid, cdvar, iiv, kdimsz, kndims, lduld )
                ELSE
                   CALL ctl_stop( trim(clinfo), 'Too many variables in the file '//iom_file(kiomid)%name,   &
                         &                      'increase the parameter jpmax_vars')
@@ -891,6 +890,7 @@ CONTAINS
                   ENDIF
                ENDIF
                IF( PRESENT(kndims) )  kndims = iom_file(kiomid)%ndims(iiv)
+               IF( PRESENT( lduld) )  lduld  = iom_file(kiomid)%luld( iiv)
             ENDIF
          ENDIF
       ENDIF
@@ -1269,11 +1269,11 @@ CONTAINS
              
                !--- overlap areas and extra hallows (mpp)
                IF(     PRESENT(pv_r2d) .AND. idom /= jpdom_unknown ) THEN
-                  CALL lbc_lnk( 'iom', pv_r2d,'Z',-999.,'no0' )
+                  CALL lbc_lnk( 'iom', pv_r2d,'Z', -999., kfillmode = jpfillnothing )
                ELSEIF( PRESENT(pv_r3d) .AND. idom /= jpdom_unknown ) THEN
                   ! this if could be simplified with the new lbc_lnk that works with any size of the 3rd dimension
                   IF( icnt(3) == inlev ) THEN
-                     CALL lbc_lnk( 'iom', pv_r3d,'Z',-999.,'no0' )
+                     CALL lbc_lnk( 'iom', pv_r3d,'Z', -999., kfillmode = jpfillnothing )
                   ELSE   ! put some arbitrary value (a call to lbc_lnk will be done later...)
                      DO jj = nlcj+1, jpj   ;   pv_r3d(1:nlci, jj, :) = pv_r3d(1:nlci, nlej, :)   ;   END DO
                      DO ji = nlci+1, jpi   ;   pv_r3d(ji    , : , :) = pv_r3d(nlei  , :   , :)   ;   END DO
@@ -1298,14 +1298,14 @@ CONTAINS
             if(lwp) write(numout,*) 'XIOS RST READ (3D): ',trim(cdvar)
             CALL xios_recv_field( trim(cdvar), pv_r3d)
             IF(idom /= jpdom_unknown ) then
-                CALL lbc_lnk( 'iom', pv_r3d,'Z',-999.,'no0' )
+                CALL lbc_lnk( 'iom', pv_r3d,'Z', -999., kfillmode = jpfillnothing)
             ENDIF
          ELSEIF( PRESENT(pv_r2d) ) THEN
             pv_r2d(:, :) = 0.
             if(lwp) write(numout,*) 'XIOS RST READ (2D): ', trim(cdvar)
             CALL xios_recv_field( trim(cdvar), pv_r2d)
             IF(idom /= jpdom_unknown ) THEN
-                CALL lbc_lnk('iom', pv_r2d,'Z',-999.,'no0')
+                CALL lbc_lnk('iom', pv_r2d,'Z',-999., kfillmode = jpfillnothing)
             ENDIF
          ELSEIF( PRESENT(pv_r1d) ) THEN
             pv_r1d(:) = 0.
@@ -1668,11 +1668,11 @@ CONTAINS
    SUBROUTINE iom_p0d( cdname, pfield0d )
       CHARACTER(LEN=*), INTENT(in) ::   cdname
       REAL(wp)        , INTENT(in) ::   pfield0d
-      REAL(wp)        , DIMENSION(jpi,jpj) ::   zz     ! masson
+!!      REAL(wp)        , DIMENSION(jpi,jpj) ::   zz     ! masson
 #if defined key_iomput
-      zz(:,:)=pfield0d
-      CALL xios_send_field(cdname, zz)
-      !CALL xios_send_field(cdname, (/pfield0d/)) 
+!!clem      zz(:,:)=pfield0d
+!!clem      CALL xios_send_field(cdname, zz)
+      CALL xios_send_field(cdname, (/pfield0d/)) 
 #else
       IF( .FALSE. )   WRITE(numout,*) cdname, pfield0d   ! useless test to avoid compilation warnings
 #endif
@@ -1978,8 +1978,8 @@ CONTAINS
       !
       ! Cell vertices on boundries
       DO jn = 1, 4
-         CALL lbc_lnk( 'iom', z_bnds(jn,:,:,1), cdgrd, 1., pval=999._wp )
-         CALL lbc_lnk( 'iom', z_bnds(jn,:,:,2), cdgrd, 1., pval=999._wp )
+         CALL lbc_lnk( 'iom', z_bnds(jn,:,:,1), cdgrd, 1., pfillval=999._wp )
+         CALL lbc_lnk( 'iom', z_bnds(jn,:,:,2), cdgrd, 1., pfillval=999._wp )
       END DO
       !
       ! Zero-size cells at closed boundaries if cell points provided,
@@ -2262,6 +2262,8 @@ CONTAINS
       CHARACTER(LEN=256) ::   clname
       CHARACTER(LEN=20)  ::   clfreq
       CHARACTER(LEN=20)  ::   cldate
+      CHARACTER(LEN=256) ::   cltmpn                 !FUS needed for correct path with AGRIF
+      INTEGER            ::   iln                    !FUS needed for correct path with AGRIF
       INTEGER            ::   idx
       INTEGER            ::   jn
       INTEGER            ::   itrlen
@@ -2344,7 +2346,15 @@ CONTAINS
                idx = INDEX(clname,'@enddatefull@') + INDEX(clname,'@ENDDATEFULL@')
             END DO
             !
-            IF( jn == 1 .AND. TRIM(Agrif_CFixed()) /= '0' )   clname = TRIM(Agrif_CFixed())//"_"//TRIM(clname)
+!FUS            IF( jn == 1 .AND. TRIM(Agrif_CFixed()) /= '0' )   clname = TRIM(Agrif_CFixed())//"_"//TRIM(clname)
+!FUS see comment line 700 
+            IF( jn == 1 .AND. TRIM(Agrif_CFixed()) /= '0' ) THEN
+             iln    = INDEX(clname,'/',BACK=.true.)
+             cltmpn = clname(1:iln)
+             clname = clname(iln+1:LEN_TRIM(clname))
+             clname = TRIM(cltmpn)//TRIM(Agrif_CFixed())//'_'//TRIM(clname)
+            ENDIF
+!FUS 
             IF( jn == 1 )   CALL iom_set_file_attr( cdid, name        = clname )
             IF( jn == 2 )   CALL iom_set_file_attr( cdid, name_suffix = clname )
             !
@@ -2412,7 +2422,6 @@ CONTAINS
    !!----------------------------------------------------------------------
    !!   NOT 'key_iomput'                               a few dummy routines
    !!----------------------------------------------------------------------
-
    SUBROUTINE iom_setkt( kt, cdname )
       INTEGER         , INTENT(in)::   kt 
       CHARACTER(LEN=*), INTENT(in) ::   cdname
@@ -2427,16 +2436,24 @@ CONTAINS
 #endif
 
    LOGICAL FUNCTION iom_use( cdname )
-      !!----------------------------------------------------------------------
-      !!----------------------------------------------------------------------
       CHARACTER(LEN=*), INTENT(in) ::   cdname
-      !!----------------------------------------------------------------------
 #if defined key_iomput
       iom_use = xios_field_is_active( cdname )
 #else
       iom_use = .FALSE.
 #endif
    END FUNCTION iom_use
+
+   SUBROUTINE iom_miss_val( cdname, pmiss_val )
+      CHARACTER(LEN=*), INTENT(in ) ::   cdname
+      REAL(wp)        , INTENT(out) ::   pmiss_val   
+#if defined key_iomput
+      ! get missing value
+      CALL xios_get_field_attr( cdname, default_value = pmiss_val )
+#else
+      IF( .FALSE. )   WRITE(numout,*) cdname, pmiss_val   ! useless test to avoid compilation warnings
+#endif
+   END SUBROUTINE iom_miss_val
    
    !!======================================================================
 END MODULE iom

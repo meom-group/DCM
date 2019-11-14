@@ -58,6 +58,7 @@ MODULE nemogcm
    USE diadct         ! sections transports           (dia_dct_init routine)
    USE diaobs         ! Observation diagnostics       (dia_obs_init routine)
    USE diacfl         ! CFL diagnostics               (dia_cfl_init routine)
+   USE diaharm        ! tidal harmonics diagnostics  (dia_harm_init routine)
    USE step           ! NEMO time-stepping                 (stp     routine)
    USE icbini         ! handle bergs, initialisation
    USE icbstp         ! handle bergs, calving, themodynamics and transport
@@ -106,6 +107,7 @@ MODULE nemogcm
 #endif
 
 #if defined key_mpp_mpi
+   ! need MPI_Wtime
    INCLUDE 'mpif.h'
 #endif
 
@@ -131,6 +133,7 @@ CONTAINS
       !!              Madec, 2008, internal report, IPSL.
       !!----------------------------------------------------------------------
       INTEGER ::   istp   ! time step index
+      REAL(wp)::   zstptiming   ! elapsed time for 1 time step
       !!----------------------------------------------------------------------
 #if defined key_drakkar
       !! for timing each step
@@ -219,13 +222,18 @@ CONTAINS
            ENDIF
             !}
 #endif
-#if defined key_mpp_mpi
             ncom_stp = istp
-            IF ( istp == ( nit000 + 1 ) ) elapsed_time = MPI_Wtime()
-            IF ( istp ==         nitend ) elapsed_time = MPI_Wtime() - elapsed_time
-#endif
+            IF( ln_timing ) THEN
+               zstptiming = MPI_Wtime()
+               IF ( istp == ( nit000 + 1 ) ) elapsed_time = zstptiming
+               IF ( istp ==         nitend ) elapsed_time = zstptiming - elapsed_time
+            ENDIF
+            
             CALL stp        ( istp ) 
             istp = istp + 1
+
+            IF( lwp .AND. ln_timing )   WRITE(numtime,*) 'timing step ', istp-1, ' : ', MPI_Wtime() - zstptiming
+
          END DO
          !
       ELSE                                            !==  diurnal SST time-steeping only  ==!
@@ -255,7 +263,8 @@ CONTAINS
       IF( nstop /= 0  ) THEN   ! error print
          WRITE(numout,cform_ccc)   ! Flag ;);););)
          WRITE(numout,cform_err)
-         WRITE(numout,*) nstop, ' error(s) have been found.' 
+         WRITE(ctmp1,*) '   ==>>>   nemo_gcm: a total of ', nstop, ' errors have been found'
+         CALL ctl_stop( ctmp1 )
       ELSE
          WRITE(numout,cform_aaa)   ! Flag AAAAAAA
       ENDIF
@@ -264,9 +273,8 @@ CONTAINS
       IF(lwp) WRITE(numout,cform_aaa)        ! Flag AAAAAAA
       !
       IF( nstop /= 0 .AND. lwp ) THEN        ! error print
-         WRITE(numout,cform_err)
-         WRITE(numout,*) '   ==>>>   nemo_gcm: a total of ', nstop, ' errors have been found'
-         WRITE(numout,*)
+         WRITE(ctmp1,*) '   ==>>>   nemo_gcm: a total of ', nstop, ' errors have been found'
+         CALL ctl_stop( ctmp1 )
       ENDIF
 #endif
       !
@@ -279,13 +287,13 @@ CONTAINS
       IF( lk_oasis     )            CALL cpl_finalize   ! end coupling and mpp communications with OASIS
 #else
       IF    ( lk_oasis ) THEN   ;   CALL cpl_finalize   ! end coupling and mpp communications with OASIS
-      ELSEIF( lk_mpp   ) THEN   ;   CALL mppstop( ldfinal = .TRUE. )   ! end mpp communications
+      ELSEIF( lk_mpp   ) THEN   ;   CALL mppstop      ! end mpp communications
       ENDIF
 #endif
       !
       IF(lwm) THEN
          IF( nstop == 0 ) THEN   ;   STOP 0
-         ELSE                    ;   STOP 999
+         ELSE                    ;   STOP 123
          ENDIF
       ENDIF
       !
@@ -298,9 +306,7 @@ CONTAINS
       !!
       !! ** Purpose :   initialization of the NEMO GCM
       !!----------------------------------------------------------------------
-      INTEGER  ::   ji                 ! dummy loop indices
       INTEGER  ::   ios, ilocal_comm   ! local integers
-      CHARACTER(len=120), DIMENSION(60) ::   cltxt, cltxt2, clnam
       !!
       NAMELIST/namctl/ ln_ctl   , sn_cfctl, nn_print, nn_ictls, nn_ictle,   &
          &             nn_isplt , nn_jsplt, nn_jctls, nn_jctle,             &
@@ -308,45 +314,13 @@ CONTAINS
       NAMELIST/namcfg/ ln_read_cfg, cn_domcfg, ln_closea, ln_write_cfg, cn_domcfg_out, ln_use_jattr
       !!----------------------------------------------------------------------
       !
-      cltxt  = ''
-      cltxt2 = ''
-      clnam  = ''  
       cxios_context = 'nemo'
       !
-      !                             ! Open reference namelist and configuration namelist files
-      CALL ctl_opn( numnam_ref, 'namelist_ref', 'OLD', 'FORMATTED', 'SEQUENTIAL', -1, 6, .FALSE. )
-      CALL ctl_opn( numnam_cfg, 'namelist_cfg', 'OLD', 'FORMATTED', 'SEQUENTIAL', -1, 6, .FALSE. )
+      !                             !-------------------------------------------------!
+      !                             !     set communicator & select the local rank    !
+      !                             !  must be done as soon as possible to get narea  !
+      !                             !-------------------------------------------------!
       !
-      REWIND( numnam_ref )              ! Namelist namctl in reference namelist
-      READ  ( numnam_ref, namctl, IOSTAT = ios, ERR = 901 )
-901   IF( ios /= 0 )   CALL ctl_nam ( ios , 'namctl in reference namelist', .TRUE. )
-      REWIND( numnam_cfg )              ! Namelist namctl in confguration namelist
-      READ  ( numnam_cfg, namctl, IOSTAT = ios, ERR = 902 )
-902   IF( ios >  0 )   CALL ctl_nam ( ios , 'namctl in configuration namelist', .TRUE. )
-      !
-      REWIND( numnam_ref )              ! Namelist namcfg in reference namelist
-      READ  ( numnam_ref, namcfg, IOSTAT = ios, ERR = 903 )
-903   IF( ios /= 0 )   CALL ctl_nam ( ios , 'namcfg in reference namelist', .TRUE. )
-      REWIND( numnam_cfg )              ! Namelist namcfg in confguration namelist
-      READ  ( numnam_cfg, namcfg, IOSTAT = ios, ERR = 904 )
-904   IF( ios >  0 )   CALL ctl_nam ( ios , 'namcfg in configuration namelist', .TRUE. )   
-
-      !                             !--------------------------!
-      !                             !  Set global domain size  !   (control print return in cltxt2)
-      !                             !--------------------------!
-      IF( ln_read_cfg ) THEN              ! Read sizes in domain configuration file
-         CALL domain_cfg ( cltxt2,        cn_cfg, nn_cfg, jpiglo, jpjglo, jpkglo, jperio )
-         !
-      ELSE                                ! user-defined namelist
-         CALL usr_def_nam( cltxt2, clnam, cn_cfg, nn_cfg, jpiglo, jpjglo, jpkglo, jperio )
-      ENDIF
-      !
-      !
-      !                             !--------------------------------------------!
-      !                             !  set communicator & select the local node  !
-      !                             !  NB: mynode also opens output.namelist.dyn !
-      !                             !      on unit number numond on first proc   !
-      !                             !--------------------------------------------!
 #if defined key_iomput
       IF( Agrif_Root() ) THEN
          IF( lk_oasis ) THEN
@@ -356,56 +330,54 @@ CONTAINS
             CALL xios_initialize( "for_xios_mpi_id",return_comm=ilocal_comm )    ! nemo local communicator given by xios
          ENDIF
       ENDIF
-      ! Nodes selection (control print return in cltxt)
-      narea = mynode( cltxt, 'output.namelist.dyn', numnam_ref, numnam_cfg, numond , nstop, ilocal_comm )
+      CALL mpp_start( ilocal_comm )
 #else
       IF( lk_oasis ) THEN
          IF( Agrif_Root() ) THEN
             CALL cpl_init( "oceanx", ilocal_comm )          ! nemo local communicator given by oasis
          ENDIF
-         ! Nodes selection (control print return in cltxt)
-         narea = mynode( cltxt, 'output.namelist.dyn', numnam_ref, numnam_cfg, numond , nstop, ilocal_comm )
+         CALL mpp_start( ilocal_comm )
       ELSE
-         ilocal_comm = 0                                    ! Nodes selection (control print return in cltxt)
-         narea = mynode( cltxt, 'output.namelist.dyn', numnam_ref, numnam_cfg, numond , nstop )
+         CALL mpp_start( )
       ENDIF
 #endif
-
-      narea = narea + 1                                     ! mynode return the rank of proc (0 --> jpnij -1 )
-
-      IF( sn_cfctl%l_config ) THEN
-         ! Activate finer control of report outputs
-         ! optionally switch off output from selected areas (note this only
-         ! applies to output which does not involve global communications)
-         IF( ( narea < sn_cfctl%procmin .OR. narea > sn_cfctl%procmax  ) .OR. &
-           & ( MOD( narea - sn_cfctl%procmin, sn_cfctl%procincr ) /= 0 ) )    &
-           &   CALL nemo_set_cfctl( sn_cfctl, .FALSE., .FALSE. )
-      ELSE
-         ! Use ln_ctl to turn on or off all options.
-         CALL nemo_set_cfctl( sn_cfctl, ln_ctl, .TRUE. )
-      ENDIF
-
+      !
+      narea = mpprank + 1               ! mpprank: the rank of proc (0 --> mppsize -1 )
       lwm = (narea == 1)                                    ! control of output namelists
+      !
+      !                             !---------------------------------------------------------------!
+      !                             ! Open output files, reference and configuration namelist files !
+      !                             !---------------------------------------------------------------!
+      !
+      ! open ocean.output as soon as possible to get all output prints (including errors messages)
+      IF( lwm )   CALL ctl_opn(     numout,        'ocean.output', 'REPLACE', 'FORMATTED', 'SEQUENTIAL', -1, -1, .FALSE. )
+      ! open reference and configuration namelist files
+                  CALL ctl_opn( numnam_ref,        'namelist_ref',     'OLD', 'FORMATTED', 'SEQUENTIAL', -1, -1, .FALSE. )
+                  CALL ctl_opn( numnam_cfg,        'namelist_cfg',     'OLD', 'FORMATTED', 'SEQUENTIAL', -1, -1, .FALSE. )
+      IF( lwm )   CALL ctl_opn(     numond, 'output.namelist.dyn', 'REPLACE', 'FORMATTED', 'SEQUENTIAL', -1, -1, .FALSE. )
+      ! open /dev/null file to be able to supress output write easily
+                  CALL ctl_opn(     numnul,           '/dev/null', 'REPLACE', 'FORMATTED', 'SEQUENTIAL', -1, -1, .FALSE. )
+      !
+      !                             !--------------------!
+      !                             ! Open listing units !  -> need ln_ctl from namctl to define lwp
+      !                             !--------------------!
+      !
+      REWIND( numnam_ref )              ! Namelist namctl in reference namelist
+      READ  ( numnam_ref, namctl, IOSTAT = ios, ERR = 901 )
+901   IF( ios /= 0 )   CALL ctl_nam ( ios , 'namctl in reference namelist' )
+      REWIND( numnam_cfg )              ! Namelist namctl in confguration namelist
+      READ  ( numnam_cfg, namctl, IOSTAT = ios, ERR = 902 )
+902   IF( ios >  0 )   CALL ctl_nam ( ios , 'namctl in configuration namelist' )
+      !
       lwp = (narea == 1) .OR. ln_ctl                        ! control of all listing output print
-
-      IF(lwm) THEN               ! write merged namelists from earlier to output namelist 
-         !                       ! now that the file has been opened in call to mynode. 
-         !                       ! NB: nammpp has already been written in mynode (if lk_mpp_mpi)
-         WRITE( numond, namctl )
-         WRITE( numond, namcfg )
-         IF( .NOT.ln_read_cfg ) THEN
-            DO ji = 1, SIZE(clnam)
-               IF( TRIM(clnam(ji)) /= '' )   WRITE(numond, * ) clnam(ji)     ! namusr_def print
-            END DO
-         ENDIF
-      ENDIF
-
+      !
       IF(lwp) THEN                            ! open listing units
          !
-         CALL ctl_opn( numout, 'ocean.output', 'REPLACE', 'FORMATTED', 'SEQUENTIAL', -1, 6, .FALSE., narea )
+         IF( .NOT. lwm )   &            ! alreay opened for narea == 1
+            &            CALL ctl_opn( numout, 'ocean.output', 'REPLACE', 'FORMATTED', 'SEQUENTIAL', -1, -1, .FALSE., narea )
          !
          WRITE(numout,*)
-         WRITE(numout,*) '   CNRS - NERC - Met OFFICE - MERCATOR-ocean - INGV - CMCC'
+         WRITE(numout,*) '   CNRS - NERC - Met OFFICE - MERCATOR-ocean - CMCC'
          WRITE(numout,*) '                       NEMO team'
          WRITE(numout,*) '            Ocean General Circulation Model'
          WRITE(numout,*) '                NEMO version 4.0  (2019) '
@@ -424,24 +396,49 @@ CONTAINS
          WRITE(numout,*) "       )  ) jgs                     `    (   (   "
          WRITE(numout,*) "     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ "
          WRITE(numout,*)
-         
-         DO ji = 1, SIZE(cltxt)
-            IF( TRIM(cltxt (ji)) /= '' )   WRITE(numout,*) TRIM(cltxt(ji))    ! control print of mynode
-         END DO
-         WRITE(numout,*)
-         WRITE(numout,*)
-         DO ji = 1, SIZE(cltxt2)
-            IF( TRIM(cltxt2(ji)) /= '' )   WRITE(numout,*) TRIM(cltxt2(ji))   ! control print of domain size
-         END DO
          !
          WRITE(numout,cform_aaa)                                        ! Flag AAAAAAA
          !
       ENDIF
-      ! open /dev/null file to be able to supress output write easily
-      CALL ctl_opn( numnul, '/dev/null', 'REPLACE', 'FORMATTED', 'SEQUENTIAL', -1, 6, .FALSE. )
       !
-      !                                      ! Domain decomposition
-      CALL mpp_init                          ! MPP
+      ! finalize the definition of namctl variables
+      IF( sn_cfctl%l_config ) THEN
+         ! Activate finer control of report outputs
+         ! optionally switch off output from selected areas (note this only
+         ! applies to output which does not involve global communications)
+         IF( ( narea < sn_cfctl%procmin .OR. narea > sn_cfctl%procmax  ) .OR. &
+           & ( MOD( narea - sn_cfctl%procmin, sn_cfctl%procincr ) /= 0 ) )    &
+           &   CALL nemo_set_cfctl( sn_cfctl, .FALSE., .FALSE. )
+      ELSE
+         ! Use ln_ctl to turn on or off all options.
+         CALL nemo_set_cfctl( sn_cfctl, ln_ctl, .TRUE. )
+      ENDIF
+      !
+      IF(lwm) WRITE( numond, namctl )
+      !
+      !                             !------------------------------------!
+      !                             !  Set global domain size parameters !
+      !                             !------------------------------------!
+      !
+      REWIND( numnam_ref )              ! Namelist namcfg in reference namelist
+      READ  ( numnam_ref, namcfg, IOSTAT = ios, ERR = 903 )
+903   IF( ios /= 0 )   CALL ctl_nam ( ios , 'namcfg in reference namelist' )
+      REWIND( numnam_cfg )              ! Namelist namcfg in confguration namelist
+      READ  ( numnam_cfg, namcfg, IOSTAT = ios, ERR = 904 )
+904   IF( ios >  0 )   CALL ctl_nam ( ios , 'namcfg in configuration namelist' )   
+      !
+      IF( ln_read_cfg ) THEN            ! Read sizes in domain configuration file
+         CALL domain_cfg ( cn_cfg, nn_cfg, jpiglo, jpjglo, jpkglo, jperio )
+      ELSE                              ! user-defined namelist
+         CALL usr_def_nam( cn_cfg, nn_cfg, jpiglo, jpjglo, jpkglo, jperio )
+      ENDIF
+      !
+      IF(lwm)   WRITE( numond, namcfg )
+      !
+      !                             !-----------------------------------------!
+      !                             ! mpp parameters and domain decomposition !
+      !                             !-----------------------------------------!
+      CALL mpp_init
 
       ! Now we know the dimensions of the grid and numout has been set: we can allocate arrays
       CALL nemo_alloc()
@@ -525,15 +522,16 @@ CONTAINS
       IF( ln_sto_eos   )   CALL sto_pts_init    ! RRandom T/S fluctuations
      
       !                                      ! Diagnostics
-      IF( lk_floats    )   CALL     flo_init    ! drifting Floats
+                           CALL     flo_init    ! drifting Floats
       IF( ln_diacfl    )   CALL dia_cfl_init    ! Initialise CFL diagnostics
                            CALL dia_ptr_init    ! Poleward TRansports initialization
-      IF( lk_diadct    )   CALL dia_dct_init    ! Sections tranports
+                           CALL dia_dct_init    ! Sections tranports
                            CALL dia_hsb_init    ! heat content, salt content and volume budgets
                            CALL     trd_init    ! Mixed-layer/Vorticity/Integral constraints trends
                            CALL dia_obs_init    ! Initialize observational data
                            CALL dia_tmb_init    ! TMB outputs
                            CALL dia_25h_init    ! 25h mean  outputs
+                           CALL dia_harm_init   ! tidal harmonics outputs
       IF( ln_diaobs    )   CALL dia_obs( nit000-1 )   ! Observation operator for restart
 
       !                                      ! Assimilation increments
@@ -552,7 +550,7 @@ CONTAINS
       !!
       !! ** Purpose :   control print setting
       !!
-      !! ** Method  : - print namctl information and check some consistencies
+      !! ** Method  : - print namctl and namcfg information and check some consistencies
       !!----------------------------------------------------------------------
       !
       IF(lwp) THEN                  ! control print
@@ -695,9 +693,6 @@ CONTAINS
       USE dom_oce   , ONLY : dom_oce_alloc
       USE trc_oce   , ONLY : trc_oce_alloc
       USE bdy_oce   , ONLY : bdy_oce_alloc
-#if defined key_diadct 
-      USE diadct    , ONLY : diadct_alloc 
-#endif 
       !
       INTEGER :: ierr
       !!----------------------------------------------------------------------
@@ -709,14 +704,11 @@ CONTAINS
       ierr = ierr + trc_oce_alloc()    ! shared TRC / TRA arrays
       ierr = ierr + bdy_oce_alloc()    ! bdy masks (incl. initialization)
       !
-#if defined key_diadct 
-      ierr = ierr + diadct_alloc ()    ! 
-#endif 
-      !
       CALL mpp_sum( 'nemogcm', ierr )
       IF( ierr /= 0 )   CALL ctl_stop( 'STOP', 'nemo_alloc: unable to allocate standard ocean arrays' )
       !
    END SUBROUTINE nemo_alloc
+
 
    SUBROUTINE nemo_set_cfctl(sn_cfctl, setto, for_all )
       !!----------------------------------------------------------------------

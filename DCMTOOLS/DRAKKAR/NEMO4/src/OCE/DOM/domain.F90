@@ -100,7 +100,7 @@ CONTAINS
          SELECT CASE ( jperio )
          CASE( 0 )   ;   WRITE(numout,*) '         (i.e. closed)'
          CASE( 1 )   ;   WRITE(numout,*) '         (i.e. cyclic east-west)'
-         CASE( 2 )   ;   WRITE(numout,*) '         (i.e. equatorial symmetric)'
+         CASE( 2 )   ;   WRITE(numout,*) '         (i.e. cyclic north-south)'
          CASE( 3 )   ;   WRITE(numout,*) '         (i.e. north fold with T-point pivot)'
          CASE( 4 )   ;   WRITE(numout,*) '         (i.e. cyclic east-west and north fold with T-point pivot)'
          CASE( 5 )   ;   WRITE(numout,*) '         (i.e. north fold with F-point pivot)'
@@ -310,10 +310,10 @@ CONTAINS
       !
       REWIND( numnam_ref )              ! Namelist namrun in reference namelist : Parameters of the run
       READ  ( numnam_ref, namrun, IOSTAT = ios, ERR = 901)
-901   IF( ios /= 0 )   CALL ctl_nam ( ios , 'namrun in reference namelist', lwp )
+901   IF( ios /= 0 )   CALL ctl_nam ( ios , 'namrun in reference namelist' )
       REWIND( numnam_cfg )              ! Namelist namrun in configuration namelist : Parameters of the run
       READ  ( numnam_cfg, namrun, IOSTAT = ios, ERR = 902 )
-902   IF( ios >  0 )   CALL ctl_nam ( ios , 'namrun in configuration namelist', lwp )
+902   IF( ios >  0 )   CALL ctl_nam ( ios , 'namrun in configuration namelist' )
       IF(lwm) WRITE ( numond, namrun )
 
 #if defined key_drakkar
@@ -354,7 +354,9 @@ CONTAINS
          ELSE
             WRITE(numout,*) '      frequency of restart file       nn_stock        = ', nn_stock
          ENDIF
+#if ! defined key_iomput
          WRITE(numout,*) '      frequency of output file        nn_write        = ', nn_write
+#endif
          WRITE(numout,*) '      mask land points                ln_mskland      = ', ln_mskland
          WRITE(numout,*) '      additional CF standard metadata ln_cfmeta       = ', ln_cfmeta
          WRITE(numout,*) '      overwrite an existing file      ln_clobber      = ', ln_clobber
@@ -376,9 +378,6 @@ CONTAINS
       ndate0 = nn_date0
       nleapy = nn_leapy
       ninist = nn_istate
-      nstock = nn_stock
-      nstocklist = nn_stocklist
-      nwrite = nn_write
       neuler = nn_euler
       IF( neuler == 1 .AND. .NOT. ln_rstart ) THEN
          IF(lwp) WRITE(numout,*)  
@@ -387,16 +386,22 @@ CONTAINS
          neuler = 0
       ENDIF
       !                             ! control of output frequency
-      IF( nstock == 0 .OR. nstock > nitend ) THEN
-         WRITE(ctmp1,*) 'nstock = ', nstock, ' it is forced to ', nitend
+      IF( .NOT. ln_rst_list ) THEN     ! we use nn_stock
+         IF( nn_stock == -1 )   CALL ctl_warn( 'nn_stock = -1 --> no restart will be done' )
+         IF( nn_stock == 0 .OR. nn_stock > nitend ) THEN
+            WRITE(ctmp1,*) 'nn_stock = ', nn_stock, ' it is forced to ', nitend
          CALL ctl_warn( ctmp1 )
-         nstock = nitend
+            nn_stock = nitend
       ENDIF
-      IF ( nwrite == 0 ) THEN
-         WRITE(ctmp1,*) 'nwrite = ', nwrite, ' it is forced to ', nitend
+      ENDIF
+#if ! defined key_iomput
+      IF( nn_write == -1 )   CALL ctl_warn( 'nn_write = -1 --> no output files will be done' )
+      IF ( nn_write == 0 ) THEN
+         WRITE(ctmp1,*) 'nn_write = ', nn_write, ' it is forced to ', nitend
          CALL ctl_warn( ctmp1 )
-         nwrite = nitend
+         nn_write = nitend
       ENDIF
+#endif
 
       IF( Agrif_Root() ) THEN
       IF(lwp) WRITE(numout,*)
@@ -415,10 +420,10 @@ CONTAINS
 
       REWIND( numnam_ref )              ! Namelist namdom in reference namelist : space & time domain (bathymetry, mesh, timestep)
       READ  ( numnam_ref, namdom, IOSTAT = ios, ERR = 903)
-903   IF( ios /= 0 )   CALL ctl_nam ( ios , 'namdom in reference namelist', lwp )
+903   IF( ios /= 0 )   CALL ctl_nam ( ios , 'namdom in reference namelist' )
       REWIND( numnam_cfg )              ! Namelist namdom in configuration namelist : space & time domain (bathymetry, mesh, timestep)
       READ  ( numnam_cfg, namdom, IOSTAT = ios, ERR = 904 )
-904   IF( ios >  0 )   CALL ctl_nam ( ios , 'namdom in configuration namelist', lwp )
+904   IF( ios >  0 )   CALL ctl_nam ( ios , 'namdom in configuration namelist' )
       IF(lwm) WRITE( numond, namdom )
       !
       IF(lwp) THEN
@@ -447,10 +452,10 @@ CONTAINS
       !                             ! NetCDF 4 case   ("key_netcdf4" defined)
       REWIND( numnam_ref )              ! Namelist namnc4 in reference namelist : NETCDF
       READ  ( numnam_ref, namnc4, IOSTAT = ios, ERR = 907)
-907   IF( ios /= 0 )   CALL ctl_nam ( ios , 'namnc4 in reference namelist', lwp )
+907   IF( ios /= 0 )   CALL ctl_nam ( ios , 'namnc4 in reference namelist' )
       REWIND( numnam_cfg )              ! Namelist namnc4 in configuration namelist : NETCDF
       READ  ( numnam_cfg, namnc4, IOSTAT = ios, ERR = 908 )
-908   IF( ios >  0 )   CALL ctl_nam ( ios , 'namnc4 in configuration namelist', lwp )
+908   IF( ios >  0 )   CALL ctl_nam ( ios , 'namnc4 in configuration namelist' )
       IF(lwm) WRITE( numond, namnc4 )
 
       IF(lwp) THEN                        ! control print
@@ -525,7 +530,7 @@ CONTAINS
    END SUBROUTINE dom_ctl
 
 
-   SUBROUTINE domain_cfg( ldtxt, cd_cfg, kk_cfg, kpi, kpj, kpk, kperio )
+   SUBROUTINE domain_cfg( cd_cfg, kk_cfg, kpi, kpj, kpk, kperio )
       !!----------------------------------------------------------------------
       !!                     ***  ROUTINE dom_nam  ***
       !!                    
@@ -533,21 +538,22 @@ CONTAINS
       !!
       !! ** Method  :   read the cn_domcfg NetCDF file
       !!----------------------------------------------------------------------
-      CHARACTER(len=*), DIMENSION(:), INTENT(out) ::   ldtxt           ! stored print information
       CHARACTER(len=*)              , INTENT(out) ::   cd_cfg          ! configuration name
       INTEGER                       , INTENT(out) ::   kk_cfg          ! configuration resolution
       INTEGER                       , INTENT(out) ::   kpi, kpj, kpk   ! global domain sizes 
       INTEGER                       , INTENT(out) ::   kperio          ! lateral global domain b.c. 
       !
-      INTEGER ::   inum, ii   ! local integer
+      INTEGER ::   inum   ! local integer
       REAL(wp) ::   zorca_res                     ! local scalars
-      REAL(wp) ::   ziglo, zjglo, zkglo, zperio   !   -      -
+      REAL(wp) ::   zperio                        !   -      -
+      INTEGER, DIMENSION(4) ::   idvar, idimsz    ! size   of dimensions
       !!----------------------------------------------------------------------
       !
-      ii = 1
-      WRITE(ldtxt(ii),*) '           '                                                    ;   ii = ii+1
-      WRITE(ldtxt(ii),*) 'domain_cfg : domain size read in ', TRIM( cn_domcfg ), ' file'  ;   ii = ii+1
-      WRITE(ldtxt(ii),*) '~~~~~~~~~~ '                                                    ;   ii = ii+1
+      IF(lwp) THEN
+         WRITE(numout,*) '           '
+         WRITE(numout,*) 'domain_cfg : domain size read in ', TRIM( cn_domcfg ), ' file'
+         WRITE(numout,*) '~~~~~~~~~~ '
+      ENDIF
       !
       CALL iom_open( cn_domcfg, inum )
       !
@@ -558,9 +564,11 @@ CONTAINS
          cd_cfg = 'ORCA'
          CALL iom_get( inum, 'ORCA_index', zorca_res )   ;   kk_cfg = NINT( zorca_res )
          !
-         WRITE(ldtxt(ii),*) '   .'                                                     ;   ii = ii+1
-         WRITE(ldtxt(ii),*) '   ==>>>   ORCA configuration '                           ;   ii = ii+1
-         WRITE(ldtxt(ii),*) '   .'                                                     ;   ii = ii+1
+         IF(lwp) THEN
+            WRITE(numout,*) '   .'
+            WRITE(numout,*) '   ==>>>   ORCA configuration '
+            WRITE(numout,*) '   .'
+         ENDIF
          !
       ELSE                                !- cd_cfg & k_cfg are not used
          cd_cfg = 'UNKNOWN'
@@ -574,17 +582,20 @@ CONTAINS
          !
       ENDIF
       !
-      CALL iom_get( inum, 'jpiglo', ziglo  )   ;   kpi = NINT( ziglo )
-      CALL iom_get( inum, 'jpjglo', zjglo  )   ;   kpj = NINT( zjglo )
-      CALL iom_get( inum, 'jpkglo', zkglo  )   ;   kpk = NINT( zkglo )
+      idvar = iom_varid( inum, 'e3t_0', kdimsz = idimsz )   ! use e3t_0, that must exist, to get jp(ijk)glo
+      kpi = idimsz(1)
+      kpj = idimsz(2)
+      kpk = idimsz(3)
       CALL iom_get( inum, 'jperio', zperio )   ;   kperio = NINT( zperio )
       CALL iom_close( inum )
       !
-      WRITE(ldtxt(ii),*) '      cn_cfg = ', TRIM(cd_cfg), '   nn_cfg = ', kk_cfg             ;   ii = ii+1
-      WRITE(ldtxt(ii),*) '      jpiglo = ', kpi                                              ;   ii = ii+1
-      WRITE(ldtxt(ii),*) '      jpjglo = ', kpj                                              ;   ii = ii+1
-      WRITE(ldtxt(ii),*) '      jpkglo = ', kpk                                              ;   ii = ii+1
-      WRITE(ldtxt(ii),*) '      type of global domain lateral boundary   jperio = ', kperio  ;   ii = ii+1
+      IF(lwp) THEN
+         WRITE(numout,*) '      cn_cfg = ', TRIM(cd_cfg), '   nn_cfg = ', kk_cfg
+         WRITE(numout,*) '      jpiglo = ', kpi
+         WRITE(numout,*) '      jpjglo = ', kpj
+         WRITE(numout,*) '      jpkglo = ', kpk
+         WRITE(numout,*) '      type of global domain lateral boundary   jperio = ', kperio
+      ENDIF
       !        
    END SUBROUTINE domain_cfg
    

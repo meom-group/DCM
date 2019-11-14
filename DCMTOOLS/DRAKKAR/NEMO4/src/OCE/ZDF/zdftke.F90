@@ -657,11 +657,11 @@ CONTAINS
       !
       REWIND( numnam_ref )              ! Namelist namzdf_tke in reference namelist : Turbulent Kinetic Energy
       READ  ( numnam_ref, namzdf_tke, IOSTAT = ios, ERR = 901)
-901   IF( ios /= 0 ) CALL ctl_nam ( ios , 'namzdf_tke in reference namelist', lwp )
+901   IF( ios /= 0 ) CALL ctl_nam ( ios , 'namzdf_tke in reference namelist' )
 
       REWIND( numnam_cfg )              ! Namelist namzdf_tke in configuration namelist : Turbulent Kinetic Energy
       READ  ( numnam_cfg, namzdf_tke, IOSTAT = ios, ERR = 902 )
-902   IF( ios >  0 ) CALL ctl_nam ( ios , 'namzdf_tke in configuration namelist', lwp )
+902   IF( ios >  0 ) CALL ctl_nam ( ios , 'namzdf_tke in configuration namelist' )
       IF(lwm) WRITE ( numond, namzdf_tke )
       !
       ri_cri   = 2._wp    / ( 2._wp + rn_ediss / rn_ediff )   ! resulting critical Richardson number

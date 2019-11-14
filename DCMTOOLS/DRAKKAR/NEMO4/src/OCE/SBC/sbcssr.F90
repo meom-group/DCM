@@ -218,21 +218,21 @@ CONTAINS
       ! 
       REWIND( numnam_ref )              ! Namelist namsbc_ssr in reference namelist : 
       READ  ( numnam_ref, namsbc_ssr, IOSTAT = ios, ERR = 901)
-901   IF( ios /= 0 )   CALL ctl_nam ( ios , 'namsbc_ssr in reference namelist', lwp )
+901   IF( ios /= 0 )   CALL ctl_nam ( ios , 'namsbc_ssr in reference namelist' )
 
       REWIND( numnam_cfg )              ! Namelist namsbc_ssr in configuration namelist :
       READ  ( numnam_cfg, namsbc_ssr, IOSTAT = ios, ERR = 902 )
-902   IF( ios >  0 )   CALL ctl_nam ( ios , 'namsbc_ssr in configuration namelist', lwp )
+902   IF( ios >  0 )   CALL ctl_nam ( ios , 'namsbc_ssr in configuration namelist' )
       IF(lwm) WRITE ( numond, namsbc_ssr )
 
 #if defined key_drakkar
       REWIND( numnam_ref )              ! Namelist namsbc_ssr in reference namelist : 
       READ  ( numnam_ref, namsbc_ssr_drk, IOSTAT = ios, ERR = 903)
-903   IF( ios /= 0 )   CALL ctl_nam ( ios , 'namsbc_ssr_drk in reference namelist', lwp )
+903   IF( ios /= 0 )   CALL ctl_nam ( ios , 'namsbc_ssr_drk in reference namelist' )
 
       REWIND( numnam_cfg )              ! Namelist namsbc_ssr in configuration namelist :
       READ  ( numnam_cfg, namsbc_ssr_drk, IOSTAT = ios, ERR = 904 )
-904   IF( ios >  0 )   CALL ctl_nam ( ios , 'namsbc_ssr_drk in configuration namelist', lwp )
+904   IF( ios >  0 )   CALL ctl_nam ( ios , 'namsbc_ssr_drk in configuration namelist' )
       IF(lwm) WRITE ( numond, namsbc_ssr )
 #endif
 

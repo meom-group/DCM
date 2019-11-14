@@ -102,8 +102,7 @@ CONTAINS
          &             cn_dyn3d, nn_dyn3d_dta, cn_tra, nn_tra_dta,             &
          &             ln_tra_dmp, ln_dyn3d_dmp, rn_time_dmp, rn_time_dmp_out, &
          &             cn_ice, nn_ice_dta,                                     &
-         &             rn_ice_tem, rn_ice_sal, rn_ice_age,                     &
-         &             ln_vol, nn_volctl, nn_rimwidth, nb_jpk_bdy
+         &             ln_vol, nn_volctl, nn_rimwidth
 #if defined key_drakkar
       REAL(wp) :: zshlat           !: working variable
       REAL(wp), DIMENSION(:,:) , ALLOCATABLE :: zshlat2d
@@ -117,19 +116,19 @@ CONTAINS
       !
       REWIND( numnam_ref )              ! Namelist namlbc in reference namelist : Lateral momentum boundary condition
       READ  ( numnam_ref, namlbc, IOSTAT = ios, ERR = 901 )
-901   IF( ios /= 0 )   CALL ctl_nam ( ios , 'namlbc in reference namelist', lwp )
+901   IF( ios /= 0 )   CALL ctl_nam ( ios , 'namlbc in reference namelist' )
       REWIND( numnam_cfg )              ! Namelist namlbc in configuration namelist : Lateral momentum boundary condition
       READ  ( numnam_cfg, namlbc, IOSTAT = ios, ERR = 902 )
-902   IF( ios >  0 )   CALL ctl_nam ( ios , 'namlbc in configuration namelist', lwp )
+902   IF( ios >  0 )   CALL ctl_nam ( ios , 'namlbc in configuration namelist' )
       IF(lwm) WRITE ( numond, namlbc )
 
 #if defined key_drakkar
       REWIND( numnam_ref )              ! Namelist namlbc in reference namelist : Lateral momentum boundary condition
       READ  ( numnam_ref, namlbc_drk, IOSTAT = ios, ERR = 905 )
-905   IF( ios /= 0 )   CALL ctl_nam ( ios , 'namlbc_drk in reference namelist', lwp )
+905   IF( ios /= 0 )   CALL ctl_nam ( ios , 'namlbc_drk in reference namelist' )
       REWIND( numnam_cfg )              ! Namelist namlbc in configuration namelist : Lateral momentum boundary condition
       READ  ( numnam_cfg, namlbc_drk, IOSTAT = ios, ERR = 906 )
-906   IF( ios >  0 )   CALL ctl_nam ( ios , 'namlbc_drk in configuration namelist', lwp )
+906   IF( ios >  0 )   CALL ctl_nam ( ios , 'namlbc_drk in configuration namelist' )
       IF(lwm) WRITE ( numond, namlbc_drk )
 #endif
       
@@ -174,17 +173,18 @@ CONTAINS
             ENDIF
          END DO  
       END DO  
-!SF  add here lbc_lnk: bug not still understood : cause now domain configuration is read !
-!!gm I don't understand why...  
+      !
+      ! the following call is mandatory
+      ! it masks boundaries (bathy=0) where needed depending on the configuration (closed, periodic...)  
       CALL lbc_lnk( 'dommsk', tmask  , 'T', 1._wp )      ! Lateral boundary conditions
 
      ! Mask corrections for bdy (read in mppini2)
       REWIND( numnam_ref )              ! Namelist nambdy in reference namelist :Unstructured open boundaries
       READ  ( numnam_ref, nambdy, IOSTAT = ios, ERR = 903)
-903   IF( ios /= 0 )   CALL ctl_nam ( ios , 'nambdy in reference namelist', lwp )
+903   IF( ios /= 0 )   CALL ctl_nam ( ios , 'nambdy in reference namelist' )
       REWIND( numnam_cfg )              ! Namelist nambdy in configuration namelist :Unstructured open boundaries
       READ  ( numnam_cfg, nambdy, IOSTAT = ios, ERR = 904 )
-904   IF( ios >  0 )   CALL ctl_nam ( ios , 'nambdy in configuration namelist', lwp )
+904   IF( ios >  0 )   CALL ctl_nam ( ios , 'nambdy in configuration namelist' )
       ! ------------------------
       IF ( ln_bdy .AND. ln_mask_file ) THEN
          CALL iom_open( cn_mask_file, inum )
