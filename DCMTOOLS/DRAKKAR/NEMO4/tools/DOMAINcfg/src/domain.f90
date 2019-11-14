@@ -494,7 +494,7 @@ CONTAINS
             z2d (ji,jj) = SUM ( e3t_0(ji,jj, 1:mbkt(ji,jj) ) ) * ssmask(ji,jj) 
          END DO
       END DO
-      CALL iom_rstput( 0, 0, inum, 'bathy_metry'   , z2d , ktype = jp_r4 )
+      CALL iom_rstput( 0, 0, inum, 'bathy_meter'   , z2d , ktype = jp_r4 )
 
       !
       IF( ln_sco ) THEN             ! s-coordinate: store grid stiffness ratio  (Not required anyway)
