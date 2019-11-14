@@ -13,10 +13,12 @@ MODULE icerst
    !!   ice_rst_write : write restart file 
    !!   ice_rst_read  : read  restart file 
    !!----------------------------------------------------------------------
-   USE ice            ! sea-ice variables
+   USE ice            ! sea-ice: variables
    USE dom_oce        ! ocean domain
+   USE phycst  , ONLY : rt0
    USE sbc_oce , ONLY : nn_fsbc, ln_cpl
-   USE icectl
+   USE iceistate      ! sea-ice: initial state
+   USE icectl         ! sea-ice: control
    !
    USE in_out_manager ! I/O manager
    USE iom            ! I/O manager library
@@ -52,10 +54,11 @@ CONTAINS
       !
       IF( kt == nit000 )   lrst_ice = .FALSE.   ! default definition
 
+      IF( ln_rst_list .OR. nn_stock /= -1 ) THEN
       ! in order to get better performances with NetCDF format, we open and define the ice restart file 
       ! one ice time step before writing the data (-> at nitrst - 2*nn_fsbc + 1), except if we write ice 
       ! restart files every ice time step or if an ice restart file was writen at nitend - 2*nn_fsbc + 1
-      IF( kt == nitrst - 2*nn_fsbc + 1 .OR. nstock == nn_fsbc    &
+      IF( kt == nitrst - 2*nn_fsbc + 1 .OR. nn_stock == nn_fsbc    &
          &                             .OR. ( kt == nitend - nn_fsbc + 1 .AND. .NOT. lrst_ice ) ) THEN
          IF( nitrst <= nitend .AND. nitrst > 0 ) THEN
             ! beware of the format used to write kt (default is i8.8, that should be large enough...)
@@ -83,6 +86,7 @@ CONTAINS
             CALL iom_open( TRIM(clpath)//TRIM(clname), numriw, ldwrt = .TRUE., kdlev = jpl )
             lrst_ice = .TRUE.
          ENDIF
+      ENDIF
       ENDIF
       !
       IF( ln_icectl )   CALL ice_prt( kt, iiceprt, jiceprt, 1, ' - Beginning the time step - ' )   ! control print
@@ -124,10 +128,11 @@ CONTAINS
       CALL iom_rstput( iter, nitrst, numriw, 'v_i' , v_i  )
       CALL iom_rstput( iter, nitrst, numriw, 'v_s' , v_s  )
       CALL iom_rstput( iter, nitrst, numriw, 'sv_i', sv_i )
-      CALL iom_rstput( iter, nitrst, numriw, 'oa_i', oa_i )
       CALL iom_rstput( iter, nitrst, numriw, 'a_i' , a_i  )
       CALL iom_rstput( iter, nitrst, numriw, 't_su', t_su )
-      ! Melt ponds
+      CALL iom_rstput( iter, nitrst, numriw, 'u_ice', u_ice )
+      CALL iom_rstput( iter, nitrst, numriw, 'v_ice', v_ice )
+      CALL iom_rstput( iter, nitrst, numriw, 'oa_i' , oa_i  )
       CALL iom_rstput( iter, nitrst, numriw, 'a_ip', a_ip )
       CALL iom_rstput( iter, nitrst, numriw, 'v_ip', v_ip )
       ! Snow enthalpy
@@ -144,9 +149,6 @@ CONTAINS
          z3d(:,:,:) = e_i(:,:,jk,:)
          CALL iom_rstput( iter, nitrst, numriw, znam , z3d )
       END DO
-      ! ice velocity
-      CALL iom_rstput( iter, nitrst, numriw, 'u_ice', u_ice ) ! u_ice
-      CALL iom_rstput( iter, nitrst, numriw, 'v_ice', v_ice ) ! v_ice
       ! fields needed for Met Office (Jules) coupling
       IF( ln_cpl ) THEN
          CALL iom_rstput( iter, nitrst, numriw, 'cnd_ice', cnd_ice )
@@ -172,7 +174,7 @@ CONTAINS
       !!----------------------------------------------------------------------
       INTEGER           ::   jk
       LOGICAL           ::   llok
-      INTEGER           ::   id1            ! local integer
+      INTEGER           ::   id0, id1, id2, id3, id4   ! local integer
       CHARACTER(len=25) ::   znam
       CHARACTER(len=2)  ::   zchar, zchar1
       REAL(wp)          ::   zfice, ziter
@@ -187,6 +189,14 @@ CONTAINS
 
       CALL iom_open ( TRIM(cn_icerst_indir)//'/'//cn_icerst_in, numrir, kdlev = jpl )
 
+      ! test if v_i exists 
+      id0 = iom_varid( numrir, 'v_i' , ldstop = .FALSE. )
+
+      !                    ! ------------------------------ !
+      IF( id0 > 0 ) THEN   ! == case of a normal restart == !
+         !                 ! ------------------------------ !
+         
+         ! Time info
       CALL iom_get( numrir, 'nn_fsbc', zfice )
       CALL iom_get( numrir, 'kt_ice' , ziter )    
       IF(lwp) WRITE(numout,*) '   read ice restart file at time step    : ', ziter
@@ -202,23 +212,14 @@ CONTAINS
          &                   '   verify the file or rerun with the value 0 for the',         &
          &                   '   control of time parameter  nrstdt' )
 
-      ! Prognostic variables 
+         ! --- mandatory fields --- ! 
       CALL iom_get( numrir, jpdom_autoglo, 'v_i' , v_i  )
       CALL iom_get( numrir, jpdom_autoglo, 'v_s' , v_s  )
       CALL iom_get( numrir, jpdom_autoglo, 'sv_i', sv_i )
-      CALL iom_get( numrir, jpdom_autoglo, 'oa_i', oa_i )
       CALL iom_get( numrir, jpdom_autoglo, 'a_i' , a_i  )
       CALL iom_get( numrir, jpdom_autoglo, 't_su', t_su )
-      ! Melt ponds
-      id1 = iom_varid( numrir, 'a_ip' , ldstop = .FALSE. )
-      IF( id1 > 0 ) THEN                       ! fields exist (melt ponds)
-         CALL iom_get( numrir, jpdom_autoglo, 'a_ip' , a_ip )
-         CALL iom_get( numrir, jpdom_autoglo, 'v_ip' , v_ip )
-      ELSE                                     ! start from rest
-         IF(lwp) WRITE(numout,*) '   ==>>   previous run without melt ponds output then set it to zero'
-         a_ip(:,:,:) = 0._wp
-         v_ip(:,:,:) = 0._wp
-      ENDIF
+         CALL iom_get( numrir, jpdom_autoglo, 'u_ice', u_ice )
+         CALL iom_get( numrir, jpdom_autoglo, 'v_ice', v_ice )
       ! Snow enthalpy
       DO jk = 1, nlay_s
          WRITE(zchar1,'(I2.2)') jk
@@ -233,16 +234,52 @@ CONTAINS
          CALL iom_get( numrir, jpdom_autoglo, znam , z3d )
          e_i(:,:,jk,:) = z3d(:,:,:)
       END DO
-      ! ice velocity
-      CALL iom_get( numrir, jpdom_autoglo, 'u_ice', u_ice )
-      CALL iom_get( numrir, jpdom_autoglo, 'v_ice', v_ice )
-
-      CALL iom_delay_rst( 'READ', 'ICE', numrir )   ! read only ice delayed global communication variables
-
+         ! -- optional fields -- !
+         ! ice age
+         id1 = iom_varid( numrir, 'oa_i' , ldstop = .FALSE. )
+         IF( id1 > 0 ) THEN                       ! fields exist
+            CALL iom_get( numrir, jpdom_autoglo, 'oa_i', oa_i )
+         ELSE                                     ! start from rest
+            IF(lwp) WRITE(numout,*) '   ==>>   previous run without ice age output then set it to zero'
+            oa_i(:,:,:) = 0._wp
+         ENDIF
+         ! melt ponds
+         id2 = iom_varid( numrir, 'a_ip' , ldstop = .FALSE. )
+         IF( id2 > 0 ) THEN                       ! fields exist
+            CALL iom_get( numrir, jpdom_autoglo, 'a_ip' , a_ip )
+            CALL iom_get( numrir, jpdom_autoglo, 'v_ip' , v_ip )
+         ELSE                                     ! start from rest
+            IF(lwp) WRITE(numout,*) '   ==>>   previous run without melt ponds output then set it to zero'
+            a_ip(:,:,:) = 0._wp
+            v_ip(:,:,:) = 0._wp
+         ENDIF
       ! fields needed for Met Office (Jules) coupling
       IF( ln_cpl ) THEN
+            id3 = iom_varid( numrir, 'cnd_ice' , ldstop = .FALSE. )
+            id4 = iom_varid( numrir, 't1_ice'  , ldstop = .FALSE. )
+            IF( id3 > 0 .AND. id4 > 0 ) THEN         ! fields exist
          CALL iom_get( numrir, jpdom_autoglo, 'cnd_ice', cnd_ice )
          CALL iom_get( numrir, jpdom_autoglo, 't1_ice' , t1_ice  )
+            ELSE                                     ! start from rest
+               IF(lwp) WRITE(numout,*) '   ==>>   previous run without conductivity output then set it to zero'
+               cnd_ice(:,:,:) = 0._wp
+               t1_ice (:,:,:) = rt0
+            ENDIF
+         ENDIF
+
+         CALL iom_delay_rst( 'READ', 'ICE', numrir )   ! read only ice delayed global communication variables
+
+         !                 ! ---------------------------------- !
+      ELSE                 ! == case of a simplified restart == !
+         !                 ! ---------------------------------- !
+         CALL ctl_warn('ice_rst_read: you are using a simplified ice restart')
+         !
+         CALL ice_istate_init
+         CALL ice_istate( nit000 )
+         !
+         IF( .NOT.ln_iceini .OR. .NOT.ln_iceini_file ) &
+            &   CALL ctl_stop('STOP', 'ice_rst_read: you need ln_ice_ini=T and ln_iceini_file=T')
+         !
       ENDIF
 
    END SUBROUTINE ice_rst_read
