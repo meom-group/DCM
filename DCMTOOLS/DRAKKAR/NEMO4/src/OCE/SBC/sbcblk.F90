@@ -568,7 +568,25 @@ CONTAINS
 
 !!      CALL iom_put( "Cd_oce", Cd_atm)  ! output value of pure ocean-atm. transfer coef.
 !!      CALL iom_put( "Ch_oce", Ch_atm)  ! output value of pure ocean-atm. transfer coef.
-
+#if defined key_drakkar
+    IF ( ln_clim_forcing ) THEN
+      DO jj = 1, jpj             ! tau module, i and j component
+         DO ji = 1, jpi
+            IF ( ln_LR ) THEN
+               zstau = rn_lra * wndm  (ji,jj) + rn_lrb
+               zUo   = SQRT ( zssu(ji,jj)*zssu(ji,jj) +  zssv(ji,jj)*zssv(ji,jj) )
+            ELSE
+               zstau = 0._wp
+               zUo   = 0._wp
+            ENDIF
+            zztmp = zrhoa(ji,jj)  * Cd_atm(ji,jj)   !
+            taum  (ji,jj) = zztmp * wndm  (ji,jj) * zU_zu(ji,jj) + zstau * zUo
+            zwnd_i(ji,jj) = zztmp * sf(jp_uw)%fnow(ji,jj,1)      + zstau * zssu(ji,jj)
+            zwnd_j(ji,jj) = zztmp * sf(jp_vw)%fnow(ji,jj,1)      + zstau * zssv(ji,jj) 
+         END DO
+      END DO
+    ELSE
+#endif
       DO jj = 1, jpj             ! tau module, i and j component
          DO ji = 1, jpi
             zztmp = zrhoa(ji,jj)  * zU_zu(ji,jj) * Cd_atm(ji,jj)   ! using bulk wind speed
@@ -576,7 +594,7 @@ CONTAINS
             IF ( ln_LR )  THEN    ! LIONEL RENAULT HERE !
               zstau = rn_lra * wndm  (ji,jj) + rn_lrb
               zUo = SQRT ( zssu(ji,jj)**2 +  zssv(ji,jj)**2 )
-              taum (ji,jj) =  zztmp * wndm  (ji,jj) + zstau * zUo   
+              taum (ji,jj)  = zztmp * wndm  (ji,jj) + zstau * zUo   
               zwnd_i(ji,jj) = zztmp * zwnd_i(ji,jj) + zstau * zssu(ji,jj)
               zwnd_j(ji,jj) = zztmp * zwnd_j(ji,jj) + zstau * zssv(ji,jj)
             ELSE
