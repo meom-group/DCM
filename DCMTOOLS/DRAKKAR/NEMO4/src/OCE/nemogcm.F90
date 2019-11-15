@@ -104,6 +104,8 @@ MODULE nemogcm
 #if defined key_drakkar
    CHARACTER(lc) ::   cform_bbb="( /, 'BBBBBBBB', / ) "     ! flag for output listing
    CHARACTER(lc) ::   cform_ccc="( /, ';);););)', / ) "     ! flag for output listing
+   CHARACTER(lc) ::   cform_err= "(/,' ===>>> : E R R O R',     /,'         ===========',/)"       !:
+   CHARACTER(lc) ::   cform_war= "(/,' ===>>> : W A R N I N G', /,'         ===============',/)"   !:
 #endif
 
 #if defined key_mpp_mpi
