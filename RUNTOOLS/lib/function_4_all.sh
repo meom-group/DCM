@@ -633,10 +633,12 @@ getfiles()  {
            else
              echo ${f}.nc
 #            copyfor  $P_FOR_DIR/${f}.nc ${f}.nc
+             if [ ${f} != 'NOT' ] ; then
              if [ ${#lstw} != 0   -o $bdyflag = 1 ] ; then   # there are weight defined, so we do not try to copy nested files ( ??? AGRIF ??? )
                 copyfor  $ZPDIR/${f}.nc ${f}.nc
              else
                 rapatrie  ${f}.nc $ZPDIR $ZFDIR  ${f}.nc
+             fi
              fi
            fi ;;
            ( monthly ) # get file m12 for yearm1, then m01 -m12 for current year , m01 for yearp1
