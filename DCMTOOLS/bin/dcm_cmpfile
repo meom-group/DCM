@@ -6,7 +6,7 @@
 
 usage() {
     echo '      '
-    echo "USAGE : $(basename $0 ) [-t] [-d] [-x <XDIFF_tool>] [-h] LOCAL-file "
+    echo "USAGE : $(basename $0 ) [-t] [-d] [-x <XDIFF_tool>] [-h] [-a] LOCAL-file "
     echo '        one must be in CASE directory '
     echo '      '
     echo "  PURPOSE : This script launch meld (or equivalent) between "
@@ -23,28 +23,41 @@ usage() {
     echo '              available ...'
     echo '        [-x <XDIFF_tool> ] : Use XDIFF_tool instead of meld'
     echo "        [-d ] : show differences with DRAKKAR instead of NEMOREF"
+    echo "        [-a ] : Use Alternative REFDIR2 or CUSDIR2"
     echo '        [-h ] : This help message'
     echo '      '
     exit 0
         }
 
 #set defaults
+ALT=0
 WREFDIR=${REFDIR}
+WCUSDIR=${CUSDIR}
 XDIFF=meld
 
 if [ $# = 0 ] ; then usage ; fi
 
 
 
-while getopts :hdtx: opt ; do
+while getopts :hdtax: opt ; do
   case $opt in 
    (h)  usage ;;
    (t)  noxdiff=1 ;;
    (x)  XDIFF=${OPTARG} ;;
    (d)  WREFDIR=${CUSDIR} ;;
+   (a)  ALT=1 ;;
    (\?) echo $(basename $0 )" ERROR: -"$OPTARG" option not supported." ; usage ;;
   esac
 done
+
+if [ $ALT = 1 ] ; then
+   WCUSDIR=$CUSDIR2
+   if [ $WREFDIR = $CUSDIR ] ; then
+      WREFDIR=$WCUSDIR
+   else
+      WREFDIR=$REFDIR2
+   fi
+fi
 
 # verify that you are in a CONFIG-CASE dir
 tmp=$( basename $(dirname $(pwd) ) )
@@ -74,15 +87,15 @@ SOURCE_FILE=$( ls -l $file | awk '{ print $NF }')
 REF_FILE=${WREFDIR}/$SOURCE_FILE
 
 if [ $WREFDIR = $REFDIR ] ; then
-if [ -f ${CUSDIR}/$SOURCE_FILE ]  ; then
-   echo WARNING: this file is also in $CUSDIR
+if [ -f ${WCUSDIR}/$SOURCE_FILE ]  ; then
+   echo WARNING: this file is also in $WCUSDIR
    echo ======================================
 fi
 fi
 
-if [ $WREFDIR = $CUSDIR ] ; then
-if [ ! -f ${CUSDIR}/$SOURCE_FILE ]  ; then
-   echo "ERROR: this file is not in $CUSDIR."
+if [ $WREFDIR = $WCUSDIR ] ; then
+if [ ! -f ${WCUSDIR}/$SOURCE_FILE ]  ; then
+   echo "ERROR: this file is not in $WCUSDIR."
    echo "======================================"
    echo "  --> consider using dcm_cmpfile without -d option."
    exit 1
