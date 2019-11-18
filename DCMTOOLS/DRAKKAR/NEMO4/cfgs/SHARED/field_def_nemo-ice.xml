@@ -238,9 +238,9 @@
 	 
 	</field_group> <!-- SBC_2D -->
 
-	  <!-- categories -->
+	<!-- categories -->
         <field_group id="SBC_3D" grid_ref="grid_T_ncatice" >
-	 
+
           <!-- standard ice fields -->  
 	  <field id="iceconc_cat"  long_name="Sea-ice concentration per category"                unit=""        />
           <field id="icethic_cat"  long_name="Sea-ice thickness per category"                    unit="m"       detect_missing_value="true" />
@@ -264,7 +264,7 @@
           <field id="iceconc_cat_pct_cmip" long_name="Sea-ice area fractions in thickness categories"  standard_name="sea_ice_area_fraction_over_categories" detect_missing_value="true" unit="%"  > iceconc_cat*100. * icemask_cat + $missval * (1.-icemask_cat) </field>
 
 	</field_group> <!-- SBC_3D -->
-
+	
 	<!-- scalar variables -->
 	<field_group id="SBC_scalar"  grid_ref="grid_scalar" >
           <field id="NH_iceextt"      long_name="Sea ice extent North"                   standard_name="sea_ice_extent_n"                   unit="1e6_km2"  />
@@ -317,14 +317,14 @@
 	  <!-- general -->
 	  <field field_ref="snwvolu"          name="snvolu" />
 	  <field field_ref="snwthic"          name="snthic" />
-          <field field_ref="icethic"          name="sithic"  />
+	  <field field_ref="icethic"          name="sithic" />
 <!--
 	  <field field_ref="icethic"          name="sithic_max" operation="maximum" />
 	  <field field_ref="icethic"          name="sithic_min" operation="minimum" />
 -->
 	  <field field_ref="fasticepres"      name="fasticepres" />
-          <field field_ref="icevolu"          name="sivolu"  />
-          <field field_ref="iceconc"          name="siconc"  />
+	  <field field_ref="icevolu"          name="sivolu" />
+	  <field field_ref="iceconc"          name="siconc" />
 	  <field field_ref="icesalt"          name="sisali" />
 	  <field field_ref="iceapnd"          name="siapnd" />
 	  <field field_ref="icehpnd"          name="sihpnd" />
@@ -418,7 +418,7 @@
 	  <field field_ref="iceneg_pres"      name="sineg_pres" />
 	  <field field_ref="iceneg_volu"      name="sineg_volu" />
 	  <field field_ref="iceneg_hfx"       name="sineg_hfx"  />
-	</field_group>    
+        </field_group>
 
 
         <field_group id="myvarICE_cat"        grid_ref="grid_T_ncatice" >
@@ -445,7 +445,7 @@
     	  <field field_ref="sbgheat_tot"      name="sbgheat_tot"  />
 
 	  <!-- global drifts (conservation checks) -->
-     	  <field field_ref="ibgvolume"        name="ibgvolume"    />
+	  <field field_ref="ibgvolume"        name="ibgvolume"    />
     	  <field field_ref="ibgsaltco"        name="ibgsaltco"    />
     	  <field field_ref="ibgheatco"        name="ibgheatco"    />
           <field field_ref="ibgheatfx"        name="ibgheatfx"    />
