@@ -678,7 +678,6 @@
    nn_rimwidth  = 1           !  width of the relaxation zone
    ln_vol     = .true.        !  total volume correction (see nn_volctl parameter)
    nn_volctl  = 0             !  = 0, the total water flux across open boundaries is zero
-   nb_jpk_bdy    = -1         ! number of levels in the bdy data (set < 0 if consistent with planned run)
 /
 !-----------------------------------------------------------------------
 &nambdy_index
