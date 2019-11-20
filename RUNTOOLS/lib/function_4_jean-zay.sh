@@ -297,9 +297,9 @@ lsrestart() {
 # Make batch header for submitted scripts
 # mk_batch_hdr  --name name --wallclock wallclock --account account --nodes nodes --cores cores --par --seq --option "options line" --help
 mk_batch_hdr() {
-   # initialization of variables on occigen2
+   # initialization of variables on Jean-Zay
    name=''
-   account=''
+   account='fqx@cpu'
    wallclock=01:00:00
    nodes=1
    cores=1
@@ -312,20 +312,17 @@ mk_batch_hdr() {
 # on curie wall clock must be passed in seconds ( need to translate argument given as hh:mm:ss )
 wallclock_second=$( echo $wallclock | awk -F: '{print $1*3600 +$2*60 +$3}')
 
-#  Build header for occigen2
-if [ $constraint = 'HSW24' ] ; then itsk_per_node=24 ; fi
-if [ $constraint = 'BDW28' ] ; then itsk_per_node=28 ; fi
 
 cat << eof 
 #!/bin/bash
 #SBATCH -J $name
 #SBATCH --nodes=$nodes
 #SBATCH --ntasks=$cores
-#SBATCH --ntasks-per-node=$itsk_per_node
+#SBATCH --ntasks-per-node=40
 #SBATCH --time=$wallclock
 #SBATCH -e $name.e%j
 #SBATCH -o $name.o%j
-#SBATCH --constraint=$constraint
+#SBATCH -A $account
 #SBATCH --exclusive
 eof
                }
