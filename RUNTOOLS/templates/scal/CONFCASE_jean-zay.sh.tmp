@@ -2,7 +2,7 @@
 #SBATCH --nodes=<NODES>
 #SBATCH --ntasks=<NTASKS>
 #SBATCH --ntasks-per-node=<NCPN>
-#SBATCH --partition=cpu_dev
+#SBATCH -A fqx@cpu
 #SBATCH -J nemo_occigen
 #SBATCH -e nemo_occigen_<JPNI>_<JPNJ>_<JPNIJ>.e%j
 #SBATCH -o nemo_occigen_<JPNI>_<JPNJ>_<JPNIJ>.o%j
