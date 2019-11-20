@@ -1205,10 +1205,6 @@ fi
   mv  \${pref}${CONFIG_CASE}_mesh_zgr.nc  $P_I_DIR
   mv  \${pref}${CONFIG_CASE}_byte_mask.nc $P_I_DIR
 
-# remove obsolete mesh/mask files in dimg
-# \rm \${pref}mask_*dimg
-# \rm \${pref}mesh*dimg
-
 eof
 
   # copy the script to P_CTL_DIR from where it will be launched by submit

@@ -792,8 +792,8 @@ else
                 ok=1
 
                 if [ ! $RST_SKIP  ] ; then 
-         # ** check if the dimg/nc  restart file are in the current dir 
-         #   Look for restart_xxxx.dimg.$prev_ext  xxx=1,$procn
+         # ** check if the nc  restart file are in the current dir 
+         #   Look for restart_xxxx.nc.$prev_ext  xxx=1,$procn
                     for (( proc=$proc0 ; proc <= $procn ; proc++ )) ; do
                         rest=$(printf "${OCE_RST_IN}_${format}.${filext}.$prev_ext\n" $proc)
                         if [ ! -f ${zrstdir}$rest ] ; then ok=0 ; fi
@@ -1189,7 +1189,7 @@ case $STOP_FLAG in
 
      # Submit the save-restart script 
      # When this script is finished ( asynchronously), there is a touch statement on file RST_DONE$mmm.$ext,
-     # that need to be checked before cleaning. ( see interactive script clean_dimg_restart.sh ) 
+     # that need to be checked before cleaning. 
     submit ${P_CTL_DIR}/zsrst.$ext.sh
     cd $TMPDIR   # back in TMPDIR for sure
 
