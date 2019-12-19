@@ -264,7 +264,6 @@ CONTAINS
       IF ( lwp ) THEN 
       IF( nstop /= 0  ) THEN   ! error print
          WRITE(numout,cform_ccc)   ! Flag ;);););)
-         WRITE(numout,cform_err)
          WRITE(ctmp1,*) '   ==>>>   nemo_gcm: a total of ', nstop, ' errors have been found'
          CALL ctl_stop( ctmp1 )
       ELSE

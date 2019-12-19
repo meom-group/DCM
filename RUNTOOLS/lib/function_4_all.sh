@@ -366,6 +366,15 @@ getbdy()  {
                  filter="$filter | grep -v bn_u2d | grep -v bn_v2d "  # skip barotropic stuff
                fi
                blk=nambdy_dta ; getfiles $blk  $P_BDY_DIR $F_BDY_DIR BDY${bdyset}${nb_bdy}
+#              if [ $nn_dyn2d_dta = 3 ] ; then
+#
+#                ln_bdytide_2ddta=$(LookInNamelist ln_bdytide_2ddta namelist) ; tmp=$(normalize $ln_bdytide_2ddta )
+#                if [ $tmp = T ] 
+#                    il faut ramener les fichiers <fileroot>_grid[TUV].nc
+#                else
+#                    file set for each boundary
+#                fi
+#              fi
              fi
           fi
         done
@@ -785,17 +794,17 @@ rename_txt_files() {
       for member in  $(seq $ENSEMBLE_START $ENSEMBLE_END) ; do
          mmm=$(getmember_extension $member)
                                     mv ocean.output$mmm  ocean.output$mmm.$exten
-                                    mv solver.stat$mmm   solver.stat$mmm.$exten
+                                    mv run.stat$mmm   run.stat$mmm.$exten
          if [ $ntiming = 1 ] ; then mv timing.output$mmm timing.output$mmm.$exten ; fi
 
          ZP_S_DIR=$( echo $P_S_DIR | sed -e "s;$CONFIG_CASE;${CONFIG_CASE}$mmm;")
          mkdir -p $ZP_S_DIR/ANNEX
                                     cp ocean.output$mmm.$exten  $ZP_S_DIR/ANNEX
-                                    cp solver.stat$mmm.$exten  $ZP_S_DIR/ANNEX
+                                    cp run.stat$mmm.$exten  $ZP_S_DIR/ANNEX
          if [ $ntiming = 1 ] ; then cp timing.output$mmm.$exten $ZP_S_DIR/ANNEX ; fi
          if [ $EXTRA_COPY  ] ; then
                                     copy ocean.output$mmm.$exten  $2
-                                    copy solver.stat$mmm.$exten  $2
+                                    copy run.stat$mmm.$exten  $2
          fi
 
       done
@@ -818,17 +827,17 @@ rename_txt_files() {
             for member in  $(seq $ENSEMBLE_START $ENSEMBLE_END) ; do
                mmm=$(getmember_extension $member)
                                           mv ${idx}_ocean.output$mmm  ${idx}_ocean.output$mmm.$exten
-                                          mv ${idx}_solver.stat$mmm   ${idx}_solver.stat$mmm.$exten
+                                          mv ${idx}_run.stat$mmm   ${idx}_run.stat$mmm.$exten
                if [ $ntiming = 1 ] ; then mv ${idx}_timing.output$mmm ${idx}_timing.output$mmm.$exten ; fi
 
                ZP_S_DIR=$( echo $P_S_DIR | sed -e "$;$CONFIG_CASE;${CONFIG_CASE}$mmm;")
                mkdir -p $ZP_S_DIR/ANNEX
                                           cp ${idx}_ocean.output$mmm.$exten  $ZP_S_DIR/ANNEX
-                                          cp ${idx}_solver.stat$mmm.$exten  $ZP_S_DIR/ANNEX
+                                          cp ${idx}_run.stat$mmm.$exten  $ZP_S_DIR/ANNEX
                if [ $ntiming = 1 ] ; then cp ${idx}_timing.output$mmm.$exten $ZP_S_DIR/ANNEX ; fi
                if [ $EXTRA_COPY  ] ; then
                                           copy ${idx}_ocean.output$mmm.$exten  $2
-                                          copy ${idx}_solver.stat$mmm.$exten  $2
+                                          copy ${idx}_run.stat$mmm.$exten  $2
                fi
             done
          done

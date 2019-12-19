@@ -116,6 +116,7 @@ if [ $tmp  !=  0 ] ; then
 fi
 
 DDIR=${DDIR:-$CDIR}
+if [ $MACHINE = 'jean-zay' ] ; then DDIR=$WORK ; fi
 
 # look for ensemble run ? (in this case nnn subdirectory (3digits) 
 
