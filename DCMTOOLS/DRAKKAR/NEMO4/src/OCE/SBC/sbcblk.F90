@@ -684,8 +684,27 @@ CONTAINS
       qns_oce(:,:) = zqlw(:,:) - zqsb(:,:) - zqla(:,:)                                ! non solar without emp (only needed by SI3)
       qsr_oce(:,:) = qsr(:,:)
 #endif
-      !
+#if defined key_drakkar
+      ! Polina 
+      CALL iom_put( "qlw_oce" ,   zqlw )                 ! output downward longwave heat over the ocean
+      CALL iom_put( "qsb_oce" , - zqsb )                 ! output downward sensible heat over the ocean
+      CALL iom_put( "qla_oce" , - zqla )                 ! output downward latent   heat over the ocean
+      CALL iom_put( "qemp_oce",   qns-zqlw+zqsb+zqla )   ! output downward heat content of E-P over the ocean
+      CALL iom_put( "tair",   sf(jp_tair)%fnow(:,:,1))   ! output air temperature (t2)
+      CALL iom_put( "qair",   sf(jp_humi)%fnow(:,:,1))   ! output air specific humidity (q2)
       IF ( nn_ice == 0 ) THEN
+         ! if nn_ice /= 0, then those fields are output in ice_update
+         CALL iom_put( "qns_oce" ,   qns  )                 ! output downward non solar heat over the ocean
+         CALL iom_put( "qsr_oce" ,   qsr  )                 ! output downward solar heat over the ocean
+         CALL iom_put( "qt_oce"  ,   qns+qsr )              ! output total downward heat over the ocean
+         ! in case of ice the snowpre and precip are output in blk_ice_flx routine
+         tprecip(:,:) = sf(jp_prec)%fnow(:,:,1) * rn_pfac * tmask(:,:,1) ! output total precipitation [kg/m2/s]
+         sprecip(:,:) = sf(jp_snow)%fnow(:,:,1) * rn_pfac * tmask(:,:,1) ! output solid precipitation [kg/m2/s]
+         CALL iom_put( 'snowpre', sprecip )                 ! Snow
+         CALL iom_put( 'precip' , tprecip )                 ! Total precipitation
+      ENDIF
+#else
+       IF ( nn_ice == 0 ) THEN
          CALL iom_put( "qlw_oce" ,   zqlw )                 ! output downward longwave heat over the ocean
          CALL iom_put( "qsb_oce" , - zqsb )                 ! output downward sensible heat over the ocean
          CALL iom_put( "qla_oce" , - zqla )                 ! output downward latent   heat over the ocean
@@ -698,6 +717,7 @@ CONTAINS
          CALL iom_put( 'snowpre', sprecip )                 ! Snow
          CALL iom_put( 'precip' , tprecip )                 ! Total precipitation
       ENDIF
+#endif
       !
       IF(ln_ctl) THEN
          CALL prt_ctl(tab2d_1=zqsb , clinfo1=' blk_oce: zqsb   : ', tab2d_2=zqlw , clinfo2=' zqlw  : ')
