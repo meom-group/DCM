@@ -18,4 +18,6 @@
 # as of June,4  2019
 #svn co -r 11075  https://forge.ipsl.jussieu.fr/nemo/svn/NEMO/releases/release-4.0 NEMO4
 # as of November, 14 2019
-svn co -r 11902  https://forge.ipsl.jussieu.fr/nemo/svn/NEMO/releases/release-4.0.1 NEMO4
+#svn co -r 11902  https://forge.ipsl.jussieu.fr/nemo/svn/NEMO/releases/release-4.0.1 NEMO4
+# as of March, 25 2020
+svn co -r 12604  https://forge.ipsl.jussieu.fr/nemo/svn/NEMO/releases/release-4.0.1 NEMO4
