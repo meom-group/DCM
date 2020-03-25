@@ -13,6 +13,8 @@ You can refer to [this file](../DCMTOOLS/NEMOREF/xios_revision.md) for recomende
       git clone https://github.com/meom-group/DCM.git DCM_4.0
       ```
 
+  1. If you want to use a specific DCM tag, please read carefully the [tag](Using_tags.md) document before proceeding.
+
   1. Get the official NEMO code from NEMO-ST IPSL server.
 
       ```
