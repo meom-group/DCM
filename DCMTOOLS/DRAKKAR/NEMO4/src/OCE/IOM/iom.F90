@@ -55,13 +55,13 @@ MODULE iom
 #else
    LOGICAL, PUBLIC, PARAMETER ::   lk_iomput = .FALSE.       !: iom_put flag
 #endif
-   PUBLIC iom_init, iom_swap, iom_open, iom_close, iom_setkt, iom_varid, iom_get
+   PUBLIC iom_init, iom_swap, iom_open, iom_close, iom_setkt, iom_varid, iom_get, iom_get_var
    PUBLIC iom_chkatt, iom_getatt, iom_putatt, iom_getszuld, iom_rstput, iom_delay_rst, iom_put
    PUBLIC iom_use, iom_context_finalize, iom_miss_val
 
    PRIVATE iom_rp0d, iom_rp1d, iom_rp2d, iom_rp3d
    PRIVATE iom_g0d, iom_g1d, iom_g2d, iom_g3d, iom_get_123d
-   PRIVATE iom_p1d, iom_p2d, iom_p3d
+   PRIVATE iom_p1d, iom_p2d, iom_p3d, iom_p4d
 #if defined key_iomput
    PRIVATE iom_set_domain_attr, iom_set_axis_attr, iom_set_field_attr, iom_set_file_attr, iom_get_file_attr, iom_set_grid_attr
    PRIVATE set_grid, set_grid_bounds, set_scalar, set_xmlatt, set_mooring, iom_update_file_name, iom_sdate
@@ -82,7 +82,7 @@ MODULE iom
       MODULE PROCEDURE iom_rp0d, iom_rp1d, iom_rp2d, iom_rp3d
    END INTERFACE
    INTERFACE iom_put
-      MODULE PROCEDURE iom_p0d, iom_p1d, iom_p2d, iom_p3d
+      MODULE PROCEDURE iom_p0d, iom_p1d, iom_p2d, iom_p3d, iom_p4d
    END INTERFACE iom_put
   
    !!----------------------------------------------------------------------
@@ -107,6 +107,7 @@ CONTAINS
       TYPE(xios_duration) :: dtime    = xios_duration(0, 0, 0, 0, 0, 0)
       TYPE(xios_date)     :: start_date
       CHARACTER(len=lc) :: clname
+      INTEGER             :: irefyear, irefmonth, irefday
       INTEGER           :: ji, jkmin
       LOGICAL :: llrst_context              ! is context related to restart
       !
@@ -138,12 +139,15 @@ CONTAINS
       llrst_context =  (TRIM(cdname) == TRIM(crxios_context) .OR. TRIM(cdname) == TRIM(cwxios_context))
 
       ! Calendar type is now defined in xml file 
+      IF (.NOT.(xios_getvar('ref_year' ,irefyear ))) irefyear  = 1900
+      IF (.NOT.(xios_getvar('ref_month',irefmonth))) irefmonth = 01
+      IF (.NOT.(xios_getvar('ref_day'  ,irefday  ))) irefday   = 01
       SELECT CASE ( nleapy )        ! Choose calendar for IOIPSL
-      CASE ( 1)   ; CALL xios_define_calendar( TYPE = "Gregorian", time_origin = xios_date(1900,01,01,00,00,00), &
+      CASE ( 1)   ; CALL xios_define_calendar( TYPE = "Gregorian", time_origin = xios_date(irefyear,irefmonth,irefday,00,00,00), &
           &                                    start_date = xios_date(nyear,nmonth,nday,0,0,0) )
-      CASE ( 0)   ; CALL xios_define_calendar( TYPE = "NoLeap"   , time_origin = xios_date(1900,01,01,00,00,00), &
+      CASE ( 0)   ; CALL xios_define_calendar( TYPE = "NoLeap"   , time_origin = xios_date(irefyear,irefmonth,irefday,00,00,00), &
           &                                    start_date = xios_date(nyear,nmonth,nday,0,0,0) )
-      CASE (30)   ; CALL xios_define_calendar( TYPE = "D360"     , time_origin = xios_date(1900,01,01,00,00,00), &
+      CASE (30)   ; CALL xios_define_calendar( TYPE = "D360"     , time_origin = xios_date(irefyear,irefmonth,irefday,00,00,00), &
           &                                    start_date = xios_date(nyear,nmonth,nday,0,0,0) )
       END SELECT
 
@@ -222,7 +226,9 @@ CONTAINS
 #endif
           CALL iom_set_axis_attr( "icbcla", class_num )
           CALL iom_set_axis_attr( "iax_20C", (/ REAL(20,wp) /) )   ! strange syntaxe and idea...
+          CALL iom_set_axis_attr( "iax_26C", (/ REAL(26,wp) /) )   ! strange syntaxe and idea...
           CALL iom_set_axis_attr( "iax_28C", (/ REAL(28,wp) /) )   ! strange syntaxe and idea...
+          CALL iom_set_axis_attr( "basin"  , (/ (REAL(ji,wp), ji=1,5) /) )
       ENDIF
       !
       ! automatic definitions of some of the xml attributs
@@ -806,6 +812,8 @@ CONTAINS
       CHARACTER(LEN=100)    ::   clinfo    ! info character
       !---------------------------------------------------------------------
       !
+      IF( iom_open_init == 0 )   RETURN   ! avoid to use iom_file(jf)%nfid that us not yet initialized
+      !
       clinfo = '                    iom_close ~~~  '
       IF( PRESENT(kiomid) ) THEN
          i_s = kiomid
@@ -1339,6 +1347,18 @@ CONTAINS
       !
    END SUBROUTINE iom_get_123d
 
+   SUBROUTINE iom_get_var( cdname, p2d)
+      CHARACTER(LEN=*),             INTENT(in   )::   cdname
+      REAL(wp), DIMENSION(jpi,jpj), INTENT(inout)::   p2d 
+#if defined key_iomput
+      IF( xios_field_is_active( cdname, at_current_timestep_arg = .TRUE. ) ) THEN
+         p2d(:,:) = 0._wp
+         CALL xios_recv_field( cdname, p2d)
+      ENDIF
+#else
+      IF( .FALSE. )   WRITE(numout,*) cdname, p2d ! useless test to avoid compilation warnings
+#endif
+   END SUBROUTINE iom_get_var
 
    FUNCTION iom_getszuld ( kiomid )  
       !!-----------------------------------------------------------------------
@@ -1707,6 +1727,15 @@ CONTAINS
       IF( .FALSE. )   WRITE(numout,*) cdname, pfield3d   ! useless test to avoid compilation warnings
 #endif
    END SUBROUTINE iom_p3d
+   SUBROUTINE iom_p4d( cdname, pfield4d )
+      CHARACTER(LEN=*)                  , INTENT(in) ::   cdname
+      REAL(wp),       DIMENSION(:,:,:,:), INTENT(in) ::   pfield4d
+#if defined key_iomput
+      CALL xios_send_field(cdname, pfield4d)
+#else
+      IF( .FALSE. )   WRITE(numout,*) cdname, pfield4d   ! useless test to avoid compilation warnings
+#endif
+   END SUBROUTINE iom_p4d
 
 #if defined key_iomput
    !!----------------------------------------------------------------------
@@ -2050,14 +2079,13 @@ CONTAINS
       nj=nlej-nldj+1
       ALLOCATE( zlon(ni*nj) )       ;       zlon(:) = 0._wp
       !
-      CALL dom_ngb( -168.53, 65.03, ix, iy, 'T' ) !  i-line that passes through Bering Strait: Reference latitude (used in plots)
-!      CALL dom_ngb( 180., 90., ix, iy, 'T' ) !  i-line that passes near the North Pole : Reference latitude (used in plots)
+!      CALL dom_ngb( -168.53, 65.03, ix, iy, 'T' ) !  i-line that passes through Bering Strait: Reference latitude (used in plots)
+      CALL dom_ngb( 180., 90., ix, iy, 'T' ) !  i-line that passes near the North Pole : Reference latitude (used in plots)
       CALL iom_set_domain_attr("gznl", ni_glo=jpiglo, nj_glo=jpjglo, ibegin=nimpp+nldi-2, jbegin=njmpp+nldj-2, ni=ni, nj=nj)
       CALL iom_set_domain_attr("gznl", data_dim=2, data_ibegin = 1-nldi, data_ni = jpi, data_jbegin = 1-nldj, data_nj = jpj)
       CALL iom_set_domain_attr("gznl", lonvalue = zlon,   &
          &                             latvalue = RESHAPE(plat(nldi:nlei, nldj:nlej),(/ ni*nj /)))  
-      CALL iom_set_zoom_domain_attr("znl_T", ibegin=ix-1, jbegin=0, ni=1, nj=jpjglo)
-      CALL iom_set_zoom_domain_attr("znl_W", ibegin=ix-1, jbegin=0, ni=1, nj=jpjglo)
+      CALL iom_set_zoom_domain_attr("ptr", ibegin=ix-1, jbegin=0, ni=1, nj=jpjglo)
       !
       CALL iom_update_file_name('ptr')
       !
@@ -2454,6 +2482,6 @@ CONTAINS
       IF( .FALSE. )   WRITE(numout,*) cdname, pmiss_val   ! useless test to avoid compilation warnings
 #endif
    END SUBROUTINE iom_miss_val
-   
+  
    !!======================================================================
 END MODULE iom

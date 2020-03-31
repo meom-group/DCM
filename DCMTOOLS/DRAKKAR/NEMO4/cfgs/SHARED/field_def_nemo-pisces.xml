@@ -229,11 +229,13 @@
        <field id="Oflx"        long_name="Oxygen flux"                             unit="mol/m2/s"                        />
        <field id="Kg"          long_name="Gas transfer"                            unit="mol/m2/s/uatm"                   />
        <field id="Dpco2"       long_name="Delta CO2"                               unit="uatm"                            />
+       <field id="pCO2sea"     long_name="surface ocean pCO2"                      unit="uatm"                            />
        <field id="Dpo2"        long_name="Delta O2"                                unit="uatm"                            />
        <field id="Heup"        long_name="Euphotic layer depth"                    unit="m"                               />
+       <field id="AtmCo2"      long_name="Atmospheric CO2 concentration"           unit="ppm"                               />
        <field id="Irondep"     long_name="Iron deposition from dust"               unit="mol/m2/s"                        />
        <field id="Ironsed"     long_name="Iron deposition from sediment"           unit="mol/m2/s"   grid_ref="grid_T_3D" />
-      <field id="FESCAV"      long_name="Scavenging of Iron"                      unit="mmol-Fe/m3/s"   grid_ref="grid_T_3D" />
+       <field id="FESCAV"      long_name="Scavenging of Iron"                      unit="mmol-Fe/m3/s"   grid_ref="grid_T_3D" />
        <field id="FECOLL"      long_name="Colloidal Pumping of FeL"                unit="mmol-FeL/m3/s"  grid_ref="grid_T_3D" />
        <field id="LGWCOLL"     long_name="Coagulation loss of ligands"             unit="mmol-L/m3/s"  grid_ref="grid_T_3D" />
        <field id="REMINF"      long_name="Oxic remineralization suppy of Fe"       unit="mmol-Fe/m3/s"  grid_ref="grid_T_3D" />
@@ -249,6 +251,16 @@
        <field id="FEZOO"       long_name="microzooplankton iron recycling rate"    unit="nmol-FeL/m3/s"  grid_ref="grid_T_3D" />
        <field id="FEZOO2"      long_name="mesozooplankton iron recycling rate"     unit="nmol-FeL/m3/s"  grid_ref="grid_T_3D" />
 
+       <!-- PISCES tracers trends -->
+       <field id="INTdtAlk"    long_name="Vertically int. of change of alkalinity"             unit="mol/m2/s"                       />
+       <field id="INTdtDIC"    long_name="Vertically int. of change of dissic    "             unit="mol/m2/s"                       />
+       <field id="INTdtFer"    long_name="Vertically int. of change of iron      "             unit="mol/m2/s"                       />
+       <field id="INTdtDIN"    long_name="Vertically int. of change of nitrogen  "             unit="mol/m2/s"                       />
+       <field id="INTdtDIP"    long_name="Vertically int. of change of phophate  "             unit="mol/m2/s"                       />
+       <field id="INTdtSil"    long_name="Vertically int. of change of silicon   "             unit="mol/m2/s"                       />
+
+
+       <!-- dbio_T on T grid : variables available with diaar5 -->
        <!-- dbio_T on T grid : variables available with diaar5 -->
        <field id="TPP"         long_name="Total Primary production of phyto"                   unit="mol/m3/s"  grid_ref="grid_T_3D" />
        <field id="TPNEW"       long_name="New Primary production of phyto"                     unit="mol/m3/s"  grid_ref="grid_T_3D" />
@@ -256,14 +268,14 @@
        <field id="INTDIC"      long_name="DIC content"                                         unit="kg/m2"                          />
        <field id="O2MIN"       long_name="Oxygen minimum concentration"                        unit="mol/m3"                          />
        <field id="ZO2MIN"      long_name="Depth of oxygen minimum concentration"               unit="m"                              />
-       <field id="INTNFIX"     long_name="Nitrogen fixation rate : vert. integrated"           unit="mol/m2/s"                       />
-       <field id="INTPPPHYN"   long_name="Vertically integrated primary production by nanophy" unit="mol/m2/s"                       />
-       <field id="INTPPPHYD"   long_name="Vertically integrated primary production by diatom"  unit="mol/m2/s"                       />
-       <field id="INTPP"       long_name="Vertically integrated primary production by phyto"   unit="mol/m2/s"                       />
-       <field id="INTPNEW"     long_name="Vertically integrated new primary production"        unit="mol/m2/s"                       />
-       <field id="INTPBFE"     long_name="Vertically integrated of biogenic iron production"   unit="mol/m2/s"                       />
-       <field id="INTPBSI"     long_name="Vertically integrated of biogenic Si production"     unit="mol/m2/s"                       />
-       <field id="INTPCAL"     long_name="Vertically integrated of calcite production"         unit="mol/m2/s"                       />
+       <field id="INTNFIX"     long_name="Nitrogen fixation rate : vert. integrated"           unit="mol/m2/s"  grid_ref="grid_T_vsum"  detect_missing_value="true" > Nfix * e3t </field >
+       <field id="INTPPPHYN"   long_name="Vertically integrated primary production by nanophy" unit="mol/m2/s"  grid_ref="grid_T_vsum"  detect_missing_value="true" > PPPHYN * e3t </field >
+       <field id="INTPPPHYD"   long_name="Vertically integrated primary production by diatom"  unit="mol/m2/s"  grid_ref="grid_T_vsum"  detect_missing_value="true" > PPPHYD * e3t </field >
+       <field id="INTPPPHYP"   long_name="Vertically integrated primary production by picophy" unit="mol/m2/s"  grid_ref="grid_T_vsum"  detect_missing_value="true" > PPPHYP * e3t </field >
+       <field id="INTPP"       long_name="Vertically integrated primary production by phyto"   unit="mol/m2/s"  grid_ref="grid_T_vsum"  detect_missing_value="true" > TPP * e3t </field >
+       <field id="INTPNEW"     long_name="Vertically integrated new primary production"        unit="mol/m2/s"  grid_ref="grid_T_vsum"  detect_missing_value="true" > TPNEW * e3t </field >
+       <field id="INTPBFE"     long_name="Vertically integrated of biogenic iron production"   unit="mol/m2/s"  grid_ref="grid_T_vsum"  detect_missing_value="true" > TPBFE * e3t </field >
+       <field id="INTPBSI"     long_name="Vertically integrated of biogenic Si production"     unit="mol/m2/s"  grid_ref="grid_T_vsum"  detect_missing_value="true" > PBSi * e3t </field >
 
        <!-- PISCES light : variables available with key_pisces_reduced -->
        <field id="FNO3PHY"     long_name="FNO3PHY"                                 unit=""          grid_ref="grid_T_3D" /> 

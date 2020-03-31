@@ -71,7 +71,6 @@ MODULE nemogcm
    USE diurnal_bulk   ! diurnal bulk SST 
    USE step_diu       ! diurnal bulk SST timestepping (called from here if run offline)
    USE crsini         ! initialise grid coarsening utility
-   USE diatmb         ! Top,middle,bottom output
    USE dia25h         ! 25h mean output
    USE sbc_oce , ONLY : lk_oasis
    USE wet_dry        ! Wetting and drying setting   (wad_init routine)
@@ -307,7 +306,7 @@ CONTAINS
       !!
       !! ** Purpose :   initialization of the NEMO GCM
       !!----------------------------------------------------------------------
-      INTEGER  ::   ios, ilocal_comm   ! local integers
+      INTEGER ::   ios, ilocal_comm   ! local integers
       !!
       NAMELIST/namctl/ ln_ctl   , sn_cfctl, nn_print, nn_ictls, nn_ictle,   &
          &             nn_isplt , nn_jsplt, nn_jctls, nn_jctle,             &
@@ -326,9 +325,9 @@ CONTAINS
       IF( Agrif_Root() ) THEN
          IF( lk_oasis ) THEN
             CALL cpl_init( "oceanx", ilocal_comm )                               ! nemo local communicator given by oasis
-            CALL xios_initialize( "not used"       ,local_comm= ilocal_comm )    ! send nemo communicator to xios
+            CALL xios_initialize( "not used"       , local_comm =ilocal_comm )   ! send nemo communicator to xios
          ELSE
-            CALL xios_initialize( "for_xios_mpi_id",return_comm=ilocal_comm )    ! nemo local communicator given by xios
+            CALL xios_initialize( "for_xios_mpi_id", return_comm=ilocal_comm )   ! nemo local communicator given by xios
          ENDIF
       ENDIF
       CALL mpp_start( ilocal_comm )
@@ -344,7 +343,7 @@ CONTAINS
 #endif
       !
       narea = mpprank + 1               ! mpprank: the rank of proc (0 --> mppsize -1 )
-      lwm = (narea == 1)                                    ! control of output namelists
+      lwm = (narea == 1)                ! control of output namelists
       !
       !                             !---------------------------------------------------------------!
       !                             ! Open output files, reference and configuration namelist files !
@@ -370,9 +369,9 @@ CONTAINS
       READ  ( numnam_cfg, namctl, IOSTAT = ios, ERR = 902 )
 902   IF( ios >  0 )   CALL ctl_nam ( ios , 'namctl in configuration namelist' )
       !
-      lwp = (narea == 1) .OR. ln_ctl                        ! control of all listing output print
+      lwp = (narea == 1) .OR. ln_ctl    ! control of all listing output print
       !
-      IF(lwp) THEN                            ! open listing units
+      IF(lwp) THEN                      ! open listing units
          !
          IF( .NOT. lwm )   &            ! alreay opened for narea == 1
             &            CALL ctl_opn( numout, 'ocean.output', 'REPLACE', 'FORMATTED', 'SEQUENTIAL', -1, -1, .FALSE., narea )
@@ -530,10 +529,9 @@ CONTAINS
                            CALL dia_hsb_init    ! heat content, salt content and volume budgets
                            CALL     trd_init    ! Mixed-layer/Vorticity/Integral constraints trends
                            CALL dia_obs_init    ! Initialize observational data
-                           CALL dia_tmb_init    ! TMB outputs
                            CALL dia_25h_init    ! 25h mean  outputs
                            CALL dia_harm_init   ! tidal harmonics outputs
-      IF( ln_diaobs    )   CALL dia_obs( nit000-1 )   ! Observation operator for restart
+     IF( ln_diaobs    )    CALL dia_obs( nit000-1 )   ! Observation operator for restart
 
       !                                      ! Assimilation increments
       IF( lk_asminc    )   CALL asm_inc_init    ! Initialize assimilation increments
@@ -711,6 +709,7 @@ CONTAINS
    END SUBROUTINE nemo_alloc
 
 
+   
    SUBROUTINE nemo_set_cfctl(sn_cfctl, setto, for_all )
       !!----------------------------------------------------------------------
       !!                     ***  ROUTINE nemo_set_cfctl  ***

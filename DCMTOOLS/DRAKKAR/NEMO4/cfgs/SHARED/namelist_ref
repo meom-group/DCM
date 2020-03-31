@@ -110,8 +110,8 @@
    !___________!_________________________!___________________!___________!_____________!________!___________!__________________!__________!_______________!
    !           !  file name              ! frequency (hours) ! variable  ! time interp.!  clim  ! 'yearly'/ ! weights filename ! rotation ! land/sea mask !
    !           !                         !  (if <0  months)  !   name    !   (logical) !  (T/F) ! 'monthly' !                  ! pairing  !    filename   !
-   sn_tem = 'data_1m_potential_temperature_nomask',  -1.      , 'votemper',   .true.    , .true. , 'yearly'  ,    ''            ,    ''    ,    ''
-   sn_sal = 'data_1m_salinity_nomask'             ,  -1.      , 'vosaline',   .true.    , .true. , 'yearly'  ,    ''            ,    ''    ,    ''
+   sn_tem = 'data_1m_potential_temperature_nomask',  -1.     , 'votemper',   .true.    , .true. , 'yearly'  ,    ''            ,    ''    ,    ''
+   sn_sal = 'data_1m_salinity_nomask'             ,  -1.     , 'vosaline',   .true.    , .true. , 'yearly'  ,    ''            ,    ''    ,    ''
 /
 !-----------------------------------------------------------------------
 &namtsd_drk    !    Temperature & Salinity Data  (init/dmp)             (default: OFF)
@@ -439,6 +439,10 @@
       ln_sssr_bnd =  .true.   !  flag to bound erp term (associated with nn_sssr=2)
       rn_sssr_bnd =   4.e0    !  ABS(Max/Min) value of the damping erp term [mm/day]
 
+      nn_sssr_ice =   1       ! control of sea surface restoring under sea-ice
+                              ! 0 = no restoration under ice : * (1-icefrac)
+                              ! 1 = restoration everywhere
+                              ! >1 = enhanced restoration under ice : 1+(nn_icedmp-1)*icefrac
    cn_dir      = './'      !  root directory for the SST/SSS data location
    !___________!_________________________!___________________!___________!_____________!________!___________!___________!__________!_______________!
    !           !  file name              ! frequency (hours) ! variable  ! time interp.!  clim  ! 'yearly'/ ! weights e ! rotation ! land/sea mask !
@@ -1255,7 +1259,6 @@
 !!   namflo       float parameters                                      (default: OFF)
 !!   nam_diaharm  Harmonic analysis of tidal constituents               (default: OFF)
 !!   nam_diadct   transports through some sections                      (default: OFF)
-!!   nam_diatmb   Top Middle Bottom Output                              (default: OFF)
 !!   nam_dia25h   25h Mean Output                                       (default: OFF)
 !!   namnc4       netcdf4 chunking and compression settings             ("key_netcdf4")
 !!======================================================================
@@ -1331,11 +1334,6 @@
     nn_secdebug = 112       !      0 : no section to debug
     !                      !     -1 : debug all section
     !                      !  0 < n : debug section number n
-/
-!-----------------------------------------------------------------------
-&nam_diatmb    !  Top Middle Bottom Output                              (default: OFF)
-!-----------------------------------------------------------------------
-   ln_diatmb   = .false.   !  Choose Top Middle and Bottom output or not
 /
 !-----------------------------------------------------------------------
 &nam_dia25h    !  25h Mean Output                                       (default: OFF)

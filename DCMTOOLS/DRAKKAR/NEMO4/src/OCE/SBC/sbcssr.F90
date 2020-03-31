@@ -32,9 +32,11 @@ MODULE sbcssr
 
    PUBLIC   sbc_ssr        ! routine called in sbcmod
    PUBLIC   sbc_ssr_init   ! routine called in sbcmod
+   PUBLIC   sbc_ssr_alloc  ! routine called in sbcmod
 
    REAL(wp), PUBLIC, ALLOCATABLE, SAVE, DIMENSION(:,:) ::   erp   !: evaporation damping   [kg/m2/s]
    REAL(wp), PUBLIC, ALLOCATABLE, SAVE, DIMENSION(:,:) ::   qrp   !: heat flux damping        [w/m2]
+   REAL(wp),         ALLOCATABLE, SAVE, DIMENSION(:,:) ::   scalice   !: under ice relaxation coefficient
 
    !                                   !!* Namelist namsbc_ssr *
    INTEGER, PUBLIC ::   nn_sstr         ! SST/SSS restoring indicator
@@ -43,7 +45,7 @@ MODULE sbcssr
    REAL(wp)        ::   rn_deds         ! restoring factor on SST and SSS
    LOGICAL         ::   ln_sssr_bnd     ! flag to bound erp term 
    REAL(wp)        ::   rn_sssr_bnd     ! ABS(Max./Min.) value of erp term [mm/day]
-
+   INTEGER         ::   nn_sssr_ice     ! Control of restoring under ice
 #if defined key_drakkar
    ! local modification of ssr
    REAL(wp), PUBLIC, ALLOCATABLE, SAVE, DIMENSION(:,:) ::   erpcoef !:  multiplicating coef for local change to erp
@@ -116,7 +118,19 @@ CONTAINS
                      qrp(ji,jj) = zqrp
                   END DO
                END DO
-               CALL iom_put( "qrp", qrp )                             ! heat flux damping
+            ENDIF
+            !
+            IF( nn_sssr /= 0 .AND. nn_sssr_ice /= 1 ) THEN
+              ! use fraction of ice ( fr_i ) to adjust relaxation under ice if nn_sssr_ice .ne. 1
+              ! n.b. scalice is initialised and fixed to 1._wp if nn_sssr_ice = 1
+               DO jj = 1, jpj
+                  DO ji = 1, jpi
+                     SELECT CASE ( nn_sssr_ice )
+                       CASE ( 0 )    ;  scalice(ji,jj) = 1._wp - fr_i(ji,jj)              ! no/reduced damping under ice
+                       CASE  DEFAULT ;  scalice(ji,jj) = 1._wp + ( nn_sssr_ice - 1 ) * fr_i(ji,jj) ! reinforced damping (x nn_sssr_ice) under ice )
+                     END SELECT
+                  END DO
+               END DO
             ENDIF
             !
             IF( nn_sssr == 1 ) THEN                                   !* Salinity damping term (salt flux only (sfx))
@@ -124,6 +138,7 @@ CONTAINS
                DO jj = 1, jpj
                   DO ji = 1, jpi
                      zerp = zsrp * ( 1. - 2.*rnfmsk(ji,jj) )   &      ! No damping in vicinity of river mouths
+                        &        *   scalice(ji,jj)            &      ! Optional control of damping under sea-ice
 #if defined key_drakkar
                         &        * ( sss_m(ji,jj) - sf_sss(1)%fnow(ji,jj,1) ) * tmask(ji,jj,1) * erpcoef(ji,jj)
 #else
@@ -133,7 +148,6 @@ CONTAINS
                      erp(ji,jj) = zerp / MAX( sss_m(ji,jj), 1.e-20 ) ! converted into an equivalent volume flux (diagnostic only)
                   END DO
                END DO
-               CALL iom_put( "erp", erp )                             ! freshwater flux damping
                !
             ELSEIF( nn_sssr == 2 ) THEN                               !* Salinity damping term (volume flux (emp) and associated heat flux (qns)
                zsrp = rn_deds / rday                                  ! from [mm/day] to [kg/m2/s]
@@ -155,6 +169,7 @@ CONTAINS
 #if defined key_drakkar
                    ! use filters model fields and multiply zerp by erpcoef
                      zerp = zsrp * ( 1. - 2.*rnfmsk(ji,jj) )   &      ! No damping in vicinity of river mouths
+                        &        *   scalice(ji,jj)            &      ! Optional control of damping under sea-ice
                         &        * ( zsss_m(ji,jj) - sf_sss(1)%fnow(ji,jj,1) )   &
                         &        / MAX(  zsss_m(ji,jj), 1.e-20   )               &
                         &        * erpcoef(ji,jj)
@@ -163,6 +178,7 @@ CONTAINS
                      IF( ln_sssr_msk )   zerp = zerp * distcoast(ji,jj) ! multiply by weigh to fade zerp out near the coast
 #else
                      zerp = zsrp * ( 1. - 2.*rnfmsk(ji,jj) )   &      ! No damping in vicinity of river mouths
+                        &        *   scalice(ji,jj)            &      ! Optional control of damping under sea-ice
                         &        * ( sss_m(ji,jj) - sf_sss(1)%fnow(ji,jj,1) )   &
                         &        / MAX(  sss_m(ji,jj), 1.e-20   ) * tmask(ji,jj,1)
                      IF( ln_sssr_bnd )   zerp = SIGN( 1., zerp ) * MIN( zerp_bnd, ABS(zerp) )
@@ -172,7 +188,7 @@ CONTAINS
                      erp(ji,jj) = zerp
                   END DO
                END DO
-               CALL iom_put( "erp", erp )                             ! freshwater flux damping
+
             ENDIF
             !
          ENDIF
@@ -206,7 +222,8 @@ CONTAINS
       !!
       CHARACTER(len=100) ::  cn_dir          ! Root directory for location of ssr files
       TYPE(FLD_N) ::   sn_sst, sn_sss        ! informations about the fields to be read
-      NAMELIST/namsbc_ssr/ cn_dir, nn_sstr, nn_sssr, rn_dqdt, rn_deds, sn_sst, sn_sss, ln_sssr_bnd, rn_sssr_bnd
+      NAMELIST/namsbc_ssr/ cn_dir, nn_sstr, nn_sssr, rn_dqdt, rn_deds, sn_sst, &
+              & sn_sss, ln_sssr_bnd, rn_sssr_bnd, nn_sssr_ice
       INTEGER     ::  ios
       !!----------------------------------------------------------------------
       !
@@ -245,6 +262,10 @@ CONTAINS
          WRITE(numout,*) '         dE/dS (restoring magnitude on SST)     rn_deds     = ', rn_deds, ' mm/day'
          WRITE(numout,*) '         flag to bound erp term                 ln_sssr_bnd = ', ln_sssr_bnd
          WRITE(numout,*) '         ABS(Max./Min.) erp threshold           rn_sssr_bnd = ', rn_sssr_bnd, ' mm/day'
+         WRITE(numout,*) '      Cntrl of surface restoration under ice nn_sssr_ice    = ', nn_sssr_ice
+         WRITE(numout,*) '          ( 0 = no restoration under ice)'
+         WRITE(numout,*) '          ( 1 = restoration everywhere  )'
+         WRITE(numout,*) '          (>1 = enhanced restoration under ice  )'
 #if defined key_drakkar
          WRITE(numout,*) '      Filtering of sss for restoring         ln_sssr_flt = ', ln_sssr_flt 
          IF ( ln_sssr_flt ) THEN
@@ -254,10 +275,6 @@ CONTAINS
          IF ( ln_sssr_msk ) WRITE(numout,*) '      Decaying lenght scale from the coast   rn_dist     = ', rn_dist, ' km'
 #endif
       ENDIF
-      !
-      !                            !* Allocate erp and qrp array
-      ALLOCATE( qrp(jpi,jpj), erp(jpi,jpj), STAT=ierror )
-      IF( ierror > 0 )   CALL ctl_stop( 'STOP', 'sbc_ssr: unable to allocate erp and qrp array' )
       !
       IF( nn_sstr == 1 ) THEN      !* set sf_sst structure & allocate arrays
          !
@@ -333,11 +350,26 @@ CONTAINS
 #endif
       ENDIF
       !
+      scalice(:,:) = 1._wp         !  Initialise scalice to 1._wp ; will not need to be changed if nn_sssr_ice=1
       !                            !* Initialize qrp and erp if no restoring 
       IF( nn_sstr /= 1                   )   qrp(:,:) = 0._wp
       IF( nn_sssr /= 1 .OR. nn_sssr /= 2 )   erp(:,:) = 0._wp
       !
    END SUBROUTINE sbc_ssr_init
+         
+   INTEGER FUNCTION sbc_ssr_alloc()
+      !!----------------------------------------------------------------------
+      !!               ***  FUNCTION sbc_ssr_alloc  ***
+      !!----------------------------------------------------------------------
+      sbc_ssr_alloc = 0       ! set to zero if no array to be allocated
+      IF( .NOT. ALLOCATED( erp ) ) THEN
+         ALLOCATE( qrp(jpi,jpj), erp(jpi,jpj), scalice(jpi,jpj), STAT= sbc_ssr_alloc )
+         !
+         IF( lk_mpp                  )   CALL mpp_sum ( 'sbcssr', sbc_ssr_alloc )
+         IF( sbc_ssr_alloc /= 0 )   CALL ctl_warn('sbc_ssr_alloc: failed to allocate arrays.')
+         !
+      ENDIF
+   END FUNCTION
       
    !!======================================================================
 END MODULE sbcssr

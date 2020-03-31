@@ -33,15 +33,15 @@
 	  <!-- general fields -->
           <field id="icemass"      long_name="Sea-ice mass per gridcell area"                          standard_name="sea_ice_amount"                            unit="kg/m2"/>
           <field id="snwmass"      long_name="Snow mass per area"                                      standard_name="liquid_water_content_of_surface_snow"      unit="kg/m2"/>
-          <field id="iceconc"      long_name="Sea-ice area fraction"                                   standard_name="sea_ice_area_fraction"                     unit=""    />
-          <field id="icevolu"      long_name="Sea-ice volume per area"                                 standard_name="sea_ice_thickness"                         unit="m"   />
+          <field id="iceconc"      long_name="Sea-ice area fraction"                                   standard_name="sea_ice_area_fraction"                     unit=""     />
+          <field id="icevolu"      long_name="Sea-ice volume per area"                                 standard_name="sea_ice_thickness"                         unit="m"    />
           <field id="icethic"      long_name="Sea-ice thickness"                                       standard_name="sea_ice_thickness"                         unit="m"    />
           <field id="snwthic"      long_name="Snow thickness"                                          standard_name="snow_thickness"                            unit="m"    />
-          <field id="icebrv"       long_name="brine volume"                                                                                                      unit="%"   />
+          <field id="icebrv"       long_name="brine volume"                                                                                                      unit="%"    />
           <field id="iceage"       long_name="ice age"                                                                                                           unit="days" detect_missing_value="true"/>
-          <field id="icehnew"      long_name="frazil ice collection thickness"                                                                                   unit="m"   />
-          <field id="snwvolu"      long_name="snow volume"                                                                                                       unit="m"   />
-          <field id="icefrb"       long_name="Sea-ice freeboard"                                       standard_name="sea_ice_freeboard"                         unit="m"   />
+          <field id="icehnew"      long_name="frazil ice collection thickness"                                                                                   unit="m"    />
+          <field id="snwvolu"      long_name="snow volume"                                                                                                       unit="m"    />
+          <field id="icefrb"       long_name="Sea-ice freeboard"                                       standard_name="sea_ice_freeboard"                         unit="m"    />
           <field id="icealb"       long_name="Sea-ice or snow albedo"                                  standard_name="sea_ice_albedo"                            unit=""    detect_missing_value="true" />
 	  
 	  <!-- melt ponds -->
@@ -93,9 +93,9 @@
           <field id="albedo"       long_name="Mean albedo over sea ice and ocean"                                                                                unit=""     />
 	  
 	  <!-- trends -->
-          <field id="afxthd"       long_name="sea-ice area fraction change from thermodynamics"  standard_name="tendency_of_sea_ice_area_fraction_due_to_dynamics" unit="s-1" />
-          <field id="afxdyn"       long_name="sea-ice area fraction change from dynamics"        standard_name="tendency_of_sea_ice_area_fraction_due_to_dynamics" unit="s-1" />
-	  <field id="afxtot"       long_name="area tendency (total)"                                                                                               unit="s-1" />
+          <field id="afxthd"       long_name="sea-ice area fraction change from thermodynamics" standard_name="tendency_of_sea_ice_area_fraction_due_to_dynamics" unit="s-1" />
+          <field id="afxdyn"       long_name="sea-ice area fraction change from dynamics"       standard_name="tendency_of_sea_ice_area_fraction_due_to_dynamics" unit="s-1" />
+	  <field id="afxtot"       long_name="area tendency (total)"                                                                                              unit="s-1" />
 	  
 	  <!-- momentum (advection) -->
           <field id="icemtrp"      long_name="ice  mass transport"                                          unit="kg/m2/s" />
@@ -227,15 +227,49 @@
           <field id="intstry"      long_name="Internal stress term in force balance (y-component)"     standard_name="internal_stress_in_sea_ice_y"                                      unit="N/m2" />
 
 	  <!-- momentum (advection) -->
-	  <field id="xmtrpice"     long_name="X-component of ice mass transport"                       standard_name="ice_x_transport"                       unit="kg/s" />
-          <field id="ymtrpice"     long_name="Y-component of ice mass transport"                       standard_name="ice_y_transport"                       unit="kg/s" />
-          <field id="xmtrpsnw"     long_name="X-component of snw mass transport"                       standard_name="snw_x_transport"                       unit="kg/s" />
-          <field id="ymtrpsnw"     long_name="Y-component of snw mass transport"                       standard_name="snw_y_transport"                       unit="kg/s" />
-          <field id="xatrp"        long_name="X-component of ice area transport"                       standard_name="area_x_transport"                      unit="m2/s" />
-          <field id="yatrp"        long_name="Y-component of ice area transport"                       standard_name="area_y_transport"                      unit="m2/s" />
-          <field id="xmtrptot"     long_name="X-component of sea-ice mass transport"                   standard_name="sea_ice_x_transport"                   unit="kg/s" > xmtrpice + xmtrpsnw </field>
-          <field id="ymtrptot"     long_name="Y-component of sea-ice mass transport"                   standard_name="sea_ice_y_transport"                   unit="kg/s" > ymtrpice + ymtrpsnw </field>
-	 
+    	  <field id="xmtrpice"     long_name="X-component of ice mass transport"                       standard_name="ice_x_transport"       grid_ref="grid_U_2D"         unit="kg/s" />
+          <field id="ymtrpice"     long_name="Y-component of ice mass transport"                       standard_name="ice_y_transport"       grid_ref="grid_V_2D"         unit="kg/s" />
+          <field id="xmtrpsnw"     long_name="X-component of snw mass transport"                       standard_name="snw_x_transport"       grid_ref="grid_U_2D"         unit="kg/s" />
+          <field id="ymtrpsnw"     long_name="Y-component of snw mass transport"                       standard_name="snw_y_transport"       grid_ref="grid_V_2D"         unit="kg/s" />
+          <field id="xatrp"        long_name="X-component of ice area transport"                       standard_name="area_x_transport"      grid_ref="grid_U_2D"         unit="m2/s" />
+          <field id="yatrp"        long_name="Y-component of ice area transport"                       standard_name="area_y_transport"      grid_ref="grid_V_2D"         unit="m2/s" />
+          <field id="xmtrptot"     long_name="X-component of sea-ice mass transport"                   standard_name="sea_ice_x_transport"   grid_ref="grid_U_2D"         unit="kg/s" > xmtrpice + xmtrpsnw </field>
+    	  <field id="ymtrptot"     long_name="Y-component of sea-ice mass transport"                   standard_name="sea_ice_y_transport"   grid_ref="grid_V_2D"         unit="kg/s" > ymtrpice + ymtrpsnw </field>
+
+	  <!-- Ice transport through straits" -->
+         <field id="xmtrpice_ave"     long_name="Monthly average of x-ice mass transport"   field_ref="xmtrpice"          grid_ref="grid_U_2D"        freq_op="1mo" freq_offset="_reset_"  > @xmtrpice </field>
+         <field id="xmtrpice_section"                                                                                     grid_ref="grid_U_scalar"  > xmtrpice_ave </field>
+         <field id="xmtrpice_strait"                                                        field_ref="xmtrpice_section"  grid_ref="grid_U_4strait_ice"  />
+         <field id="xstrait_mifl"                                                           field_ref="xmtrpice_strait"   grid_ref="grid_U_4strait_ice_hsum" unit="kg/s" detect_missing_value="true" > this * maskMFO_u_ice </field>
+
+         <field id="ymtrpice_ave"     long_name="Monthly average of y-ice mass transport"   field_ref="ymtrpice"          grid_ref="grid_V_2D"        freq_op="1mo" freq_offset="_reset_"  > @ymtrpice </field>
+         <field id="ymtrpice_section"                                                                                     grid_ref="grid_V_scalar"  > ymtrpice_ave </field>
+         <field id="ymtrpice_strait"                                                        field_ref="ymtrpice_section"  grid_ref="grid_V_4strait_ice"  />
+	 <field id="ystrait_mifl"                                                           field_ref="ymtrpice_strait"   grid_ref="grid_V_4strait_ice_hsum" unit="kg/s" detect_missing_value="true"  > this * maskMFO_v_ice </field>
+
+         <field id="xmtrpsnw_ave"     long_name="Monthly average of x-snow mass transport"  field_ref="xmtrpsnw"          grid_ref="grid_U_2D"        freq_op="1mo" freq_offset="_reset_"  > @xmtrpsnw </field>
+         <field id="xmtrpsnw_section"                                                                                     grid_ref="grid_U_scalar"  > xmtrpsnw_ave </field>
+         <field id="xmtrpsnw_strait"                                                        field_ref="xmtrpsnw_section"  grid_ref="grid_U_4strait_ice"  />
+         <field id="xstrait_msfl"                                                           field_ref="xmtrpsnw_strait"   grid_ref="grid_U_4strait_ice_hsum" unit="kg/s" detect_missing_value="true" > this * maskMFO_u_ice </field>
+
+         <field id="ymtrpsnw_ave"     long_name="Monthly average of y-snow mass transport"  field_ref="ymtrpsnw"          grid_ref="grid_V_2D"        freq_op="1mo" freq_offset="_reset_"  > @ymtrpsnw </field>
+         <field id="ymtrpsnw_section"                                                                                     grid_ref="grid_V_scalar"  > ymtrpsnw_ave </field>
+         <field id="ymtrpsnw_strait"                                                        field_ref="ymtrpsnw_section"  grid_ref="grid_V_4strait_ice"  />
+	 <field id="ystrait_msfl"                                                           field_ref="ymtrpsnw_strait"   grid_ref="grid_V_4strait_ice_hsum" unit="kg/s" detect_missing_value="true"  > this * maskMFO_v_ice </field>
+
+         <field id="xatrp_ave"        long_name="Monthly average of x-ice area transport"   field_ref="xatrp"             grid_ref="grid_U_2D"        freq_op="1mo" freq_offset="_reset_"  > @xatrp </field>
+         <field id="xatrp_section"                                                                                        grid_ref="grid_U_scalar"  > xatrp_ave </field>
+         <field id="xatrp_strait"                                                           field_ref="xatrp_section"     grid_ref="grid_U_4strait_ice"  />
+         <field id="xstrait_arfl"                                                           field_ref="xatrp_strait"      grid_ref="grid_U_4strait_ice_hsum" unit="kg/s" detect_missing_value="true" > this * maskMFO_u_ice </field>
+
+         <field id="yatrp_ave"        long_name="Monthly average of y-ice area transport"   field_ref="yatrp"             grid_ref="grid_V_2D"        freq_op="1mo" freq_offset="_reset_"  > @yatrp </field>
+         <field id="yatrp_section"                                                                                        grid_ref="grid_V_scalar"  > yatrp_ave </field>
+         <field id="yatrp_strait"                                                           field_ref="yatrp_section"     grid_ref="grid_V_4strait_ice"  />
+	 <field id="ystrait_arfl"                                                           field_ref="yatrp_strait"      grid_ref="grid_V_4strait_ice_hsum" unit="m2/s" detect_missing_value="true"  > this * maskMFO_v_ice </field>
+
+         <field id="strait_mifl"      long_name="Sea ice mass flux through straits"      standard_name="sea_ice_mass_transport_across_line"   unit="kg/s"  freq_op="1mo"  grid_ref="grid_4strait_ice" > xstrait_mifl + ystrait_mifl </field>
+         <field id="strait_msfl"      long_name="Snow mass flux through straits"         standard_name="snow_mass_transport_across_line"      unit="kg/s"  freq_op="1mo"  grid_ref="grid_4strait_ice" > xstrait_msfl + ystrait_msfl </field>
+	 <field id="strait_arfl"      long_name="Sea ice area flux through straits"      standard_name="sea_area_mass_transport_across_line"  unit="m2/s"  freq_op="1mo"  grid_ref="grid_4strait_ice" > xstrait_arfl + ystrait_arfl </field>
 	</field_group> <!-- SBC_2D -->
 
 	<!-- categories -->
@@ -295,12 +329,6 @@
           <field id="ibgheat_tot"     long_name="global mean ice heat content"                                                              unit="1e20J"    />
           <field id="sbgheat_tot"     long_name="global mean snow heat content"                                                             unit="1e20J"    />
 
-	  <!-- available later -->
-	  <!--
-          <field id="strait_mifl"     long_name="Sea ice mass flux through straits"      standard_name="sea_ice_mass_transport_across_line" unit="kg/s"  grid_ref="grid_4strait" />
-          <field id="strait_arfl"     long_name="Sea ice area flux through straits"      standard_name="sea_ice_area_transport_across_line" unit="m2/s"  grid_ref="grid_4strait" />  
-          <field id="strait_msfl"     long_name="Sea ice snow flux through straits"      standard_name="snow_mass_transport_across_line"    unit="kg/s"  grid_ref="grid_4strait" />
-          -->
 	</field_group>
   
 	<!-- 

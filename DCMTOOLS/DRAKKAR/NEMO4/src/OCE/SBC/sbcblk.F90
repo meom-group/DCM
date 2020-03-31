@@ -981,6 +981,7 @@ CONTAINS
       REAL(wp), DIMENSION(jpi,jpj,jpl) ::   z_dqsb        ! sensible  heat sensitivity over ice
       REAL(wp), DIMENSION(jpi,jpj)     ::   zevap, zsnw   ! evaporation and snw distribution after wind blowing (SI3)
       REAL(wp), DIMENSION(jpi,jpj)     ::   zrhoa
+      REAL(wp), DIMENSION(jpi,jpj)     ::   ztmp, ztmp2
       !!---------------------------------------------------------------------
       !
       zcoef_dqlw = 4.0 * 0.95 * Stef             ! local scalars
@@ -1093,6 +1094,26 @@ CONTAINS
       ELSEWHERE                                                         ! zero when hs>0
          qtr_ice_top(:,:,:) = 0._wp 
       END WHERE
+      !
+
+      IF( iom_use('evap_ao_cea') .OR. iom_use('hflx_evap_cea') ) THEN
+         ztmp(:,:) = zevap(:,:) * ( 1._wp - at_i_b(:,:) ) 
+         CALL iom_put( 'evap_ao_cea'  , ztmp(:,:) * tmask(:,:,1) )   ! ice-free oce evap (cell average)
+         CALL iom_put( 'hflx_evap_cea', ztmp(:,:) * sst_m(:,:) * rcp * tmask(:,:,1) )   ! heat flux from evap (cell average)
+      ENDIF
+      IF( iom_use('hflx_rain_cea') ) THEN
+         ztmp(:,:) = rcp * ( SUM( (ptsu-rt0) * a_i_b, dim=3 ) + sst_m(:,:) * ( 1._wp - at_i_b(:,:) ) )
+         CALL iom_put( 'hflx_rain_cea', ( tprecip(:,:) - sprecip(:,:) ) * ztmp(:,:) )   ! heat flux from rain (cell average)
+      ENDIF
+      IF( iom_use('hflx_snow_cea') .OR. iom_use('hflx_snow_ao_cea') .OR. iom_use('hflx_snow_ai_cea')  )  THEN
+          WHERE( SUM( a_i_b, dim=3 ) > 1.e-10 ) ;   ztmp(:,:) = rcpi * SUM( (ptsu-rt0) * a_i_b, dim=3 ) / SUM( a_i_b, dim=3 )
+          ELSEWHERE                             ;   ztmp(:,:) = rcp * sst_m(:,:)    
+          ENDWHERE
+          ztmp2(:,:) = sprecip(:,:) * ( ztmp(:,:) - rLfus ) 
+          CALL iom_put('hflx_snow_cea'   , ztmp2(:,:) ) ! heat flux from snow (cell average)
+          CALL iom_put('hflx_snow_ao_cea', ztmp2(:,:) * ( 1._wp - zsnw(:,:) ) ) ! heat flux from snow (over ocean)
+          CALL iom_put('hflx_snow_ai_cea', ztmp2(:,:) *           zsnw(:,:)   ) ! heat flux from snow (over ice)
+      ENDIF
       !
       IF(ln_ctl) THEN
          CALL prt_ctl(tab3d_1=qla_ice , clinfo1=' blk_ice: qla_ice  : ', tab3d_2=z_qsb   , clinfo2=' z_qsb    : ', kdim=jpl)

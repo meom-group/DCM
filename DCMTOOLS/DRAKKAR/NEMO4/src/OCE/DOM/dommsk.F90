@@ -172,7 +172,7 @@ CONTAINS
                tmask(ji,jj,iktop:ikbot  ) = 1._wp
             ENDIF
          END DO  
-      END DO  
+      END DO
       !
       ! the following call is mandatory
       ! it masks boundaries (bathy=0) where needed depending on the configuration (closed, periodic...)  
