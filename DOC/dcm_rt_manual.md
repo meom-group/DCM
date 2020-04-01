@@ -12,6 +12,7 @@
     - These files allow the link between NEMO and XIOS. At the end XIOS just need a file called `iodef.xml` where all the informations on both NEMO XIOS implementation and user requirements for output are described. Recent versions of XIOS (> 2) allow the use of separate 'sub' files which are used as sources in `iodef.xml`, which really improves the readibilty of the files.
     - In NEMO4 implementation, the xml sub files are :
       * `domain_def_nemo.xml`
+      * `axis_def_nemo.xml`
       * `grid_def_nemo.xml`  
       * `field_def_nemo-oce.xml`  
       * `field_def_nemo-ice.xml`  
@@ -124,6 +125,7 @@ in NEMO-3.6. See the [appendix](#domain_cfg-tool-) for instruction how to prepar
                           |_______ file_def_nemo-.....xml  __|
                           |
                           |
+                          |_______ axis_def_nemo.xml       __|  no edit required for std use (used from 4.0.1 onward)
                           |                                __
                           |_______ domain_def_nemo.xml     __|  no edit required for std use
                           |
