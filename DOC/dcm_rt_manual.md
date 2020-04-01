@@ -125,7 +125,7 @@ in NEMO-3.6. See the [appendix](#domain_cfg-tool-) for instruction how to prepar
                           |_______ file_def_nemo-.....xml  __|
                           |
                           |
-                          |_______ axis_def_nemo.xml       __|  no edit required for std use (used from 4.0.1 onward)
+                          |_______ axis_def_nemo.xml       __|  no edit required for std use (used from 4.0.2 onward)
                           |                                __
                           |_______ domain_def_nemo.xml     __|  no edit required for std use
                           |
