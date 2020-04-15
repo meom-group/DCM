@@ -99,27 +99,27 @@
      
      <file id="file22" name_suffix="_SBC_scalar" description="scalar variables" enabled=".true." >
        <!-- global contents -->
-       <field field_ref="ibgvol_tot"     grid_ref="grid_1point"   name="ibgvol_tot"   />
-       <field field_ref="sbgvol_tot"     grid_ref="grid_1point"   name="sbgvol_tot"   />
-       <field field_ref="ibgarea_tot"    grid_ref="grid_1point"   name="ibgarea_tot"  />
-       <field field_ref="ibgsalt_tot"    grid_ref="grid_1point"   name="ibgsalt_tot"  />
-       <field field_ref="ibgheat_tot"    grid_ref="grid_1point"   name="ibgheat_tot"  />
-       <field field_ref="sbgheat_tot"    grid_ref="grid_1point"   name="sbgheat_tot"  />
+       <field field_ref="ibgvol_tot"        name="ibgvol_tot"   />
+       <field field_ref="sbgvol_tot"        name="sbgvol_tot"   />
+       <field field_ref="ibgarea_tot"       name="ibgarea_tot"  />
+       <field field_ref="ibgsalt_tot"       name="ibgsalt_tot"  />
+       <field field_ref="ibgheat_tot"       name="ibgheat_tot"  />
+       <field field_ref="sbgheat_tot"       name="sbgheat_tot"  />
        
        <!-- global drifts (conservation checks) -->
-       <field field_ref="ibgvolume"      grid_ref="grid_1point"   name="ibgvolume"    />
-       <field field_ref="ibgsaltco"      grid_ref="grid_1point"   name="ibgsaltco"    />
-       <field field_ref="ibgheatco"      grid_ref="grid_1point"   name="ibgheatco"    />
-       <field field_ref="ibgheatfx"      grid_ref="grid_1point"   name="ibgheatfx"    />
+       <field field_ref="ibgvolume"         name="ibgvolume"    />
+       <field field_ref="ibgsaltco"         name="ibgsaltco"    />
+       <field field_ref="ibgheatco"         name="ibgheatco"    />
+       <field field_ref="ibgheatfx"         name="ibgheatfx"    />
        
        <!-- global forcings  -->
-       <field field_ref="ibgfrcvoltop"   grid_ref="grid_1point"   name="ibgfrcvoltop" />
-       <field field_ref="ibgfrcvolbot"   grid_ref="grid_1point"   name="ibgfrcvolbot" />
-       <field field_ref="ibgfrctemtop"   grid_ref="grid_1point"   name="ibgfrctemtop" />
-       <field field_ref="ibgfrctembot"   grid_ref="grid_1point"   name="ibgfrctembot" />
-       <field field_ref="ibgfrcsal"      grid_ref="grid_1point"   name="ibgfrcsal"    />
-       <field field_ref="ibgfrchfxtop"   grid_ref="grid_1point"   name="ibgfrchfxtop" />
-       <field field_ref="ibgfrchfxbot"   grid_ref="grid_1point"   name="ibgfrchfxbot" />
+       <field field_ref="ibgfrcvoltop"      name="ibgfrcvoltop" />
+       <field field_ref="ibgfrcvolbot"      name="ibgfrcvolbot" />
+       <field field_ref="ibgfrctemtop"      name="ibgfrctemtop" />
+       <field field_ref="ibgfrctembot"      name="ibgfrctembot" />
+       <field field_ref="ibgfrcsal"         name="ibgfrcsal"    />
+       <field field_ref="ibgfrchfxtop"      name="ibgfrchfxtop" />
+       <field field_ref="ibgfrchfxbot"      name="ibgfrchfxbot" />
 
        <!-- global attributes -->
        <variable name="start_date"       type="int"><NDATE0>    </variable>
