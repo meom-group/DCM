@@ -32,6 +32,9 @@ REFONLY = 'no'
 # CONFIG-CASE/ARCH/ directory
 MACHINE = GCC_MEOM
 
+# COMPUTER is the name of the machine on which the experiement will be run. Used for make ctl only
+COMPUTER = jean-zay  # one of jean-zay irene occigen ...
+
 # NCOMPIL_PROC : number of procs to use for the compilation of the code.
 NCOMPIL_PROC = 1
 
@@ -337,7 +340,7 @@ ifeq ($(GIT),'check')
 endif
 
 ctl:
-	@dcm_mkctl -c $(CONFIG)-$(CASE)
+	@dcm_mkctl -c $(CONFIG)-$(CASE) -m $(COMPUTER)
 	@mkdir -p $(PDIR)/RUN_$(CONFIG)/$(CONFIG)-$(CASE)/CTL/XML
 	@mkdir -p $(PDIR)/RUN_$(CONFIG)/$(CONFIG)-$(CASE)/CTL/NAMELIST
 ifeq ($(REFONLY),'yes')
