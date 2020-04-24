@@ -1,0 +1,190 @@
+#!/bin/bash
+#set -x
+set -o posix
+#set -u 
+#set -e
+#+
+#
+# ===============
+# maketools
+# ===============
+#
+# --------------------------
+# Compile NEMO
+# --------------------------
+#
+# SYNOPSIS
+# ========
+#
+# ::
+#
+#  $ maketools
+#
+#
+# DESCRIPTION
+# ===========
+#
+#
+# This script aims :
+#
+# - to choose a tool to compile
+# - to choose compiler options  
+# - to compile this tool
+#
+#  Variables used :
+#
+#  From user input
+#
+# - NEW_CONF    : configuration to be created
+# - CMP_NAM     : compiler name 
+# - NBR_PRC     : number of processes used to compile  
+#
+#  Locally defined :
+#
+# - MAIN_DIR : self explaining
+# - MODELES_DIR :   "    "    " 
+# - TOOLS_DIR   :   "    "    " 
+# - NEMO_DIR    :   "    "    "
+#
+# EXAMPLES
+# ========
+#
+# ::
+#
+#  $ ./maketools -t ifort_osx - j3 -n NESTING
+#
+#
+# TODO
+# ====
+#
+# option debug
+#
+#
+# EVOLUTIONS
+# ==========
+#
+# $Id: maketools 12415 2020-02-19 20:29:26Z smueller $
+#
+#
+#
+#   * creation
+#
+#-
+
+#- Local variables ---
+b_n=$(basename ${0})
+export MAIN_DIR=${PWD%/tools*}
+export TOOLS_DIR=${MAIN_DIR}/tools
+export COMPIL_DIR=${MAIN_DIR}/mk
+export NEMO_DIR=${MAIN_DIR}/NEMO
+#-
+#- FCM and functions location ---
+export PATH=${MAIN_DIR}/ext/FCM/bin:$PATH
+
+#-
+#- Choice of the options ---
+x_h="";
+x_n="";
+x_m="";
+x_t="";
+x_c="";
+x_j=1;
+while getopts :hm:n:r:j:t: V
+  do
+	 case $V in
+		(h)  x_h=${OPTARG};
+                          echo "Usage	 : "${b_n} \
+					 " [-h] [-n name] [-m arch] [-j No] [-t tmpdir]";
+			  echo " -h	 : help";
+                          echo " -h institute : specific help for consortium members";
+			  echo " -n name : tool name, [-n help] to list existing tools";
+			  echo " -m arch : choose compiler, [-m help] to list exiting compilers";
+			  echo " -j No	 : number of processes used to compile (0=nocompilation)";
+			  echo " -t dir  : remporary directory for compilation"
+			  echo "";
+			  echo "Example to compile Agrif Nesting tools";
+			  echo "maketools -n NESTING" ;
+			  echo "";
+                          printf "%s\n" "Available tools :" `ls ${TOOLS_DIR}|grep -v COMPILE | grep -v maketools`;
+			  echo "";
+                          . ${COMPIL_DIR}/Flist_archfile.sh  ${x_h};
+			  echo "";
+			  echo "Default : previous tool and compiler";
+			  exit 0;;
+		(n)  x_n=${OPTARG};;
+		(m)  x_m=${OPTARG};;
+		(j)  x_j=${OPTARG};;
+		(t)  x_t=${OPTARG};;
+		(:)  echo ${b_n}" : -"${OPTARG}" option : missing value" 1>&2;
+			  exit 2;;
+		(\?) echo ${b_n}" : -"${OPTARG}" option : not supported" 1>&2;
+			  exit 2;;
+	 esac
+  done
+shift $(($OPTIND-1));
+
+#-
+#- Get the clean option
+[[ "${#@}" -ne 0 && "${@}" != clean ]] && echo "Invalid option "$@" " && exit
+[ "${#@}" -ne 0 ] && x_c="--$@"
+
+#-
+#- Go to NEMOGCM/tools directory ---
+cd ${TOOLS_DIR}
+
+#-
+#- Initialisation from input ---
+export NEW_CONF=${x_n}
+NBR_PRC=${x_j}
+CMP_NAM=${x_m}
+NEMO_TDIR=${x_t:-$NEMO_TDIR}
+export NEMO_TDIR=${NEMO_TDIR:-$TOOLS_DIR}
+
+#- Check if the tool or the compiler exist or list it
+[ "${NEW_CONF}" == help ] && printf "%s\n"  "Available tools :" `ls ${TOOLS_DIR}|grep -v COMPILE | grep -v maketools` && exit
+[ "${CMP_NAM}" ==  help ] && . ${COMPIL_DIR}/Flist_archfile.sh all && exit
+
+#- Choose a default tool if needed ---
+#- REBUILD or last one used ---
+. ${COMPIL_DIR}/Fcheck_config.sh tools.txt ${NEW_CONF} || exit
+
+#- Save new configuration ---
+echo "${NEW_CONF} "  > ${COMPIL_DIR}/tools.txt
+
+#- Make the building directory
+#. ${COMPIL_DIR}/Fmake_tools_bld.sh ${TOOLS_DIR} ${NEW_CONF} ${NEMO_TDIR} || exit
+# { DRAKKAR FIX
+. ${COMPIL_DIR}/Fmake_bld.sh ${TOOLS_DIR} ${NEW_CONF} ${NEMO_TDIR} || exit
+# DRAKKAR FIX  }
+
+#- At this stage cpp keys have been updated. we can check the arch file
+#- When used for the first time, choose a compiler ---
+. ${COMPIL_DIR}/Fcheck_archfile.sh arch_tools.fcm cpp_tools.fcm ${CMP_NAM} || exit
+
+#-
+#_ END OF CONFIGURATION PHASE
+#_
+
+#-
+#- Compile ---
+
+if [ "${NBR_PRC}" -gt 0 ]; then
+cd ${NEMO_TDIR}/${NEW_CONF} || cd -
+
+fcm build ${x_c} --ignore-lock -v 1 -j ${NBR_PRC} ${COMPIL_DIR}/bld_tools.cfg || cd -
+if [ -n "$(ls ${NEMO_TDIR}/${NEW_CONF}/BLD/bin/*.exe)" ]; then
+for i in `ls ${NEMO_TDIR}/${NEW_CONF}/BLD/bin/*.exe`
+   do
+      ln -sf ${i}  ${TOOLS_DIR}/${NEW_CONF}/.
+   done
+fi
+fi
+#-
+#- Come back to original directory ---
+cd -
+
+#-
+#- Unset variables
+${COMPIL_DIR}/Fclean_var.sh
+
+exit 0;
