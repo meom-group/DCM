@@ -1054,7 +1054,7 @@ echo '------------------------------'
  # gives the rights r to go
 chmod -R go+r  $TMPDIR
 cp layout.dat $P_S_DIR/ANNEX/
-  ntimimg=0 ; nmsh=0
+  ntiming=0 ; nmsh=0
   # check flags in namelist for further processing (before changing namelist)
   tmp=$(LookInNamelist ln_timing ) ; tmp=$( normalize $tmp )
   if [ $tmp = 'T' ] ; then ntiming=1 ; fi  
