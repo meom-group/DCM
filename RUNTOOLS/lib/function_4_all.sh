@@ -794,19 +794,19 @@ rename_txt_files() {
       for member in  $(seq $ENSEMBLE_START $ENSEMBLE_END) ; do
          mmm=$(getmember_extension $member)
                                     mv ocean.output$mmm  ocean.output$mmm.$exten
-                                    mv run.stat$mmm   run.stat$mmm.$exten
-                                    mv run.stat$mmm.nc   run.stat$mmm.$exten.nc
+         if [ $RUNSTAT = 1 ] ; then mv run.stat$mmm run.stat$mmm.$exten ; fi
+         if [ $RUNSTAT = 1 ] ; then mv run.stat$mmm.nc run.stat$mmm.$exten.nc ; fi
          if [ $ntiming = 1 ] ; then mv timing.output$mmm timing.output$mmm.$exten ; fi
 
          ZP_S_DIR=$( echo $P_S_DIR | sed -e "s;$CONFIG_CASE;${CONFIG_CASE}$mmm;")
          mkdir -p $ZP_S_DIR/ANNEX
                                     cp ocean.output$mmm.$exten  $ZP_S_DIR/ANNEX
-                                    cp run.stat$mmm.$exten  $ZP_S_DIR/ANNEX
-                                    cp run.stat$mmm.$exten.nc  $ZP_S_DIR/ANNEX
+         if [ $RUNSTAT = 1 ] ; then cp run.stat$mmm.$exten  $ZP_S_DIR/ANNEX ; fi
+         if [ $RUNSTAT = 1 ] ; then cp run.stat$mmm.$exten.nc  $ZP_S_DIR/ANNEX ; fi
          if [ $ntiming = 1 ] ; then cp timing.output$mmm.$exten $ZP_S_DIR/ANNEX ; fi
          if [ $EXTRA_COPY  ] ; then
-                                    copy ocean.output$mmm.$exten  $2
-                                    copy run.stat$mmm.$exten  $2
+                                         copy ocean.output$mmm.$exten  $2
+            if [ $RUNSTAT = 1 ] ; then   copy run.stat$mmm.$exten  $2 ; fi
          fi
 
       done

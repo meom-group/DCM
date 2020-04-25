@@ -307,6 +307,11 @@ DOMAINcfg=0
 
 echo "   ***  DOMAINcfg = $DOMAINcfg"
 
+# CTL output
+RUNSTAT=0
+  tmp=$( LookInNamelist sn_cfctl%l_runstat namelist namctl ) ; tmp=$( normalize $tmp )
+  if [ $tmp = T ] ; then RUNSTAT=1 ; fi
+
 BDY=0
   tmp=$(LookInNamelist ln_bdy namelist nambdy  ) ; tmp=$(normalize $tmp)
   if [ $tmp = T ] ; then BDY=1 ; fi
@@ -1211,7 +1216,7 @@ case $STOP_FLAG in
     date
     echo "   ---  WARNING: Run crashed."
     ext=$$.'ABORT'
-    rename_txt_files $ext $P_CTL_DIR  # rename text files and copy ocean.output and solver.stat to P_CTL_DIR
+    rename_txt_files $ext $P_CTL_DIR  # rename text files and copy ocean.output and run.stat to P_CTL_DIR
       # from now, take care of using the correct namelist name in the calls !
 
      # rename the output directory extension in order not to mix the output with correct run
@@ -1409,7 +1414,7 @@ eof
     echo ' [6.3] Pack some files in annex tar file for archiving on F machine'
     echo ' =================================================================='
      # note : next tar command takes into account all members of an ensemble run and all AGRIF zoom envolved
-    tar cf tarfile.${CONFIG_CASE}_annex.$ext *solver.sta*.$ext *ocean.outpu*.$ext *namelist_oce.$ext
+    tar cf tarfile.${CONFIG_CASE}_annex.$ext *run.stat*.$ext *ocean.outpu*.$ext *namelist_oce.$ext
     if [ $ntiming = 1 ] ; then tar rf tarfile.${CONFIG_CASE}_annex.$ext *timing.outpu*.$ext ; fi
     if [ $ICE = 1     ] ; then tar rf tarfile.${CONFIG_CASE}_annex.$ext *namelist_ice.$ext  ; fi
     
