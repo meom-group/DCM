@@ -1,0 +1,25 @@
+#!/bin/bash
+
+usage()            {
+    echo
+    echo "USAGE : $(basename $0) DOMAIN_CFG-file"
+    echo "   PURPOSE:"
+    echo '     Extract embedded namelist used for the building of DOMAIN_CFG file.'
+    echo '     This assumes that the namelist has been encoded using dcmtk_dom_doc.exe.'
+    echo 
+    exit 0
+                   }
+xtrac_namelist()   {
+    domain_cfg=$1
+     ncdump -v namelist_cfg $domain_cfg | tr -d '"'  \
+                                        | tr -d '\\' \
+                                        | sed -e 's/,$//'  \
+                                              -e 's/;$//' \
+                                              -e '1,/namelist_cfg =/d' \
+                                              -e '$d' -e 's/^..//'
+                  }
+
+if [ $# = 0 ] ; then usage ; fi
+
+
+xtrac_namelist $1
