@@ -36,6 +36,4 @@
 <!-- Grids definition -->
     <grid_definition   src="./grid_def_nemo.xml"/>
   
-    <grid_definition src="./grid_def_nemo.xml"/>
-    
 </context>
