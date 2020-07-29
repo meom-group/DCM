@@ -321,7 +321,7 @@ gettmx()  {
 #  mixing_power_bot mixing_power_pyc mixing_power_cri decay_scale_bot decay_scale_cri
 getzdfiwm() { 
         filter=''
-        blk=namzdf_iwm ; getfiles $blk  $P_DTA_DIR $F_DTA_DIR
+        blk=namzdf_iwm_drk ; getfiles $blk  $P_DTA_DIR $F_DTA_DIR
             }
 # ---
 
