@@ -320,11 +320,8 @@ gettmx()  {
 # ---
 #  mixing_power_bot mixing_power_pyc mixing_power_cri decay_scale_bot decay_scale_cri
 getzdfiwm() { 
-    rapatrie $MXP_BOT $P_I_DIR $F_DTA_DIR $NEMO_MXP_BOT
-    rapatrie $MXP_PYC $P_I_DIR $F_DTA_DIR $NEMO_MXP_PYC
-    rapatrie $MXP_CRI $P_I_DIR $F_DTA_DIR $NEMO_MXP_CRI
-    rapatrie $DSC_BOT $P_I_DIR $F_DTA_DIR $NEMO_DSC_BOT
-    rapatrie $DSC_CRI $P_I_DIR $F_DTA_DIR $NEMO_DSC_CRI
+        filter=''
+        blk=namzdf_iwm ; getfiles $blk  $P_DTA_DIR $F_DTA_DIR
             }
 # ---
 
