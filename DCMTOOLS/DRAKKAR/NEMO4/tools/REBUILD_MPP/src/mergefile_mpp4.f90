@@ -122,6 +122,18 @@ PROGRAM mergefile_mpp4
      STOP
   ENDIF
 
+  ! MPI STUFF initialisation.
+  CALL MPI_INIT(mpierr)
+  CALL MPI_COMM_SIZE(MPI_COMM_WORLD, mpisize, mpierr)
+  CALL MPI_COMM_RANK(MPI_COMM_WORLD, mpirank, mpierr)
+  mmpirank = mpirank  ! mmpirank is a variable declared in modncfile even in case of mono proc program
+  !
+  ! Prepare BUFFER for BSEND, allowing space for ... 1 integer !
+  CALL MPI_TYPE_SIZE ( MPI_INTEGER, integer_size, mpierr)
+  i_bsend_overhead = INT(( MPI_BSEND_OVERHEAD *1.)/integer_size + 1 )
+  ALLOCATE(i_bsend_buffer (i_msg_size + i_bsend_overhead) )
+  CALL MPI_BUFFER_ATTACH ( i_bsend_buffer, integer_size*(i_msg_size + i_bsend_overhead), mpierr)
+
   ijarg=1
   DO WHILE ( ijarg <= narg ) 
      CALL getarg(ijarg, cdum) ; ijarg = ijarg + 1
@@ -195,18 +207,6 @@ PROGRAM mergefile_mpp4
         STOP
      END SELECT
   ENDDO
-
-  ! MPI STUFF initialisation.
-  CALL MPI_INIT(mpierr)
-  CALL MPI_COMM_SIZE(MPI_COMM_WORLD, mpisize, mpierr)
-  CALL MPI_COMM_RANK(MPI_COMM_WORLD, mpirank, mpierr)
-  mmpirank = mpirank  ! mmpirank is a variable declared in modncfile even in case of mono proc program
-  !
-  ! Prepare BUFFER for BSEND, allowing space for ... 1 integer !
-  CALL MPI_TYPE_SIZE ( MPI_INTEGER, integer_size, mpierr)
-  i_bsend_overhead = INT(( MPI_BSEND_OVERHEAD *1.)/integer_size + 1 )
-  ALLOCATE(i_bsend_buffer (i_msg_size + i_bsend_overhead) )
-  CALL MPI_BUFFER_ATTACH ( i_bsend_buffer, integer_size*(i_msg_size + i_bsend_overhead), mpierr)
 
   ncurrent = 1  ; nstop = 0 ; ndone = 0
   IF ( mpirank == 0) THEN  ! master
