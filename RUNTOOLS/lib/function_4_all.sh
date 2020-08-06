@@ -1342,6 +1342,27 @@ eof
          zXIOS=$DDIR/${CONFIG_CASE}-XIOS.$ext
          mergeprog=$(basename $MERGE_EXEC )
          cd \$zXIOS
+         # deal with scalar files
+         ls *scalar*0000.nc > /dev/null  2>&1
+         if [ \$? = 0 ] ; then
+            mkdir -p SCALAR
+            mv *scalar*.nc SCALAR
+            cd SCALAR
+              for f in *scalar*_0000.nc ; do
+                 CONFCASE=\$( echo \$f | awk -F_ '{print \$1}' )
+                 freq=\$( echo \$f | awk -F_ '{print \$2}' )
+                 tag=\$( echo \$f | awk -F_ '{print \$5}' | awk -F- '{print \$1}' )
+                 date=y\${tag:0:4}m\${tag:4:2}d\${tag:6:2}
+
+                 g=\${CONFCASE}_\${date}.\${freq}_icescalar.nc
+                 OUTDIR=../\${freq}_OUTPUT
+                 mkdir -p \$OUTDIR
+                 cp \$f \$OUTDIR/\$g
+
+              done
+
+         # end scalar file
+         fi
          ln -sf $MERGE_EXEC ./
              runcode $NB_NPROC_MER ./\$mergeprog -F -c $CN_DOMCFG -r
 eof
