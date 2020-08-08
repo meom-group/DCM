@@ -1336,6 +1336,8 @@ eof
              --nodes $NB_NNODE_MER --constraint $CONSTRAI_MER --option '--exclusive' > $1
        echo "  *** building merging script "
        cat  << eof >> $1
+        set -x 
+        ulimit -s unlimited
       . $RUNTOOLS/lib/function_4.sh
       . $RUNTOOLS/lib/function_4_all.sh
          DDIR=${DDIR:-$CDIR}
