@@ -1362,6 +1362,7 @@ eof
                  cp \$f \$OUTDIR/\$g
 
               done
+            cd  \$zXIOS
 
          # end scalar file
          fi
