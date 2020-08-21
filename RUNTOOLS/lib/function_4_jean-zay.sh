@@ -120,7 +120,8 @@ submit() { cd ${P_CTL_DIR}
 
 # function for running OPA : it takes the number of procs and name of program as argument
 runcode() {
-          srun  --mpi=pmi2  -m cyclic  -n $*
+#          srun  --mpi=pmi2  -m cyclic  -n $*
+          srun   -m cyclic  -n $*
 #         ccc_mprun -n $*
 #         mpirun -np $*
           }
