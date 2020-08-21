@@ -157,7 +157,11 @@ PROGRAM mergefile_mpp4
            CALL getarg(ijarg, cf_list(jf) ) ; ijarg = ijarg+1
         ENDDO
      CASE ('-F') ! internal build of the file list with ALL _0000.nc file in current dir
-        CALL SYSTEM( "find . -maxdepth 1 -name ""*"// TRIM(c_pattern) // "*"" -printf ""%f\n"" | sort -r  > .zmergfile_list.tmp")
+        IF ( mpirank == 0 ) THEN   ! only rank 0 is creating the .zmergfile_list.tmp file
+          CALL SYSTEM( "find . -maxdepth 1 -name ""*"// TRIM(c_pattern) // "*"" -printf ""%f\n"" | sort -r  > .zmergfile_list.tmp")
+        ENDIF
+        ! Synchro to be sure that zmergfile_list.tmp has been written
+        CALL MPI_BARRIER(MPI_COMM_WORLD, mpierr )
         nfile=0
         OPEN(numlst, FILE='.zmergfile_list.tmp')
         DO 
