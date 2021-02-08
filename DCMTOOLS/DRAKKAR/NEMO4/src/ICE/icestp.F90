@@ -54,7 +54,6 @@ MODULE icestp
    USE icesbc         ! sea-ice: Surface boundary conditions
    USE icedyn         ! sea-ice: dynamics
    USE icethd         ! sea-ice: thermodynamics
-   USE icecor         ! sea-ice: corrections
    USE iceupdate      ! sea-ice: sea surface boundary condition update
    USE icedia         ! sea-ice: budget diagnostics
    USE icewri         ! sea-ice: outputs
@@ -89,7 +88,7 @@ MODULE icestp
 #  include "vectopt_loop_substitute.h90"
    !!----------------------------------------------------------------------
    !! NEMO/ICE 4.0 , NEMO Consortium (2018)
-   !! $Id: icestp.F90 10993 2019-05-17 13:07:59Z clem $
+   !! $Id: icestp.F90 14026 2020-12-03 08:48:10Z clem $
    !! Software governed by the CeCILL license (see ./LICENSE)
    !!----------------------------------------------------------------------
 CONTAINS
@@ -120,7 +119,7 @@ CONTAINS
       INTEGER ::   jl   ! dummy loop index
       !!----------------------------------------------------------------------
       !
-      IF( ln_timing )   CALL timing_start('ice_stp')
+      IF( ln_timing )   CALL timing_start('icestp')
       !
       !                                      !-----------------------!
       IF( MOD( kt-1, nn_fsbc ) == 0 ) THEN   ! --- Ice time step --- !
@@ -161,6 +160,8 @@ CONTAINS
          IF( ln_icedyn .AND. .NOT.lk_c1d )   &
             &                           CALL ice_dyn( kt )            ! -- Ice dynamics
          !
+                                        CALL diag_trends( 1 )         ! record dyn trends
+         !
          !                          !==  lateral boundary conditions  ==!
          IF( ln_icethd .AND. ln_bdy )   CALL bdy_ice( kt )            ! -- bdy ice thermo
          !
@@ -188,8 +189,7 @@ CONTAINS
          !----------------------------!
          IF( ln_icethd )                CALL ice_thd( kt )            ! -- Ice thermodynamics      
          !
-                                        CALL ice_cor( kt , 2 )        ! -- Corrections
-         !
+                                        CALL diag_trends( 2 )         ! record thermo trends
                                         CALL ice_var_glo2eqv          ! necessary calls (at least for coupling)
                                         CALL ice_var_agg( 2 )         ! necessary calls (at least for coupling)
          !
@@ -197,21 +197,23 @@ CONTAINS
          !
          IF( ln_icediahsb )             CALL ice_dia( kt )            ! -- Diagnostics outputs 
          !
+         IF( ln_icediachk )             CALL ice_drift_wri( kt )      ! -- Diagnostics outputs for conservation 
+         !
                                         CALL ice_wri( kt )            ! -- Ice outputs 
          !
          IF( lrst_ice )                 CALL ice_rst_write( kt )      ! -- Ice restart file 
          !
-         IF( ln_icectl )                CALL ice_ctl( kt )            ! -- alerts in case of model crash
+         IF( ln_icectl )                CALL ice_ctl( kt )            ! -- Control checks
          !
       ENDIF   ! End sea-ice time step only
 
       !-------------------------!
       ! --- Ocean time step --- !
       !-------------------------!
-      IF( ln_icedyn )                   CALL ice_update_tau( kt, ub(:,:,1), vb(:,:,1) )   ! -- update surface ocean stresses
+      CALL ice_update_tau( kt, ub(:,:,1), vb(:,:,1) )                 ! -- update surface ocean stresses
 !!gm   remark, the ocean-ice stress is not saved in ice diag call above .....  find a solution!!!
       !
-      IF( ln_timing )   CALL timing_stop('ice_stp')
+      IF( ln_timing )   CALL timing_stop('icestp')
       !
    END SUBROUTINE ice_stp
 
@@ -222,7 +224,7 @@ CONTAINS
       !!
       !! ** purpose :   Initialize sea-ice parameters
       !!----------------------------------------------------------------------
-      INTEGER :: ji, jj, ierr
+      INTEGER :: jl, ierr
       !!----------------------------------------------------------------------
       IF(lwp) WRITE(numout,*)
       IF(lwp) WRITE(numout,*) 'Sea Ice Model: SI3 (Sea Ice modelling Integrated Initiative)' 
@@ -246,21 +248,27 @@ CONTAINS
       CALL mpp_sum( 'icestp', ierr )
       IF( ierr /= 0 )   CALL ctl_stop('STOP', 'ice_init : unable to allocate ice arrays')
       !
+      !                                ! set max concentration in both hemispheres
+      WHERE( gphit(:,:) > 0._wp )   ;   rn_amax_2d(:,:) = rn_amax_n  ! NH
+      ELSEWHERE                     ;   rn_amax_2d(:,:) = rn_amax_s  ! SH
+      END WHERE
+      !
+      CALL diag_set0                   ! set diag of mass, heat and salt fluxes to 0: needed for Agrif child grids
+      !
       CALL ice_itd_init                ! ice thickness distribution initialization
       !
       CALL ice_thd_init                ! set ice thermodynics parameters (clem: important to call it first for melt ponds)
       !
-      !                                ! Initial sea-ice state
-      IF( .NOT. ln_rstart ) THEN              ! start from rest: sea-ice deduced from sst
-         CALL ice_istate_init
-         CALL ice_istate( nit000 )
-      ELSE                                    ! start from a restart file
-         CALL ice_rst_read
+      CALL ice_sbc_init                ! set ice-ocean and ice-atm. coupling parameters
+      !
+      CALL ice_istate_init             ! Initial sea-ice state
+      IF ( ln_rstart .OR. nn_iceini_file == 2 ) THEN
+         CALL ice_rst_read                      ! start from a restart file
+      ELSE
+         CALL ice_istate( nit000 )              ! start from rest or read a file
       ENDIF
       CALL ice_var_glo2eqv
       CALL ice_var_agg(1)
-      !
-      CALL ice_sbc_init                ! set ice-ocean and ice-atm. coupling parameters
       !
       CALL ice_dyn_init                ! set ice dynamics parameters
       !
@@ -270,14 +278,11 @@ CONTAINS
       !
       CALL ice_dia_init                ! initialization for diags
       !
+      CALL ice_drift_init              ! initialization for diags of conservation
+      !
       fr_i  (:,:)   = at_i(:,:)        ! initialisation of sea-ice fraction
       tn_ice(:,:,:) = t_su(:,:,:)      ! initialisation of surface temp for coupled simu
       !
-      !                                ! set max concentration in both hemispheres
-      WHERE( gphit(:,:) > 0._wp )   ;   rn_amax_2d(:,:) = rn_amax_n  ! NH
-      ELSEWHERE                     ;   rn_amax_2d(:,:) = rn_amax_s  ! SH
-      END WHERE
-
       IF( ln_rstart )   CALL iom_close( numrir )  ! close input ice restart file
       !
    END SUBROUTINE ice_init
@@ -352,8 +357,6 @@ CONTAINS
          CALL ctl_stop( 'STOP', 'par_init: in coupled mode, nn_cats_cpl should be either 1 or jpl' )
       ENDIF
       !
-      IF( ln_bdy .AND. ln_icediachk )   CALL ctl_warn('par_init: online conservation check does not work with BDY')
-      !
       rdt_ice   = REAL(nn_fsbc) * rdt          !--- sea-ice timestep and its inverse
       r1_rdtice = 1._wp / rdt_ice
       IF(lwp) WRITE(numout,*)
@@ -377,8 +380,9 @@ CONTAINS
       a_i_b (:,:,:)   = a_i (:,:,:)     ! ice area
       v_i_b (:,:,:)   = v_i (:,:,:)     ! ice volume
       v_s_b (:,:,:)   = v_s (:,:,:)     ! snow volume
+      v_ip_b(:,:,:)   = v_ip(:,:,:)     ! pond volume
+      v_il_b(:,:,:)   = v_il(:,:,:)     ! pond lid volume
       sv_i_b(:,:,:)   = sv_i(:,:,:)     ! salt content
-      oa_i_b(:,:,:)   = oa_i(:,:,:)     ! areal age content
       e_s_b (:,:,:,:) = e_s (:,:,:,:)   ! snow thermal energy
       e_i_b (:,:,:,:) = e_i (:,:,:,:)   ! ice thermal energy
       WHERE( a_i_b(:,:,:) >= epsi20 )
@@ -387,12 +391,6 @@ CONTAINS
       ELSEWHERE
          h_i_b(:,:,:) = 0._wp
          h_s_b(:,:,:) = 0._wp
-      END WHERE
-      
-      WHERE( a_ip(:,:,:) >= epsi20 )
-         h_ip_b(:,:,:) = v_ip(:,:,:) / a_ip(:,:,:)   ! ice pond thickness
-      ELSEWHERE
-         h_ip_b(:,:,:) = 0._wp
       END WHERE
       !
       ! ice velocities & total concentration
@@ -410,55 +408,116 @@ CONTAINS
       !! ** purpose :  set ice-ocean and ice-atm. fluxes to zeros at the beggining
       !!               of the time step
       !!----------------------------------------------------------------------
-      INTEGER  ::   ji, jj      ! dummy loop index
+      INTEGER  ::   ji, jj, jl      ! dummy loop index
       !!----------------------------------------------------------------------
-      sfx    (:,:) = 0._wp   ;
-      sfx_bri(:,:) = 0._wp   ;   sfx_lam(:,:) = 0._wp
-      sfx_sni(:,:) = 0._wp   ;   sfx_opw(:,:) = 0._wp
-      sfx_bog(:,:) = 0._wp   ;   sfx_dyn(:,:) = 0._wp
-      sfx_bom(:,:) = 0._wp   ;   sfx_sum(:,:) = 0._wp
-      sfx_res(:,:) = 0._wp   ;   sfx_sub(:,:) = 0._wp
-      !
-      wfx_snw(:,:) = 0._wp   ;   wfx_ice(:,:) = 0._wp
-      wfx_sni(:,:) = 0._wp   ;   wfx_opw(:,:) = 0._wp
-      wfx_bog(:,:) = 0._wp   ;   wfx_dyn(:,:) = 0._wp
-      wfx_bom(:,:) = 0._wp   ;   wfx_sum(:,:) = 0._wp
-      wfx_res(:,:) = 0._wp   ;   wfx_sub(:,:) = 0._wp
-      wfx_spr(:,:) = 0._wp   ;   wfx_lam(:,:) = 0._wp  
-      wfx_snw_dyn(:,:) = 0._wp ; wfx_snw_sum(:,:) = 0._wp
-      wfx_snw_sub(:,:) = 0._wp ; wfx_ice_sub(:,:) = 0._wp
-      wfx_snw_sni(:,:) = 0._wp 
-      wfx_pnd(:,:) = 0._wp
 
-      hfx_thd(:,:) = 0._wp   ;
-      hfx_snw(:,:) = 0._wp   ;   hfx_opw(:,:) = 0._wp
-      hfx_bog(:,:) = 0._wp   ;   hfx_dyn(:,:) = 0._wp
-      hfx_bom(:,:) = 0._wp   ;   hfx_sum(:,:) = 0._wp
-      hfx_res(:,:) = 0._wp   ;   hfx_sub(:,:) = 0._wp
-      hfx_spr(:,:) = 0._wp   ;   hfx_dif(:,:) = 0._wp
-      hfx_err_rem(:,:) = 0._wp
-      hfx_err_dif(:,:) = 0._wp
-      wfx_err_sub(:,:) = 0._wp
-      !
-      diag_heat(:,:) = 0._wp ;   diag_sice(:,:) = 0._wp
-      diag_vice(:,:) = 0._wp ;   diag_vsnw(:,:) = 0._wp
+      DO jj = 1, jpj 
+         DO ji = 1, jpi
+            sfx    (ji,jj) = 0._wp   ;
+            sfx_bri(ji,jj) = 0._wp   ;   sfx_lam(ji,jj) = 0._wp
+            sfx_sni(ji,jj) = 0._wp   ;   sfx_opw(ji,jj) = 0._wp
+            sfx_bog(ji,jj) = 0._wp   ;   sfx_dyn(ji,jj) = 0._wp
+            sfx_bom(ji,jj) = 0._wp   ;   sfx_sum(ji,jj) = 0._wp
+            sfx_res(ji,jj) = 0._wp   ;   sfx_sub(ji,jj) = 0._wp
+            !
+            wfx_snw(ji,jj) = 0._wp   ;   wfx_ice(ji,jj) = 0._wp
+            wfx_sni(ji,jj) = 0._wp   ;   wfx_opw(ji,jj) = 0._wp
+            wfx_bog(ji,jj) = 0._wp   ;   wfx_dyn(ji,jj) = 0._wp
+            wfx_bom(ji,jj) = 0._wp   ;   wfx_sum(ji,jj) = 0._wp
+            wfx_res(ji,jj) = 0._wp   ;   wfx_sub(ji,jj) = 0._wp
+            wfx_spr(ji,jj) = 0._wp   ;   wfx_lam(ji,jj) = 0._wp  
+            wfx_snw_dyn(ji,jj) = 0._wp ; wfx_snw_sum(ji,jj) = 0._wp
+            wfx_snw_sub(ji,jj) = 0._wp ; wfx_ice_sub(ji,jj) = 0._wp
+            wfx_snw_sni(ji,jj) = 0._wp 
+            wfx_pnd(ji,jj) = 0._wp
 
-      ! SIMIP diagnostics
-      qcn_ice_bot(:,:,:) = 0._wp ; qcn_ice_top(:,:,:) = 0._wp ! conductive fluxes
-      t_si       (:,:,:) = rt0   ! temp at the ice-snow interface
+            hfx_thd(ji,jj) = 0._wp   ;
+            hfx_snw(ji,jj) = 0._wp   ;   hfx_opw(ji,jj) = 0._wp
+            hfx_bog(ji,jj) = 0._wp   ;   hfx_dyn(ji,jj) = 0._wp
+            hfx_bom(ji,jj) = 0._wp   ;   hfx_sum(ji,jj) = 0._wp
+            hfx_res(ji,jj) = 0._wp   ;   hfx_sub(ji,jj) = 0._wp
+            hfx_spr(ji,jj) = 0._wp   ;   hfx_dif(ji,jj) = 0._wp
+            hfx_err_dif(ji,jj) = 0._wp
+            wfx_err_sub(ji,jj) = 0._wp
+            !
+            diag_heat(ji,jj) = 0._wp ;   diag_sice(ji,jj) = 0._wp
+            diag_vice(ji,jj) = 0._wp ;   diag_vsnw(ji,jj) = 0._wp
+            diag_aice(ji,jj) = 0._wp ;   diag_vpnd(ji,jj) = 0._wp
 
-      tau_icebfr (:,:)   = 0._wp   ! landfast ice param only (clem: important to keep the init here)
-      cnd_ice    (:,:,:) = 0._wp   ! initialisation: effective conductivity at the top of ice/snow (ln_cndflx=T)
-      qcn_ice    (:,:,:) = 0._wp   ! initialisation: conductive flux (ln_cndflx=T & ln_cndemule=T)
-      qtr_ice_bot(:,:,:) = 0._wp   ! initialization: part of solar radiation transmitted through the ice needed at least for outputs
-      qsb_ice_bot(:,:)   = 0._wp   ! (needed if ln_icethd=F)
-      !
-      ! for control checks (ln_icediachk)
-      diag_trp_vi(:,:) = 0._wp   ;   diag_trp_vs(:,:) = 0._wp
-      diag_trp_ei(:,:) = 0._wp   ;   diag_trp_es(:,:) = 0._wp
-      diag_trp_sv(:,:) = 0._wp
+            tau_icebfr (ji,jj) = 0._wp   ! landfast ice param only (clem: important to keep the init here)
+            qsb_ice_bot(ji,jj) = 0._wp   ! (needed if ln_icethd=F)
 
+            fhld(ji,jj) = 0._wp   ! needed if ln_icethd=F
+
+            ! for control checks (ln_icediachk)
+            diag_trp_vi(ji,jj) = 0._wp   ;   diag_trp_vs(ji,jj) = 0._wp
+            diag_trp_ei(ji,jj) = 0._wp   ;   diag_trp_es(ji,jj) = 0._wp
+            diag_trp_sv(ji,jj) = 0._wp
+            !
+            diag_adv_mass(ji,jj) = 0._wp
+            diag_adv_salt(ji,jj) = 0._wp
+            diag_adv_heat(ji,jj) = 0._wp
+         END DO
+      END DO
+
+      DO jl = 1, jpl
+         DO jj = 1, jpj 
+            DO ji = 1, jpi
+               ! SIMIP diagnostics
+               t_si       (ji,jj,jl) = rt0     ! temp at the ice-snow interface
+               qcn_ice_bot(ji,jj,jl) = 0._wp
+               qcn_ice_top(ji,jj,jl) = 0._wp   ! conductive fluxes
+               cnd_ice    (ji,jj,jl) = 0._wp   ! effective conductivity at the top of ice/snow (ln_cndflx=T)
+               qcn_ice    (ji,jj,jl) = 0._wp   ! conductive flux (ln_cndflx=T & ln_cndemule=T)
+               qtr_ice_bot(ji,jj,jl) = 0._wp   ! part of solar radiation transmitted through the ice needed at least for outputs
+            END DO
+         END DO
+      END DO
+      
    END SUBROUTINE diag_set0
+
+
+   SUBROUTINE diag_trends( kn )
+      !!----------------------------------------------------------------------
+      !!                  ***  ROUTINE diag_trends  ***
+      !!
+      !! ** purpose : diagnostics of the trends. Used for conservation purposes
+      !!              and outputs
+      !!----------------------------------------------------------------------
+      INTEGER, INTENT(in) ::   kn    ! 1 = after dyn ; 2 = after thermo
+      !!----------------------------------------------------------------------
+      !
+      ! --- trends of heat, salt, mass (used for conservation controls)
+      IF( ln_icediachk .OR. iom_use('hfxdhc') ) THEN
+         !
+         diag_heat(:,:) = diag_heat(:,:) &
+            &             - SUM(SUM( e_i (:,:,1:nlay_i,:) - e_i_b (:,:,1:nlay_i,:), dim=4 ), dim=3 ) * r1_rdtice &
+            &             - SUM(SUM( e_s (:,:,1:nlay_s,:) - e_s_b (:,:,1:nlay_s,:), dim=4 ), dim=3 ) * r1_rdtice
+         diag_sice(:,:) = diag_sice(:,:) &
+            &             + SUM(     sv_i(:,:,:)          - sv_i_b(:,:,:)                  , dim=3 ) * r1_rdtice * rhoi
+         diag_vice(:,:) = diag_vice(:,:) &
+            &             + SUM(     v_i (:,:,:)          - v_i_b (:,:,:)                  , dim=3 ) * r1_rdtice * rhoi
+         diag_vsnw(:,:) = diag_vsnw(:,:) &
+            &             + SUM(     v_s (:,:,:)          - v_s_b (:,:,:)                  , dim=3 ) * r1_rdtice * rhos
+         diag_vpnd(:,:) = diag_vpnd(:,:) &
+            &             + SUM(     v_ip + v_il          - v_ip_b - v_il_b                , dim=3 ) * r1_rdtice * rhow
+         !
+         IF( kn == 2 )    CALL iom_put ( 'hfxdhc' , diag_heat )   ! output of heat trend
+         !
+      ENDIF
+      !
+      ! --- trends of concentration (used for simip outputs)
+      IF( iom_use('afxdyn') .OR. iom_use('afxthd') .OR. iom_use('afxtot') ) THEN
+         !
+         diag_aice(:,:) = diag_aice(:,:) + SUM( a_i(:,:,:) - a_i_b(:,:,:), dim=3 ) * r1_rdtice
+         !
+         IF( kn == 1 )   CALL iom_put( 'afxdyn' , diag_aice )                                           ! dyn trend
+         IF( kn == 2 )   CALL iom_put( 'afxthd' , SUM( a_i(:,:,:) - a_i_b(:,:,:), dim=3 ) * r1_rdtice ) ! thermo trend
+         IF( kn == 2 )   CALL iom_put( 'afxtot' , diag_aice )                                           ! total trend
+         !
+      ENDIF
+      !
+   END SUBROUTINE diag_trends
 
 #else
    !!----------------------------------------------------------------------

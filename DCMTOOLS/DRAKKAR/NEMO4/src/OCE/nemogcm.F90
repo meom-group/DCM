@@ -81,6 +81,7 @@ MODULE nemogcm
    USE ice_domain_size, only: nx_global, ny_global
 #endif
    !
+   USE in_out_manager ! I/O manager
    USE lib_mpp        ! distributed memory computing
    USE mppini         ! shared/distributed memory setting (mpp_init routine)
    USE lbcnfd  , ONLY : isendto, nsndto, nfsloop, nfeloop   ! Setup of north fold exchanges 
@@ -114,7 +115,7 @@ MODULE nemogcm
 
    !!----------------------------------------------------------------------
    !! NEMO/OCE 4.0 , NEMO Consortium (2018)
-   !! $Id: nemogcm.F90 10588 2019-01-28 11:50:41Z jchanut $
+   !! $Id: nemogcm.F90 13013 2020-06-03 08:33:06Z smasson $
    !! Software governed by the CeCILL license (see ./LICENSE)
    !!----------------------------------------------------------------------
 CONTAINS
@@ -202,13 +203,6 @@ CONTAINS
          istp = istp + 1
       END DO
       !
-      IF( .NOT. Agrif_Root() ) THEN
-         CALL Agrif_ParentGrid_To_ChildGrid()
-         IF( ln_diaobs )   CALL dia_obs_wri
-         IF( ln_timing )   CALL timing_finalize
-         CALL Agrif_ChildGrid_To_ParentGrid()
-      ENDIF
-      !
 # else
       !
       IF( .NOT.ln_diurnal_only ) THEN                 !==  Standard time-stepping  ==!
@@ -274,7 +268,15 @@ CONTAINS
       !
       IF( nstop /= 0 .AND. lwp ) THEN        ! error print
          WRITE(ctmp1,*) '   ==>>>   nemo_gcm: a total of ', nstop, ' errors have been found'
-         CALL ctl_stop( ctmp1 )
+         IF( ngrdstop > 0 ) THEN
+            WRITE(ctmp9,'(i2)') ngrdstop
+            WRITE(ctmp2,*) '           E R R O R detected in Agrif grid '//TRIM(ctmp9)
+            WRITE(ctmp3,*) '           Look for "E R R O R" messages in all existing '//TRIM(ctmp9)//'_ocean_output* files'
+            CALL ctl_stop( ' ', ctmp1, ' ', ctmp2, ' ', ctmp3 )
+         ELSE
+            WRITE(ctmp2,*) '           Look for "E R R O R" messages in all existing ocean_output* files'
+            CALL ctl_stop( ' ', ctmp1, ' ', ctmp2 )
+         ENDIF
       ENDIF
 #endif
       !
@@ -356,7 +358,13 @@ CONTAINS
                   CALL ctl_opn( numnam_cfg,        'namelist_cfg',     'OLD', 'FORMATTED', 'SEQUENTIAL', -1, -1, .FALSE. )
       IF( lwm )   CALL ctl_opn(     numond, 'output.namelist.dyn', 'REPLACE', 'FORMATTED', 'SEQUENTIAL', -1, -1, .FALSE. )
       ! open /dev/null file to be able to supress output write easily
+      IF( Agrif_Root() ) THEN
                   CALL ctl_opn(     numnul,           '/dev/null', 'REPLACE', 'FORMATTED', 'SEQUENTIAL', -1, -1, .FALSE. )
+#ifdef key_agrif
+      ELSE
+                  numnul = Agrif_Parent(numnul)
+#endif
+      ENDIF
       !
       !                             !--------------------!
       !                             ! Open listing units !  -> need ln_ctl from namctl to define lwp

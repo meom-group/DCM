@@ -48,6 +48,8 @@
 	  <field id="iceapnd"      long_name="melt pond concentration"                                 standard_name="sea_ice_meltpond_concentration"            unit=""  /> 
           <field id="icehpnd"      long_name="melt pond depth"                                         standard_name="sea_ice_meltpond_depth"                    unit="m" /> 
           <field id="icevpnd"      long_name="melt pond volume"                                        standard_name="sea_ice_meltpond_volume"                   unit="m" /> 
+          <field id="icehlid"      long_name="melt pond lid depth"                                     standard_name="sea_ice_meltpondlid_depth"                 unit="m" /> 
+          <field id="icevlid"      long_name="melt pond lid volume"                                    standard_name="sea_ice_meltpondlid_volume"                unit="m" /> 
 	  
 	  <!-- heat -->
           <field id="icetemp"      long_name="Mean ice temperature"                                                                                              unit="degC" detect_missing_value="true" />
@@ -72,15 +74,19 @@
           <field id="vtau_oi"      long_name="Y-component of ocean stress on sea ice"                  standard_name="sea_ice_base_upward_y_stress"              unit="N/m2" />
           <field id="utau_bi"      long_name="X-component of ocean bottom stress on sea ice -landfast" standard_name="ocean_bottom_upward_x_stress"              unit="N/m2" />
           <field id="vtau_bi"      long_name="Y-component of ocean bottom stress on sea ice -landfast" standard_name="ocean_bottom_upward_y_stress"              unit="N/m2" />
-          <field id="isig1"        long_name="1st principal stress component for EVP rhg"                                                                        unit=""     />
+          <!-- the fields isig1 isig2 isig3 are obsolete -->
+	  <field id="isig1"        long_name="1st principal stress component for EVP rhg"                                                                        unit=""     />
           <field id="isig2"        long_name="2nd principal stress component for EVP rhg"                                                                        unit=""     />
           <field id="isig3"        long_name="convergence measure for EVP rheology (must be around 1)"                                                           unit=""     />
+          <field id="sig1_pnorm"   long_name="P-normalized 1st principal stress component"                                                                       unit=""     />
+          <field id="sig2_pnorm"   long_name="P-normalized 2nd principal stress component"                                                                       unit=""     />
           <field id="normstr"      long_name="Average normal stress in sea ice"                        standard_name="average_normal_stress"                     unit="N/m"  />
           <field id="sheastr"      long_name="Maximum shear stress in sea ice"                         standard_name="maximum_shear_stress"                      unit="N/m"  />
           <field id="icestr"       long_name="Compressive sea ice strength"                            standard_name="compressive_strength_of_sea_ice"           unit="N/m"  />
           <field id="icediv"       long_name="Divergence of the sea-ice velocity field"                standard_name="divergence_of_sea_ice_velocity"            unit="s-1"  />
           <field id="iceshe"       long_name="Maximum shear of sea-ice velocity field"                 standard_name="maximum_shear_of_sea_ice_velocity"         unit="s-1"  />
-	  
+          <field id="beta_evp"     long_name="Relaxation parameter of ice rheology (beta)"             standard_name="relaxation_parameter_of_ice_rheology"      unit=""  />	 
+ 
 	  <!-- surface heat fluxes -->
           <field id="qt_ice"       long_name="total heat flux at ice surface"                          standard_name="surface_downward_heat_flux_in_air"         unit="W/m2" />
           <field id="qsr_ice"      long_name="solar heat flux at ice surface"                          standard_name="surface_downwelling_shortwave_flux_in_air" unit="W/m2" />
@@ -170,6 +176,9 @@
           <field id="e3t_m"    unit="m"    />
           <field id="frq_m"    unit="-"    />
 
+          <!-- rheology convergence tests -->
+          <field id="uice_cvg"   long_name="sea ice velocity convergence"      standard_name="sea_ice_velocity_convergence"      unit="m/s" />
+
 	  <!-- ================= -->
           <!-- Add-ons for SIMIP -->
           <!-- ================= -->
@@ -208,6 +217,7 @@
           <field id="dmisub"       long_name="snow mass change through evaporation or sublimation"     standard_name="surface_snow_sublimation_flux"                                           unit="kg/m2/s" />
           <field id="dmisum"       long_name="sea-ice mass change through surface melting"             standard_name="tendency_of_sea_ice_amount_due_to_surface_melting"                       unit="kg/m2/s" />
           <field id="dmibom"       long_name="sea-ice mass change through bottom melting"              standard_name="tendency_of_sea_ice_amount_due_to_basal_melting"                         unit="kg/m2/s" />
+          <field id="dmilam"       long_name="sea-ice mass change through lateral melting"             standard_name="tendency_of_sea_ice_amount_due_to_lateral_melting"                       unit="kg/m2/s" />
           <field id="dmsspr"       long_name="snow mass change through snow fall"                      standard_name="snowfall_flux"                                                           unit="kg/m2/s" />
           <field id="dmsmel"       long_name="snow mass change through melt"                           standard_name="surface_snow_melt_flux"                                                  unit="kg/m2/s" />
           <field id="dmsdyn"       long_name="snow mass change through advection by sea-ice dynamics"  standard_name="tendency_of_snow_mass_due_to_sea_ice_dynamics"                           unit="kg/m2/s" />
@@ -270,6 +280,7 @@
          <field id="strait_mifl"      long_name="Sea ice mass flux through straits"      standard_name="sea_ice_mass_transport_across_line"   unit="kg/s"  freq_op="1mo"  grid_ref="grid_4strait_ice" > xstrait_mifl + ystrait_mifl </field>
          <field id="strait_msfl"      long_name="Snow mass flux through straits"         standard_name="snow_mass_transport_across_line"      unit="kg/s"  freq_op="1mo"  grid_ref="grid_4strait_ice" > xstrait_msfl + ystrait_msfl </field>
 	 <field id="strait_arfl"      long_name="Sea ice area flux through straits"      standard_name="sea_area_mass_transport_across_line"  unit="m2/s"  freq_op="1mo"  grid_ref="grid_4strait_ice" > xstrait_arfl + ystrait_arfl </field>
+
 	</field_group> <!-- SBC_2D -->
 
 	<!-- categories -->
@@ -285,7 +296,9 @@
           <field id="icettop_cat"  long_name="Ice/snow surface temperature per category"         unit="degC"    detect_missing_value="true" />
           <field id="iceapnd_cat"  long_name="Ice melt pond concentration per category"          unit=""        /> 
           <field id="icehpnd_cat"  long_name="Ice melt pond thickness per category"              unit="m"       detect_missing_value="true" /> 
+          <field id="icehlid_cat"  long_name="Ice melt pond lid thickness per category"          unit="m"       detect_missing_value="true" /> 
           <field id="iceafpnd_cat" long_name="Ice melt pond fraction per category"               unit=""        /> 
+          <field id="iceaepnd_cat" long_name="Ice melt pond effective fraction per category"     unit=""        /> 
           <field id="icemask_cat"  long_name="Fraction of time step with sea ice (per category)" unit=""        />
           <field id="iceage_cat"   long_name="Ice age per category"                              unit="days"    detect_missing_value="true" />
           <field id="icebrv_cat"   long_name="Brine volume per category"                         unit="%"       detect_missing_value="true" />
@@ -296,6 +309,10 @@
           <field id="icethic_cat_cmip"     long_name="Sea-ice thickness in thickness categories"       standard_name="sea_ice_thickness_over_categories"     detect_missing_value="true" unit="m"  > icethic_cat      * icemask_cat + $missval * (1.-icemask_cat) </field>
           <field id="snwthic_cat_cmip"     long_name="Snow thickness in thickness categories"          standard_name="snow_thickness_over_categories"        detect_missing_value="true" unit="m"  > snwthic_cat      * icemask_cat + $missval * (1.-icemask_cat) </field>
           <field id="iceconc_cat_pct_cmip" long_name="Sea-ice area fractions in thickness categories"  standard_name="sea_ice_area_fraction_over_categories" detect_missing_value="true" unit="%"  > iceconc_cat*100. * icemask_cat + $missval * (1.-icemask_cat) </field>
+
+          <!-- heat diffusion convergence tests -->
+          <field id="tice_cvgerr" long_name="sea ice temperature convergence error"      standard_name="sea_ice_temperature_convergence_err" unit="K" />
+          <field id="tice_cvgstp" long_name="sea ice temperature convergence iterations" standard_name="sea_ice_temperature_convergence_stp" unit=""  />
 
 	</field_group> <!-- SBC_3D -->
 	
@@ -383,9 +400,6 @@
 	  <field field_ref="icestr"           name="sistre"  />
 	  <field field_ref="normstr"          name="normstr" />
 	  <field field_ref="sheastr"          name="sheastr" />
-	  <field field_ref="isig1"            name="isig1"   />
-	  <field field_ref="isig2"            name="isig2"   />
-	  <field field_ref="isig3"            name="isig3"   />
 	  
 	  <!-- heat fluxes -->
 	  <field field_ref="qt_oce_ai"        name="qt_oce_ai"  />
@@ -556,6 +570,7 @@
           <field field_ref="dmisub"           name="sidmassevapsubl"  />
           <field field_ref="dmisum"           name="sidmassmelttop"   />
           <field field_ref="dmibom"           name="sidmassmeltbot"   />
+          <field field_ref="dmilam"           name="sidmassmeltlat"   />
           <field field_ref="dmsspr"           name="sndmasssnf"       />
           <field field_ref="dmsmel"           name="sndmassmelt"      />
           <field field_ref="dmssub"           name="sndmasssubl"      />

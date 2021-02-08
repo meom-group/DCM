@@ -45,7 +45,7 @@ MODULE dtatsd
 
    !!----------------------------------------------------------------------
    !! NEMO/OCE 4.0 , NEMO Consortium (2018)
-   !! $Id: dtatsd.F90 10213 2018-10-23 14:40:09Z aumont $ 
+   !! $Id: dtatsd.F90 14185 2020-12-16 10:32:22Z hadcv $ 
    !! Software governed by the CeCILL license (see ./LICENSE)
    !!----------------------------------------------------------------------
 CONTAINS
@@ -224,6 +224,7 @@ CONTAINS
       !
       INTEGER ::   ji, jj, jk, jl, jkk   ! dummy loop indicies
       INTEGER ::   ik, il0, il1, ii0, ii1, ij0, ij1   ! local integers
+      INTEGER, DIMENSION(jpts), SAVE :: irec_b, irec_n
       REAL(wp)::   zl, zi                             ! local scalars
       REAL(wp), DIMENSION(jpk) ::  ztp, zsp   ! 1D workspace
       !!----------------------------------------------------------------------
@@ -246,21 +247,35 @@ CONTAINS
       !                                   !==   ORCA_R2 configuration and T & S damping   ==! 
       IF( cn_cfg == "orca" .OR. cn_cfg == "ORCA" ) THEN
          IF( nn_cfg == 2 .AND. ln_tsd_dmp ) THEN    ! some hand made alterations
+            irec_n(jp_tem) = sf_tsd(jp_tem)%nrec_a(2)            ! Determine if there is new data (ln_tint = F)
+            irec_n(jp_sal) = sf_tsd(jp_sal)%nrec_a(2)            ! If not, then do not apply the increments
+            IF( kt == nit000 ) irec_b(:) = -1
             !
             ij0 = 101   ;   ij1 = 109                       ! Reduced T & S in the Alboran Sea
             ii0 = 141   ;   ii1 = 155
-            DO jj = mj0(ij0), mj1(ij1)
-               DO ji = mi0(ii0), mi1(ii1)
-                  sf_tsd(jp_tem)%fnow(ji,jj,13:13) = sf_tsd(jp_tem)%fnow(ji,jj,13:13) - 0.20_wp
-                  sf_tsd(jp_tem)%fnow(ji,jj,14:15) = sf_tsd(jp_tem)%fnow(ji,jj,14:15) - 0.35_wp
-                  sf_tsd(jp_tem)%fnow(ji,jj,16:25) = sf_tsd(jp_tem)%fnow(ji,jj,16:25) - 0.40_wp
-                  !
-                  sf_tsd(jp_sal)%fnow(ji,jj,13:13) = sf_tsd(jp_sal)%fnow(ji,jj,13:13) - 0.15_wp
-                  sf_tsd(jp_sal)%fnow(ji,jj,14:15) = sf_tsd(jp_sal)%fnow(ji,jj,14:15) - 0.25_wp
-                  sf_tsd(jp_sal)%fnow(ji,jj,16:17) = sf_tsd(jp_sal)%fnow(ji,jj,16:17) - 0.30_wp
-                  sf_tsd(jp_sal)%fnow(ji,jj,18:25) = sf_tsd(jp_sal)%fnow(ji,jj,18:25) - 0.35_wp
+            IF( sf_tsd(jp_tem)%ln_tint .OR. irec_n(jp_tem) /= irec_b(jp_tem) ) THEN
+               DO jj = mj0(ij0), mj1(ij1)
+                  DO ji = mi0(ii0), mi1(ii1)
+                     sf_tsd(jp_tem)%fnow(ji,jj,13:13) = sf_tsd(jp_tem)%fnow(ji,jj,13:13) - 0.20_wp
+                     sf_tsd(jp_tem)%fnow(ji,jj,14:15) = sf_tsd(jp_tem)%fnow(ji,jj,14:15) - 0.35_wp
+                     sf_tsd(jp_tem)%fnow(ji,jj,16:25) = sf_tsd(jp_tem)%fnow(ji,jj,16:25) - 0.40_wp
+                  END DO
                END DO
-            END DO
+               irec_b(jp_tem) = irec_n(jp_tem)
+            ENDIF
+            !
+            IF( sf_tsd(jp_sal)%ln_tint .OR. irec_n(jp_sal) /= irec_b(jp_sal) ) THEN
+               DO jj = mj0(ij0), mj1(ij1)
+                  DO ji = mi0(ii0), mi1(ii1)
+                     sf_tsd(jp_sal)%fnow(ji,jj,13:13) = sf_tsd(jp_sal)%fnow(ji,jj,13:13) - 0.15_wp
+                     sf_tsd(jp_sal)%fnow(ji,jj,14:15) = sf_tsd(jp_sal)%fnow(ji,jj,14:15) - 0.25_wp
+                     sf_tsd(jp_sal)%fnow(ji,jj,16:17) = sf_tsd(jp_sal)%fnow(ji,jj,16:17) - 0.30_wp
+                     sf_tsd(jp_sal)%fnow(ji,jj,18:25) = sf_tsd(jp_sal)%fnow(ji,jj,18:25) - 0.35_wp
+                  END DO
+               END DO
+               irec_b(jp_sal) = irec_n(jp_sal)
+            ENDIF
+            !
             ij0 =  87   ;   ij1 =  96                          ! Reduced temperature in Red Sea
             ii0 = 148   ;   ii1 = 160
             sf_tsd(jp_tem)%fnow( mi0(ii0):mi1(ii1) , mj0(ij0):mj1(ij1) ,  4:10 ) = 7.0_wp

@@ -29,7 +29,7 @@ MODULE usrdef_fmask
 #  include "vectopt_loop_substitute.h90"
    !!----------------------------------------------------------------------
    !! NEMO/OCE 4.0 , NEMO Consortium (2018)
-   !! $Id: usrdef_fmask.F90 10425 2018-12-19 21:54:16Z smasson $ 
+   !! $Id: usrdef_fmask.F90 13436 2020-08-25 15:11:29Z acc $ 
    !! Software governed by the CeCILL license (see ./LICENSE)
    !!----------------------------------------------------------------------
 CONTAINS
@@ -59,7 +59,7 @@ CONTAINS
       INTEGER  ::   isrow                    ! index for ORCA1 starting row
       !!----------------------------------------------------------------------
       !
-      IF( TRIM( cd_cfg ) == "orca" ) THEN      !==  ORCA Configurations  ==!
+      IF( TRIM( cd_cfg ) == "orca" .OR. TRIM( cd_cfg ) == "ORCA" ) THEN      !==  ORCA Configurations  ==!
          !
          SELECT CASE ( kcfg )
          !

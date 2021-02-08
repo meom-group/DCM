@@ -299,6 +299,7 @@
    sn_prec =    'drowned_precip_ERA_BSAS_interim' ,   24.,  'precip' ,    .true.   , .false. , 'yearly'  , 'wght_ERAi_BSAS-BSAS12_v4_bilin.nc' , ''       ,   ''
    sn_snow =    'drowned_snow_ERA_BSAS_interim'  ,    24.,  'snow'   ,    .true.   , .false. , 'yearly'  , 'wght_ERAi_BSAS-BSAS12_v4_bilin.nc' , ''       ,   ''
    sn_slp  =    'drowned_msl_ERAinterim'         ,     3., 'msl'     ,    .true.   , .false. , 'yearly'  , 'wght_ERAi-BSAS12_v4_bilin.nc'      , ''       ,   ''
+   sn_cc       = 'NOT USED'                      ,   24. , 'CC'      ,   .false.   , .true. , 'yearly'  , 'weights_core_orca2_bilinear_noc.nc' , ''       , ''
    sn_tdif =    'taudif_core'                    ,    24., 'taudif'  ,   .false.   , .true.  , 'yearly'  , 'weights_core_orca2_bilinear_noc'   , ''       ,   ''
 
 / 
@@ -332,10 +333,11 @@
 !-----------------------------------------------------------------------
 &namsbc_cpl    !   coupled ocean/atmosphere model                       ("key_oasis3")
 !-----------------------------------------------------------------------
-   nn_cplmodel   =     1   !  Maximum number of models to/from which NEMO is potentially sending/receiving data
-   ln_usecplmask = .false. !  use a coupling mask file to merge data received from several models
-   !                       !   -> file cplmask.nc with the float variable called cplmask (jpi,jpj,nn_cplmodel)
-   nn_cats_cpl   =     5   !  Number of sea ice categories over which coupling is to be carried out (if not 1)
+   nn_cplmodel       =     1   !  Maximum number of models to/from which NEMO is potentially sending/receiving data
+   ln_usecplmask     = .false. !  use a coupling mask file to merge data received from several models
+   !                           !   -> file cplmask.nc with the float variable called cplmask (jpi,jpj,nn_cplmodel)
+   ln_scale_ice_flux = .false. !  use ice fluxes that are already "ice weighted" ( i.e. multiplied ice concentration)
+   nn_cats_cpl       =     5   !  Number of sea ice categories over which coupling is to be carried out (if not 1)
    !_____________!__________________________!____________!_____________!______________________!________!
    !             !        description       !  multiple  !    vector   !       vector         ! vector !
    !             !                          ! categories !  reference  !     orientation      ! grids  !
@@ -438,7 +440,6 @@
       rn_deds     =  -166.67  !  magnitude of the damping on salinity   [mm/day]
       ln_sssr_bnd =  .true.   !  flag to bound erp term (associated with nn_sssr=2)
       rn_sssr_bnd =   4.e0    !  ABS(Max/Min) value of the damping erp term [mm/day]
-
       nn_sssr_ice =   1       ! control of sea surface restoring under sea-ice
                               ! 0 = no restoration under ice : * (1-icefrac)
                               ! 1 = restoration everywhere
@@ -477,6 +478,7 @@
       rn_rnf_max  = 5.735e-4  !  max value of the runoff climatologie over global domain ( ln_rnf_depth_ini = .true )
       rn_dep_max  = 150.      !  depth over which runoffs is spread ( ln_rnf_depth_ini = .true )
       nn_rnf_depth_file = 0   !  create (=1) a runoff depth file or not (=0)
+   ln_rnf_icb  = .false.   !  read in iceberg flux from a file (fill sn_i_rnf if .true.)
 
    cn_dir      = './'      !  root directory for the runoff data location
    !___________!_________________________!___________________!___________!_____________!________!___________!__________________!__________!_______________!
@@ -487,6 +489,7 @@
    sn_s_rnf    = ' '            ,        24.       , 'rosaline',   .true.     , .true. , 'yearly'  , ''       , '' , ''
    sn_t_rnf    = ' '            ,        24.       , 'rotemper',   .true.     , .true. , 'yearly'  , ''       , '' , ''
    sn_dep_rnf  = ' '            ,         0.       , 'rodepth' ,   .false.    , .true. , 'yearly'  , ''       , '' , ''
+   sn_i_rnf    = 'NOT_USED'              ,        -1.        , 'sorunoff',   .true.    , .true. , 'yearly'  , ''               , ''       , ''
 /
 !-----------------------------------------------------------------------
 &namsbc_apr    !   Atmospheric pressure used as ocean forcing           (ln_apr_dyn =T)
@@ -677,8 +680,8 @@
    !
    ln_tra_dmp    =.false.     !  open boudaries conditions for tracers
    ln_dyn3d_dmp  =.false.     !  open boundary condition for baroclinic velocities
-   rn_time_dmp   =  10.       ! Damping time GADA01e in days
-   rn_time_dmp_out =  10.     ! Outflow damping time GADA01e
+   rn_time_dmp   =  10.       ! Damping time scale in days
+   rn_time_dmp_out =  10.     ! Outflow damping time scale
    nn_rimwidth  = 1           !  width of the relaxation zone
    ln_vol     = .true.        !  total volume correction (see nn_volctl parameter)
    nn_volctl  = 0             !  = 0, the total water flux across open boundaries is zero
@@ -720,12 +723,14 @@
    ! melt ponds (be careful, bn_aip is the pond concentration (not fraction), so it differs from rn_iceapnd)
    bn_aip      = 'NOT USED'              ,         24.       , 'siapnd'  ,    .true.   , .false.,  'daily'  ,    ''            ,   ''     ,     ''
    bn_hip      = 'NOT USED'              ,         24.       , 'sihpnd'  ,    .true.   , .false.,  'daily'  ,    ''            ,   ''     ,     ''
+   bn_hil      = 'NOT USED'              ,         24.       , 'sihlid'  ,    .true.   , .false.,  'daily'  ,    ''            ,   ''     ,     ''
    ! if bn_t_i etc are "not used", then define arbitrary temperatures and salinity and ponds
    rn_ice_tem  = 270.         !  arbitrary temperature               of incoming sea ice
    rn_ice_sal  = 10.          !       --   salinity                            --
    rn_ice_age  = 30.          !       --   age                                 --
    rn_ice_apnd = 0.2          !       --   pond fraction = a_ip/a_i            --
    rn_ice_hpnd = 0.05         !       --   pond depth                          --
+   rn_ice_hlid = 0.0          !       --   pond lid depth                      --
 /
 !-----------------------------------------------------------------------
 &nambdy_tide   !  tidal forcing at open boundaries                      (default: OFF)
@@ -739,8 +744,8 @@
 !!                ***  Top/Bottom boundary condition  ***             !!
 !!                                                                    !!
 !!   namdrg        top/bottom drag coefficient                          (default: NO selection)
-!!   namdrg_top    top    friction                                      (ln_OFF=F & ln_isfcav=T)
-!!   namdrg_bot    bottom friction                                      (ln_OFF=F)
+!!   namdrg_top    top    friction                                      (ln_drg_OFF=F & ln_isfcav=T)
+!!   namdrg_bot    bottom friction                                      (ln_drg_OFF=F)
 !!   nambbc        bottom temperature boundary condition                (default: OFF)
 !!   nambbl        bottom boundary layer scheme                         (default: OFF)
 !!======================================================================
@@ -748,7 +753,7 @@
 !-----------------------------------------------------------------------
 &namdrg        !   top/bottom drag coefficient                          (default: NO selection)
 !-----------------------------------------------------------------------
-   ln_OFF      = .false.   !  free-slip       : Cd = 0                  (F => fill namdrg_bot
+   ln_drg_OFF  = .false.   !  free-slip       : Cd = 0                  (F => fill namdrg_bot
    ln_lin      = .false.   !      linear  drag: Cd = Cd0 Uc0                   &   namdrg_top)
    ln_non_lin  = .true.    !  non-linear  drag: Cd = Cd0 |U|
    ln_loglayer = .false.   !  logarithmic drag: Cd = vkarmn/log(z/z0) |U|
@@ -756,7 +761,7 @@
    ln_drgimp   = .true.    !  implicit top/bottom friction flag
 /
 !-----------------------------------------------------------------------
-&namdrg_top    !   TOP friction                                         (ln_OFF =F & ln_isfcav=T)
+&namdrg_top    !   TOP friction                                         (ln_drg_OFF =F & ln_isfcav=T)
 !-----------------------------------------------------------------------
    rn_Cd0      =  1.e-3    !  drag coefficient [-]
    rn_Uc0      =  0.4      !  ref. velocity [m/s] (linear drag=Cd0*Uc0) 
@@ -776,7 +781,7 @@
    sn_boost    = 'tfr_coef' ,       -12.        , 'tfr_coef',   .false.   , .true. , 'yearly'  ,   ''      ,   ''     ,   ''
 /
 !-----------------------------------------------------------------------
-&namdrg_bot    !   BOTTOM friction                                      (ln_OFF =F)
+&namdrg_bot    !   BOTTOM friction                                      (ln_drg_OFF =F)
 !-----------------------------------------------------------------------
    rn_Cd0      =  1.e-3    !  drag coefficient [-]
    rn_Uc0      =  0.4      !  ref. velocity [m/s] (linear drag=Cd0*Uc0) 
@@ -1188,8 +1193,13 @@
    !                       !                 = 2 first vertical derivative of mixing length bounded by 1
    !                       !                 = 3 as =2 with distinct dissipative an mixing length scale
    ln_mxl0     = .true.    !  surface mixing length scale = F(wind stress) (T) or not (F)
-   rn_mxl0     =   0.01    !  surface  buoyancy lenght scale minimum value
-   ln_drg      = .false.   !  top/bottom friction added as boundary condition of TKE
+      nn_mxlice    = 2        ! type of scaling under sea-ice
+                              !    = 0 no scaling under sea-ice
+                              !    = 1 scaling with constant sea-ice thickness
+                              !    = 2 scaling with mean sea-ice thickness ( only with SI3 sea-ice model )
+                              !    = 3 scaling with maximum sea-ice thickness
+      rn_mxlice   = 10.       ! max constant ice thickness value when scaling under sea-ice ( nn_mxlice=1)
+   rn_mxl0     =   0.04    !  surface  buoyancy lenght scale minimum value
    ln_lc       = .true.    !  Langmuir cell parameterisation (Axell 2002)
       rn_lc       =   0.15    !  coef. associated to Langmuir cells
    nn_etau     =   1       !  penetration of tke below the mixed layer (ML) due to NIWs
@@ -1200,7 +1210,11 @@
       nn_htau     =   1       !  type of exponential decrease of tke penetration below the ML
                               !        = 0  constant 10 m length scale
                               !        = 1  0.5m at the equator to 30m poleward of 40 degrees
-      rn_eice     =   4       !  below sea ice: =0 ON ; =4 OFF when ice fraction > 1/4   
+   nn_eice     =   1       !  attenutaion of langmuir & surface wave breaking under ice
+   !                       !           = 0 no impact of ice cover on langmuir & surface wave breaking
+   !                       !           = 1 weigthed by 1-TANH(10*fr_i)
+   !                       !           = 2 weighted by 1-fr_i
+   !                       !           = 3 weighted by 1-MIN(1,4*fr_i)   
 /
 !-----------------------------------------------------------------------
 &namzdf_gls    !   GLS vertical diffusion                               (ln_zdfgls =T)
@@ -1213,9 +1227,15 @@
    rn_crban      = 100.    !  Craig and Banner 1994 constant for wb tke flux
    rn_charn      = 70000.  !  Charnock constant for wb induced roughness length
    rn_hsro       =  0.02   !  Minimum surface roughness
+   rn_hsri       =  0.03   !  Ice-ocean roughness
    rn_frac_hs    =   1.3   !  Fraction of wave height as roughness (if nn_z0_met>1)
    nn_z0_met     =     2   !  Method for surface roughness computation (0/1/2/3)
-   !                             ! =3 requires ln_wave=T
+   !                       !     = 3 requires ln_wave=T
+   nn_z0_ice     =   1     !  attenutaion of surface wave breaking under ice
+   !                       !           = 0 no impact of ice cover
+   !                       !           = 1 roughness uses rn_hsri and is weigthed by 1-TANH(10*fr_i)
+   !                       !           = 2 roughness uses rn_hsri and is weighted by 1-fr_i
+   !                       !           = 3 roughness uses rn_hsri and is weighted by 1-MIN(1,4*fr_i)
    nn_bc_surf    =     1   !  surface condition (0/1=Dir/Neum)
    nn_bc_bot     =     1   !  bottom condition (0/1=Dir/Neum)
    nn_stab_func  =     2   !  stability function (0=Galp, 1= KC94, 2=CanutoA, 3=CanutoB)
@@ -1304,36 +1324,36 @@
 &namflo        !   float parameters                                     (default: OFF)
 !-----------------------------------------------------------------------
    ln_floats   = .false.      ! activate floats or not
-   jpnfl       = 1         !  total number of floats during the run
-   jpnnewflo   = 0         !  number of floats for the restart
-   ln_rstflo   = .false.   !  float restart (T) or not (F)
-   nn_writefl  =      75   !  frequency of writing in float output file
-   nn_stockfl  =    5475   !  frequency of creation of the float restart file
-   ln_argo     = .false.   !  Argo type floats (stay at the surface each 10 days)
-   ln_flork4   = .false.   !  trajectories computed with a 4th order Runge-Kutta (T)
-   !                       !  or computed with Blanke' scheme (F)
-   ln_ariane   = .true.    !  Input with Ariane tool convention(T)
-   ln_flo_ascii = .true.    !  Output with Ariane tool netcdf convention(F) or ascii file (T)
+      jpnfl       = 1         !    total number of floats during the run
+      jpnnewflo   = 0         !    number of floats for the restart
+      ln_rstflo   = .false.   !    float restart (T) or not (F)
+      nn_writefl  =      75   !    frequency of writing in float output file
+      nn_stockfl  =    5475   !    frequency of creation of the float restart file
+      ln_argo     = .false.   !    Argo type floats (stay at the surface each 10 days)
+      ln_flork4   = .false.   !    trajectories computed with a 4th order Runge-Kutta (T)
+      !                       !    or computed with Blanke' scheme (F)
+      ln_ariane   = .true.    !    Input with Ariane tool convention(T)
+      ln_flo_ascii = .true.    !    Output with Ariane tool netcdf convention(F) or ascii file (T)
 /
 !-----------------------------------------------------------------------
 &nam_diaharm   !   Harmonic analysis of tidal constituents              (default: OFF)
 !-----------------------------------------------------------------------
     ln_diaharm = .false.   ! Choose tidal harmonic output or not
-    nit000_han = 1         ! First time step used for harmonic analysis
-    nitend_han = 75        ! Last time step used for harmonic analysis
-    nstep_han  = 15        ! Time step frequency for harmonic analysis
-    tname(1)   = 'M2'      ! Name of tidal constituents
-    tname(2)   = 'K1'      !              ---
+       nit000_han = 1      !    First time step used for harmonic analysis
+       nitend_han = 75     !    Last time step used for harmonic analysis
+       nstep_han  = 15     !    Time step frequency for harmonic analysis
+       tname(1)   = 'M2'   !    Name of tidal constituents
+       tname(2)   = 'K1'   !              ---
 /
 !-----------------------------------------------------------------------
 &nam_diadct    !   transports through some sections                     (default: OFF)
 !-----------------------------------------------------------------------
     ln_diadct  = .false.   ! Calculate transport thru sections or not
-    nn_dct     = 15        !  time step frequency for transports computing
-    nn_dctwri  = 15        !  time step frequency for transports writing
-    nn_secdebug = 112       !      0 : no section to debug
-    !                      !     -1 : debug all section
-    !                      !  0 < n : debug section number n
+       nn_dct     = 15     !  time step frequency for transports computing
+       nn_dctwri  = 15     !  time step frequency for transports writing
+       nn_secdebug = 112   !      0 : no section to debug
+       !                   !     -1 : debug all section
+       !                   !  0 < n : debug section number n
 /
 !-----------------------------------------------------------------------
 &nam_dia25h    !  25h Mean Output                                       (default: OFF)

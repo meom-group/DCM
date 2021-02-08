@@ -279,7 +279,7 @@ CONTAINS
                DO jj = 2, jpjm1
                   DO ji = fs_2, fs_jpim1   ! vector opt.
                      IF( fmask(ji,jj,jk) == 0._wp ) THEN
-                        fmask(ji,jj,jk) = zshlat2d(ji,jj) * MIN( 1._wp , MAX( umask(ji,jj,jk), umask(ji,jj+1,jk), &
+                        fmask(ji,jj,jk) = zshlat2d(ji,jj * MIN( 1._wp , MAX( umask(ji,jj,jk), umask(ji,jj+1,jk), &
                            &                                           vmask(ji,jj,jk), vmask(ji+1,jj,jk) ) )
                      ENDIF
                   END DO

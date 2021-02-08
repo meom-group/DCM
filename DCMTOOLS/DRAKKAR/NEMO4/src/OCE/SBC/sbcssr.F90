@@ -36,7 +36,8 @@ MODULE sbcssr
 
    REAL(wp), PUBLIC, ALLOCATABLE, SAVE, DIMENSION(:,:) ::   erp   !: evaporation damping   [kg/m2/s]
    REAL(wp), PUBLIC, ALLOCATABLE, SAVE, DIMENSION(:,:) ::   qrp   !: heat flux damping        [w/m2]
-   REAL(wp),         ALLOCATABLE, SAVE, DIMENSION(:,:) ::   scalice   !: under ice relaxation coefficient
+   ! DRAKKAR for Dr Norm ...
+   REAL(wp), PUBLIC, ALLOCATABLE, SAVE, DIMENSION(:,:) ::   scalice   !: under ice relaxation coefficient
 
    !                                   !!* Namelist namsbc_ssr *
    INTEGER, PUBLIC ::   nn_sstr         ! SST/SSS restoring indicator
@@ -65,7 +66,7 @@ MODULE sbcssr
 
    !!----------------------------------------------------------------------
    !! NEMO/OCE 4.0 , NEMO Consortium (2018)
-   !! $Id: sbcssr.F90 10068 2018-08-28 14:09:04Z nicolasmartin $
+   !! $Id: sbcssr.F90 12276 2019-12-20 11:14:26Z cetlod $
    !! Software governed by the CeCILL license (see ./LICENSE)
    !!----------------------------------------------------------------------
 CONTAINS

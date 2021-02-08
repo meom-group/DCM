@@ -17,6 +17,10 @@ MODULE icerst
    USE dom_oce        ! ocean domain
    USE phycst  , ONLY : rt0
    USE sbc_oce , ONLY : nn_fsbc, ln_cpl
+   USE sbc_oce , ONLY : nn_components, jp_iam_sas   ! SAS ss[st]_m init
+   USE sbc_oce , ONLY : sst_m, sss_m                ! SAS ss[st]_m init
+   USE oce     , ONLY : tsn                         ! SAS ss[st]_m init
+   USE eosbn2  , ONLY : l_useCT, eos_pt_from_ct     ! SAS ss[st]_m init
    USE iceistate      ! sea-ice: initial state
    USE icectl         ! sea-ice: control
    !
@@ -34,7 +38,7 @@ MODULE icerst
 
    !!----------------------------------------------------------------------
    !! NEMO/ICE 4.0 , NEMO Consortium (2018)
-   !! $Id: icerst.F90 10425 2018-12-19 21:54:16Z smasson $
+   !! $Id: icerst.F90 13449 2020-09-03 14:40:10Z gsamson $
    !! Software governed by the CeCILL license (see ./LICENSE)
    !!----------------------------------------------------------------------
 CONTAINS
@@ -125,16 +129,17 @@ CONTAINS
       CALL iom_delay_rst( 'WRITE', 'ICE', numriw )   ! save only ice delayed global communication variables
 
       ! Prognostic variables
-      CALL iom_rstput( iter, nitrst, numriw, 'v_i' , v_i  )
-      CALL iom_rstput( iter, nitrst, numriw, 'v_s' , v_s  )
-      CALL iom_rstput( iter, nitrst, numriw, 'sv_i', sv_i )
-      CALL iom_rstput( iter, nitrst, numriw, 'a_i' , a_i  )
-      CALL iom_rstput( iter, nitrst, numriw, 't_su', t_su )
+      CALL iom_rstput( iter, nitrst, numriw, 'v_i'  , v_i   )
+      CALL iom_rstput( iter, nitrst, numriw, 'v_s'  , v_s   )
+      CALL iom_rstput( iter, nitrst, numriw, 'sv_i' , sv_i  )
+      CALL iom_rstput( iter, nitrst, numriw, 'a_i'  , a_i   )
+      CALL iom_rstput( iter, nitrst, numriw, 't_su' , t_su  )
       CALL iom_rstput( iter, nitrst, numriw, 'u_ice', u_ice )
       CALL iom_rstput( iter, nitrst, numriw, 'v_ice', v_ice )
       CALL iom_rstput( iter, nitrst, numriw, 'oa_i' , oa_i  )
-      CALL iom_rstput( iter, nitrst, numriw, 'a_ip', a_ip )
-      CALL iom_rstput( iter, nitrst, numriw, 'v_ip', v_ip )
+      CALL iom_rstput( iter, nitrst, numriw, 'a_ip' , a_ip  )
+      CALL iom_rstput( iter, nitrst, numriw, 'v_ip' , v_ip  )
+      CALL iom_rstput( iter, nitrst, numriw, 'v_il' , v_il  )
       ! Snow enthalpy
       DO jk = 1, nlay_s 
          WRITE(zchar1,'(I2.2)') jk
@@ -174,7 +179,7 @@ CONTAINS
       !!----------------------------------------------------------------------
       INTEGER           ::   jk
       LOGICAL           ::   llok
-      INTEGER           ::   id0, id1, id2, id3, id4   ! local integer
+      INTEGER           ::   id0, id1, id2, id3, id4, id5   ! local integer
       CHARACTER(len=25) ::   znam
       CHARACTER(len=2)  ::   zchar, zchar1
       REAL(wp)          ::   zfice, ziter
@@ -197,43 +202,43 @@ CONTAINS
          !                 ! ------------------------------ !
          
          ! Time info
-      CALL iom_get( numrir, 'nn_fsbc', zfice )
-      CALL iom_get( numrir, 'kt_ice' , ziter )    
-      IF(lwp) WRITE(numout,*) '   read ice restart file at time step    : ', ziter
-      IF(lwp) WRITE(numout,*) '   in any case we force it to nit000 - 1 : ', nit000 - 1
+         CALL iom_get( numrir, 'nn_fsbc', zfice )
+         CALL iom_get( numrir, 'kt_ice' , ziter )    
+         IF(lwp) WRITE(numout,*) '   read ice restart file at time step    : ', ziter
+         IF(lwp) WRITE(numout,*) '   in any case we force it to nit000 - 1 : ', nit000 - 1
 
-      ! Control of date
-      IF( ( nit000 - NINT(ziter) ) /= 1 .AND. ABS( nrstdt ) == 1 )   &
-         &     CALL ctl_stop( 'ice_rst_read ===>>>> : problem with nit000 in ice restart',  &
-         &                   '   verify the file or rerun with the value 0 for the',        &
-         &                   '   control of time parameter  nrstdt' )
-      IF( NINT(zfice) /= nn_fsbc          .AND. ABS( nrstdt ) == 1 )   &
-         &     CALL ctl_stop( 'ice_rst_read ===>>>> : problem with nn_fsbc in ice restart',  &
-         &                   '   verify the file or rerun with the value 0 for the',         &
-         &                   '   control of time parameter  nrstdt' )
+         ! Control of date
+         IF( ( nit000 - NINT(ziter) ) /= 1 .AND. ABS( nrstdt ) == 1 )   &
+            &     CALL ctl_stop( 'ice_rst_read ===>>>> : problem with nit000 in ice restart',  &
+            &                   '   verify the file or rerun with the value 0 for the',        &
+            &                   '   control of time parameter  nrstdt' )
+         IF( NINT(zfice) /= nn_fsbc          .AND. ABS( nrstdt ) == 1 )   &
+            &     CALL ctl_stop( 'ice_rst_read ===>>>> : problem with nn_fsbc in ice restart',  &
+            &                   '   verify the file or rerun with the value 0 for the',         &
+            &                   '   control of time parameter  nrstdt' )
 
          ! --- mandatory fields --- ! 
-      CALL iom_get( numrir, jpdom_autoglo, 'v_i' , v_i  )
-      CALL iom_get( numrir, jpdom_autoglo, 'v_s' , v_s  )
-      CALL iom_get( numrir, jpdom_autoglo, 'sv_i', sv_i )
-      CALL iom_get( numrir, jpdom_autoglo, 'a_i' , a_i  )
-      CALL iom_get( numrir, jpdom_autoglo, 't_su', t_su )
+         CALL iom_get( numrir, jpdom_autoglo, 'v_i'  , v_i   )
+         CALL iom_get( numrir, jpdom_autoglo, 'v_s'  , v_s   )
+         CALL iom_get( numrir, jpdom_autoglo, 'sv_i' , sv_i  )
+         CALL iom_get( numrir, jpdom_autoglo, 'a_i'  , a_i   )
+         CALL iom_get( numrir, jpdom_autoglo, 't_su' , t_su  )
          CALL iom_get( numrir, jpdom_autoglo, 'u_ice', u_ice )
          CALL iom_get( numrir, jpdom_autoglo, 'v_ice', v_ice )
-      ! Snow enthalpy
-      DO jk = 1, nlay_s
-         WRITE(zchar1,'(I2.2)') jk
-         znam = 'e_s'//'_l'//zchar1
-         CALL iom_get( numrir, jpdom_autoglo, znam , z3d )
-         e_s(:,:,jk,:) = z3d(:,:,:)
-      END DO
-      ! Ice enthalpy
-      DO jk = 1, nlay_i
-         WRITE(zchar1,'(I2.2)') jk
-         znam = 'e_i'//'_l'//zchar1
-         CALL iom_get( numrir, jpdom_autoglo, znam , z3d )
-         e_i(:,:,jk,:) = z3d(:,:,:)
-      END DO
+         ! Snow enthalpy
+         DO jk = 1, nlay_s
+            WRITE(zchar1,'(I2.2)') jk
+            znam = 'e_s'//'_l'//zchar1
+            CALL iom_get( numrir, jpdom_autoglo, znam , z3d )
+            e_s(:,:,jk,:) = z3d(:,:,:)
+         END DO
+         ! Ice enthalpy
+         DO jk = 1, nlay_i
+            WRITE(zchar1,'(I2.2)') jk
+            znam = 'e_i'//'_l'//zchar1
+            CALL iom_get( numrir, jpdom_autoglo, znam , z3d )
+            e_i(:,:,jk,:) = z3d(:,:,:)
+         END DO
          ! -- optional fields -- !
          ! ice age
          id1 = iom_varid( numrir, 'oa_i' , ldstop = .FALSE. )
@@ -253,13 +258,21 @@ CONTAINS
             a_ip(:,:,:) = 0._wp
             v_ip(:,:,:) = 0._wp
          ENDIF
-      ! fields needed for Met Office (Jules) coupling
-      IF( ln_cpl ) THEN
-            id3 = iom_varid( numrir, 'cnd_ice' , ldstop = .FALSE. )
-            id4 = iom_varid( numrir, 't1_ice'  , ldstop = .FALSE. )
-            IF( id3 > 0 .AND. id4 > 0 ) THEN         ! fields exist
-         CALL iom_get( numrir, jpdom_autoglo, 'cnd_ice', cnd_ice )
-         CALL iom_get( numrir, jpdom_autoglo, 't1_ice' , t1_ice  )
+         ! melt pond lids
+         id3 = iom_varid( numrir, 'v_il' , ldstop = .FALSE. )
+         IF( id3 > 0 ) THEN
+            CALL iom_get( numrir, jpdom_autoglo, 'v_il', v_il)
+         ELSE
+            IF(lwp) WRITE(numout,*) '   ==>>   previous run without melt ponds lids output then set it to zero'
+            v_il(:,:,:) = 0._wp
+         ENDIF
+         ! fields needed for Met Office (Jules) coupling
+         IF( ln_cpl ) THEN
+            id4 = iom_varid( numrir, 'cnd_ice' , ldstop = .FALSE. )
+            id5 = iom_varid( numrir, 't1_ice'  , ldstop = .FALSE. )
+            IF( id4 > 0 .AND. id5 > 0 ) THEN         ! fields exist
+               CALL iom_get( numrir, jpdom_autoglo, 'cnd_ice', cnd_ice )
+               CALL iom_get( numrir, jpdom_autoglo, 't1_ice' , t1_ice  )
             ELSE                                     ! start from rest
                IF(lwp) WRITE(numout,*) '   ==>>   previous run without conductivity output then set it to zero'
                cnd_ice(:,:,:) = 0._wp
@@ -272,13 +285,24 @@ CONTAINS
          !                 ! ---------------------------------- !
       ELSE                 ! == case of a simplified restart == !
          !                 ! ---------------------------------- !
-         CALL ctl_warn('ice_rst_read: you are using a simplified ice restart')
+         CALL ctl_warn('ice_rst_read: you are attempting to use an unsuitable ice restart')
          !
-         CALL ice_istate_init
+         IF( .NOT. ln_iceini .OR. nn_iceini_file == 2 ) THEN
+            CALL ctl_stop('STOP', 'ice_rst_read: you need ln_ice_ini=T and nn_iceini_file=0 or 1')
+         ELSE
+            CALL ctl_warn('ice_rst_read: using ice_istate to set initial conditions instead')
+         ENDIF
+         !
+         IF( nn_components == jp_iam_sas ) THEN   ! SAS case: ss[st]_m were not initialized by sbc_ssm_init
+            !
+            IF(lwp) WRITE(numout,*) '  SAS: default initialisation of ss[st]_m arrays used in ice_istate'
+            IF( l_useCT )  THEN    ;   sst_m(:,:) = eos_pt_from_ct( tsn(:,:,1,jp_tem), tsn(:,:,1,jp_sal) )
+            ELSE                   ;   sst_m(:,:) = tsn(:,:,1,jp_tem)
+            ENDIF
+            sss_m(:,:) = tsn(:,:,1,jp_sal)
+         ENDIF
+         !
          CALL ice_istate( nit000 )
-         !
-         IF( .NOT.ln_iceini .OR. .NOT.ln_iceini_file ) &
-            &   CALL ctl_stop('STOP', 'ice_rst_read: you need ln_ice_ini=T and ln_iceini_file=T')
          !
       ENDIF
 

@@ -45,8 +45,8 @@ MODULE sbcblk
    USE sbc_ice        ! Surface boundary condition: ice fields
    USE lib_fortran    ! to use key_nosignedzero
 #if defined key_si3
-   USE ice     , ONLY :   u_ice, v_ice, jpl, a_i_b, at_i_b, t_su, rn_cnd_s, hfx_err_dif
-   USE icethd_dh      ! for CALL ice_thd_snwblow
+   USE ice     , ONLY :   u_ice, v_ice, jpl, a_i_b, at_i_b, t_su, rn_cnd_s, hfx_err_dif, nn_qtrice
+   USE icevar         ! for CALL ice_var_snwblow
 #endif
    USE sbcblk_algo_ncar     ! => turb_ncar     : NCAR - CORE (Large & Yeager, 2009) 
    USE sbcblk_algo_coare    ! => turb_coare    : COAREv3.0 (Fairall et al. 2003) 
@@ -77,9 +77,9 @@ MODULE sbcblk
    REAL(wp), PARAMETER ::   R_dry = 287.05_wp     !: Specific gas constant for dry air              [J/K/kg]
    REAL(wp), PARAMETER ::   R_vap = 461.495_wp    !: Specific gas constant for water vapor          [J/K/kg]
    REAL(wp), PARAMETER ::   reps0 = R_dry/R_vap   !: ratio of gas constant for dry air and water vapor => ~ 0.622
-   REAL(wp), PARAMETER ::   rctv0 = R_vap/R_dry   !: for virtual temperature (== (1-eps)/eps) => ~ 0.608
+   REAL(wp), PARAMETER ::   rctv0 = R_vap/R_dry - 1._wp !: for virtual temperature (== (1-eps)/eps) => ~ 0.608
 
-   INTEGER , PARAMETER ::   jpfld   =10           ! maximum number of files to read
+   INTEGER , PARAMETER ::   jpfld   =11           ! maximum number of files to read
    INTEGER , PARAMETER ::   jp_wndi = 1           ! index of 10m wind velocity (i-component) (m/s)    at T-point
    INTEGER , PARAMETER ::   jp_wndj = 2           ! index of 10m wind velocity (j-component) (m/s)    at T-point
    INTEGER , PARAMETER ::   jp_tair = 3           ! index of 10m air temperature             (Kelvin)
@@ -89,13 +89,15 @@ MODULE sbcblk
    INTEGER , PARAMETER ::   jp_prec = 7           ! index of total precipitation (rain+snow) (Kg/m2/s)
    INTEGER , PARAMETER ::   jp_snow = 8           ! index of snow (solid prcipitation)       (kg/m2/s)
    INTEGER , PARAMETER ::   jp_slp  = 9           ! index of sea level pressure              (Pa)
-   INTEGER , PARAMETER ::   jp_tdif =10           ! index of tau diff associated to HF tau   (N/m2)   at T-point
+   INTEGER , PARAMETER ::   jp_cc   =10           ! index of cloud cover                     (-)      range:0-1
+   INTEGER , PARAMETER ::   jp_tdif =11           ! index of tau diff associated to HF tau   (N/m2)   at T-point
+
 #if defined key_drakkar
    LOGICAL             ::   ln_clim_forcing = .false.   ! Logical flag for use of climatological forcing 
                                                   !     ( T= climatological, F=interannual)
    ! note that jp_uw and jp_vw replace jp_wndi and jp_wndj.
    !           jp_wmod use the same value as jp_tdif. They cannot be used together
-   INTEGER  ::   jp_wmod =10           ! index of wind module                     (m/s)
+   INTEGER  ::   jp_wmod =11           ! index of wind module                     (m/s)
    INTEGER  ::   jp_uw   = 1           ! index of zonal pseudo stress             (m2/s2)
    INTEGER  ::   jp_vw   = 2           ! index of meridional pseudo stress        (m2/s2)
 #endif
@@ -154,7 +156,7 @@ MODULE sbcblk
 #  include "vectopt_loop_substitute.h90"
    !!----------------------------------------------------------------------
    !! NEMO/OCE 4.0 , NEMO Consortium (2018)
-   !! $Id: sbcblk.F90 10535 2019-01-16 17:36:47Z clem $
+   !! $Id: sbcblk.F90 13348 2020-07-27 16:55:57Z acc $
    !! Software governed by the CeCILL license (see ./LICENSE)
    !!----------------------------------------------------------------------
 CONTAINS
@@ -192,7 +194,7 @@ CONTAINS
       !! ** Method  : 
       !!
       !!----------------------------------------------------------------------
-      INTEGER  ::   ifpr, jfld            ! dummy loop indice and argument
+      INTEGER  ::   jfpr, jfld            ! dummy loop indice and argument
       INTEGER  ::   ios, ierror, ioptio   ! Local integer
 #if defined key_drakkar
       LOGICAL :: ll_clim
@@ -202,9 +204,9 @@ CONTAINS
       TYPE(FLD_N), DIMENSION(jpfld) ::   slf_i                 ! array of namelist informations on the fields to read
       TYPE(FLD_N) ::   sn_wndi, sn_wndj, sn_humi, sn_qsr       ! informations about the fields to be read
       TYPE(FLD_N) ::   sn_qlw , sn_tair, sn_prec, sn_snow      !       "                        "
-      TYPE(FLD_N) ::   sn_slp , sn_tdif                        !       "                        "
+      TYPE(FLD_N) ::   sn_slp , sn_tdif, sn_cc                 !       "                        "
       NAMELIST/namsbc_blk/ sn_wndi, sn_wndj, sn_humi, sn_qsr, sn_qlw ,                &   ! input fields
-         &                 sn_tair, sn_prec, sn_snow, sn_slp, sn_tdif,                &
+         &                 sn_tair, sn_prec, sn_snow, sn_slp, sn_tdif, sn_cc,         &
          &                 ln_NCAR, ln_COARE_3p0, ln_COARE_3p5, ln_ECMWF,             &   ! bulk algorithm
          &                 cn_dir , ln_taudif, rn_zqt, rn_zu,                         & 
          &                 rn_pfac, rn_efac, rn_vfac, ln_Cd_L12, ln_Cd_L15
@@ -264,7 +266,9 @@ CONTAINS
       slf_i(jp_qsr ) = sn_qsr    ;   slf_i(jp_qlw ) = sn_qlw
       slf_i(jp_tair) = sn_tair   ;   slf_i(jp_humi) = sn_humi
       slf_i(jp_prec) = sn_prec   ;   slf_i(jp_snow) = sn_snow
-      slf_i(jp_slp)  = sn_slp    ;   slf_i(jp_tdif) = sn_tdif
+      slf_i(jp_slp)  = sn_slp    ;   slf_i(jp_cc)   = sn_cc
+      slf_i(jp_tdif) = sn_tdif
+
 #if defined key_drakkar
       IF ( ln_clim_forcing ) THEN
         ! in this case uw and vw replace wndi and wndj, and wmod replace tdif
@@ -283,16 +287,27 @@ CONTAINS
       !                                      !- allocate the bulk structure
       ALLOCATE( sf(jfld), STAT=ierror )
       IF( ierror > 0 )   CALL ctl_stop( 'STOP', 'sbc_blk_init: unable to allocate sf structure' )
-      DO ifpr= 1, jfld
-         ALLOCATE( sf(ifpr)%fnow(jpi,jpj,1) )
-         IF( slf_i(ifpr)%ln_tint )   ALLOCATE( sf(ifpr)%fdta(jpi,jpj,1,2) )
-         IF( slf_i(ifpr)%freqh > 0. .AND. MOD( NINT(3600. * slf_i(ifpr)%freqh), nn_fsbc * NINT(rdt) ) /= 0 )   &
-            &  CALL ctl_warn( 'sbc_blk_init: sbcmod timestep rdt*nn_fsbc is NOT a submultiple of atmospheric forcing frequency.',   &
-            &                 '               This is not ideal. You should consider changing either rdt or nn_fsbc value...' )
 
-      END DO
       !                                      !- fill the bulk structure with namelist informations
       CALL fld_fill( sf, slf_i, cn_dir, 'sbc_blk_init', 'surface boundary condition -- bulk formulae', 'namsbc_blk' )
+      !
+      DO jfpr = 1, jfld
+         !
+         IF( TRIM(sf(jfpr)%clrootname) == 'NOT USED' ) THEN    !--  not used field  --!   (only now allocated and set to zero)
+            ALLOCATE( sf(jfpr)%fnow(jpi,jpj,1) )
+            sf(jfpr)%fnow(:,:,1) = 0._wp
+         ELSE                                                  !-- used field --!
+            ALLOCATE( sf(jfpr)%fnow(jpi,jpj,1) )
+            IF( slf_i(jfpr)%ln_tint )   ALLOCATE( sf(jfpr)%fdta(jpi,jpj,1,2) )
+            IF( slf_i(jfpr)%freqh > 0. .AND. MOD( NINT(3600. * slf_i(jfpr)%freqh), nn_fsbc * NINT(rdt) ) /= 0 )                      &
+               &  CALL ctl_warn( 'sbc_blk_init: sbcmod timestep rdt*nn_fsbc is NOT a submultiple of atmospheric forcing frequency.', &
+               &                 '               This is not ideal. You should consider changing either rdt or nn_fsbc value...' )
+         ENDIF
+      ENDDO
+      ! fill cloud cover array with constant value if "not used"
+      IF( TRIM(sf(jp_cc)%clrootname) == 'NOT USED' )   sf(jp_cc)%fnow(:,:,1) = pp_cldf
+         
+
 #if defined key_drakkar
       IF ( ln_kata ) THEN
          ! katabatik mask (read in NetCDF file)
@@ -337,7 +352,7 @@ CONTAINS
          WRITE(numout,*) '   Namelist namsbc_blk (other than data information):'
          WRITE(numout,*) '      "NCAR"      algorithm   (Large and Yeager 2008)     ln_NCAR      = ', ln_NCAR
          WRITE(numout,*) '      "COARE 3.0" algorithm   (Fairall et al. 2003)       ln_COARE_3p0 = ', ln_COARE_3p0
-         WRITE(numout,*) '      "COARE 3.5" algorithm   (Edson et al. 2013)         ln_COARE_3p5 = ', ln_COARE_3p0
+         WRITE(numout,*) '      "COARE 3.5" algorithm   (Edson et al. 2013)         ln_COARE_3p5 = ', ln_COARE_3p5
          WRITE(numout,*) '      "ECMWF"     algorithm   (IFS cycle 31)              ln_ECMWF     = ', ln_ECMWF
 #if defined key_drakkar
          WRITE(numout,*) '      Use Lionel Renault CFB tau parameterization         ln_LR        = ', ln_LR
@@ -471,6 +486,9 @@ CONTAINS
       !
       ! local scalars ( place there for vector optimisation purposes)
       zst(:,:) = pst(:,:) + rt0      ! convert SST from Celcius to Kelvin (and set minimum value far above 0 K)
+
+      ! --- cloud cover --- !
+      cloud_fra(:,:) = sf(jp_cc)%fnow(:,:,1)
 
       ! ----------------------------------------------------------------------------- !
       !      0   Wind components and module at T-point relative to the moving ocean   !
@@ -872,6 +890,7 @@ CONTAINS
       INTEGER  ::   ji, jj    ! dummy loop indices
       REAL(wp) ::   zwndi_f , zwndj_f, zwnorm_f   ! relative wind module and components at F-point
       REAL(wp) ::   zwndi_t , zwndj_t             ! relative wind components at T-point
+      REAL(wp) ::   zztmp1  , zztmp2              ! temporary values
       REAL(wp), DIMENSION(jpi,jpj) ::   zrhoa     ! transfer coefficient for momentum      (tau)
       !!---------------------------------------------------------------------
       !
@@ -918,25 +937,31 @@ CONTAINS
       ! Computing density of air! Way denser that 1.2 over sea-ice !!!
       zrhoa (:,:) =  rho_air(sf(jp_tair)%fnow(:,:,1), sf(jp_humi)%fnow(:,:,1), sf(jp_slp)%fnow(:,:,1))
 
-      !!gm brutal....
-      utau_ice  (:,:) = 0._wp
-      vtau_ice  (:,:) = 0._wp
-      !!gm end
-
       ! ------------------------------------------------------------ !
       !    Wind stress relative to the moving ice ( U10m - U_ice )   !
       ! ------------------------------------------------------------ !
-      ! C-grid ice dynamics :   U & V-points (same as ocean)
-      DO jj = 2, jpjm1
+      zztmp1 = rn_vfac * 0.5_wp
+      DO jj = 2, jpj    ! at T point
+         DO ji = 2, jpi
+            zztmp2 = zrhoa(ji,jj) * Cd_atm(ji,jj) * wndm_ice(ji,jj)
+            utau_ice(ji,jj) = zztmp2 * ( sf(jp_wndi)%fnow(ji,jj,1) - zztmp1 * ( u_ice(ji-1,jj  ) + u_ice(ji,jj) ) )
+            vtau_ice(ji,jj) = zztmp2 * ( sf(jp_wndj)%fnow(ji,jj,1) - zztmp1 * ( v_ice(ji  ,jj-1) + v_ice(ji,jj) ) )
+         END DO
+      END DO
+      !
+      DO jj = 2, jpjm1  ! U & V-points (same as ocean).
          DO ji = fs_2, fs_jpim1   ! vect. opt.
-            utau_ice(ji,jj) = 0.5 * zrhoa(ji,jj) * Cd_atm(ji,jj) * ( wndm_ice(ji+1,jj  ) + wndm_ice(ji,jj) )            &
-               &          * ( 0.5 * (sf(jp_wndi)%fnow(ji+1,jj,1) + sf(jp_wndi)%fnow(ji,jj,1) ) - rn_vfac * u_ice(ji,jj) )
-            vtau_ice(ji,jj) = 0.5 * zrhoa(ji,jj) * Cd_atm(ji,jj) * ( wndm_ice(ji,jj+1  ) + wndm_ice(ji,jj) )            &
-               &          * ( 0.5 * (sf(jp_wndj)%fnow(ji,jj+1,1) + sf(jp_wndj)%fnow(ji,jj,1) ) - rn_vfac * v_ice(ji,jj) )
+            ! take care of the land-sea mask to avoid "pollution" of coastal stress. p[uv]taui used in frazil and  rheology 
+            zztmp1 = 0.5_wp * ( 2. - umask(ji,jj,1) ) * MAX( tmask(ji,jj,1),tmask(ji+1,jj  ,1) )
+            zztmp2 = 0.5_wp * ( 2. - vmask(ji,jj,1) ) * MAX( tmask(ji,jj,1),tmask(ji  ,jj+1,1) )
+            utau_ice(ji,jj) = zztmp1 * ( utau_ice(ji,jj) + utau_ice(ji+1,jj  ) )
+            vtau_ice(ji,jj) = zztmp2 * ( vtau_ice(ji,jj) + vtau_ice(ji  ,jj+1) )
+
 #if defined key_drakkar
+            ! At this point, utau_ice and vtau_ice are already on U and V points on the C-grid
             IF (ln_kata ) THEN ! Apply Katabatic wind enhancement on stress
-               utau_ice(ji,jj) = utau_ice(ji,jj) * 0.5 * ( rmskkatax(ji+1,jj) + rmskkatax(ji,jj) )
-               vtau_ice(ji,jj) = vtau_ice(ji,jj) * 0.5 * ( rmskkatay(ji,jj+1) + rmskkatay(ji,jj) )
+               utau_ice(ji,jj) = utau_ice(ji,jj) * rmskkatax(ji,jj) 
+               vtau_ice(ji,jj) = vtau_ice(ji,jj) * rmskkatay(ji,jj)
             ENDIF
 #endif
          END DO
@@ -972,8 +997,7 @@ CONTAINS
       INTEGER  ::   ji, jj, jl               ! dummy loop indices
       REAL(wp) ::   zst3                     ! local variable
       REAL(wp) ::   zcoef_dqlw, zcoef_dqla   !   -      -
-      REAL(wp) ::   zztmp, z1_rLsub           !   -      -
-      REAL(wp) ::   zfr1, zfr2               ! local variables
+      REAL(wp) ::   zztmp, z1_rLsub          !   -      -
       REAL(wp), DIMENSION(jpi,jpj,jpl) ::   z1_st         ! inverse of surface temperature
       REAL(wp), DIMENSION(jpi,jpj,jpl) ::   z_qlw         ! long wave heat flux over ice
       REAL(wp), DIMENSION(jpi,jpj,jpl) ::   z_qsb         ! sensible  heat flux over ice
@@ -982,6 +1006,7 @@ CONTAINS
       REAL(wp), DIMENSION(jpi,jpj)     ::   zevap, zsnw   ! evaporation and snw distribution after wind blowing (SI3)
       REAL(wp), DIMENSION(jpi,jpj)     ::   zrhoa
       REAL(wp), DIMENSION(jpi,jpj)     ::   ztmp, ztmp2
+      REAL(wp), DIMENSION(jpi,jpj)     ::   ztri
       !!---------------------------------------------------------------------
       !
       zcoef_dqlw = 4.0 * 0.95 * Stef             ! local scalars
@@ -1056,7 +1081,7 @@ CONTAINS
 
       ! --- evaporation minus precipitation --- !
       zsnw(:,:) = 0._wp
-      CALL ice_thd_snwblow( (1.-at_i_b(:,:)), zsnw )  ! snow distribution over ice after wind blowing
+      CALL ice_var_snwblow( (1.-at_i_b(:,:)), zsnw )  ! snow distribution over ice after wind blowing
       emp_oce(:,:) = ( 1._wp - at_i_b(:,:) ) * zevap(:,:) - ( tprecip(:,:) - sprecip(:,:) ) - sprecip(:,:) * (1._wp - zsnw )
       emp_ice(:,:) = SUM( a_i_b(:,:,:) * evap_ice(:,:,:), dim=3 ) - sprecip(:,:) * zsnw
       emp_tot(:,:) = emp_oce(:,:) + emp_ice(:,:)
@@ -1083,17 +1108,28 @@ CONTAINS
          !                         ! But we do not have Tice => consider it at 0degC => evap=0 
       END DO
 
-      ! --- shortwave radiation transmitted below the surface (W/m2, see Grenfell Maykut 77) --- !
-      zfr1 = ( 0.18 * ( 1.0 - cldf_ice ) + 0.35 * cldf_ice )            ! transmission when hi>10cm
-      zfr2 = ( 0.82 * ( 1.0 - cldf_ice ) + 0.65 * cldf_ice )            ! zfr2 such that zfr1 + zfr2 to equal 1
-      !
-      WHERE    ( phs(:,:,:) <= 0._wp .AND. phi(:,:,:) <  0.1_wp )       ! linear decrease from hi=0 to 10cm  
-         qtr_ice_top(:,:,:) = qsr_ice(:,:,:) * ( zfr1 + zfr2 * ( 1._wp - phi(:,:,:) * 10._wp ) )
-      ELSEWHERE( phs(:,:,:) <= 0._wp .AND. phi(:,:,:) >= 0.1_wp )       ! constant (zfr1) when hi>10cm
-         qtr_ice_top(:,:,:) = qsr_ice(:,:,:) * zfr1
-      ELSEWHERE                                                         ! zero when hs>0
-         qtr_ice_top(:,:,:) = 0._wp 
-      END WHERE
+      ! --- shortwave radiation transmitted thru the surface scattering layer (W/m2) --- !
+      IF( nn_qtrice == 0 ) THEN
+         ! formulation derived from Grenfell and Maykut (1977), where transmission rate
+         !    1) depends on cloudiness
+         !    2) is 0 when there is any snow
+         !    3) tends to 1 for thin ice
+         ztri(:,:) = 0.18 * ( 1.0 - cloud_fra(:,:) ) + 0.35 * cloud_fra(:,:)  ! surface transmission when hi>10cm
+         DO jl = 1, jpl
+            WHERE    ( phs(:,:,jl) <= 0._wp .AND. phi(:,:,jl) <  0.1_wp )     ! linear decrease from hi=0 to 10cm  
+               qtr_ice_top(:,:,jl) = qsr_ice(:,:,jl) * ( ztri(:,:) + ( 1._wp - ztri(:,:) ) * ( 1._wp - phi(:,:,jl) * 10._wp ) )
+            ELSEWHERE( phs(:,:,jl) <= 0._wp .AND. phi(:,:,jl) >= 0.1_wp )     ! constant (ztri) when hi>10cm
+               qtr_ice_top(:,:,jl) = qsr_ice(:,:,jl) * ztri(:,:)
+            ELSEWHERE                                                         ! zero when hs>0
+               qtr_ice_top(:,:,jl) = 0._wp 
+            END WHERE
+         ENDDO
+      ELSEIF( nn_qtrice == 1 ) THEN
+         ! formulation is derived from the thesis of M. Lebrun (2019).
+         !    It represents the best fit using several sets of observations
+         !    It comes with snow conductivities adapted to freezing/melting conditions (see icethd_zdf_bl99.F90)
+         qtr_ice_top(:,:,:) = 0.3_wp * qsr_ice(:,:,:)
+      ENDIF
       !
 
       IF( iom_use('evap_ao_cea') .OR. iom_use('hflx_evap_cea') ) THEN

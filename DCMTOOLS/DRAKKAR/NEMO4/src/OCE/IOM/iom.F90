@@ -87,7 +87,7 @@ MODULE iom
   
    !!----------------------------------------------------------------------
    !! NEMO/OCE 4.0 , NEMO Consortium (2018)
-   !! $Id: iom.F90 10816 2019-03-29 17:19:08Z smasson $
+   !! $Id: iom.F90 13297 2020-07-13 08:01:58Z andmirek $
    !! Software governed by the CeCILL license (see ./LICENSE)
    !!----------------------------------------------------------------------
 CONTAINS
@@ -106,9 +106,9 @@ CONTAINS
       !
       TYPE(xios_duration) :: dtime    = xios_duration(0, 0, 0, 0, 0, 0)
       TYPE(xios_date)     :: start_date
-      CHARACTER(len=lc) :: clname
+      CHARACTER(len=lc)   :: clname
       INTEGER             :: irefyear, irefmonth, irefday
-      INTEGER           :: ji, jkmin
+      INTEGER             :: ji
       LOGICAL :: llrst_context              ! is context related to restart
       !
       REAL(wp), ALLOCATABLE, DIMENSION(:,:) :: zt_bnds, zw_bnds
@@ -142,6 +142,7 @@ CONTAINS
       IF (.NOT.(xios_getvar('ref_year' ,irefyear ))) irefyear  = 1900
       IF (.NOT.(xios_getvar('ref_month',irefmonth))) irefmonth = 01
       IF (.NOT.(xios_getvar('ref_day'  ,irefday  ))) irefday   = 01
+
       SELECT CASE ( nleapy )        ! Choose calendar for IOIPSL
       CASE ( 1)   ; CALL xios_define_calendar( TYPE = "Gregorian", time_origin = xios_date(irefyear,irefmonth,irefday,00,00,00), &
           &                                    start_date = xios_date(nyear,nmonth,nday,0,0,0) )
@@ -204,12 +205,11 @@ CONTAINS
           CALL iom_set_axis_attr( "depthw",  paxis = gdepw_1d )
 
           ! Add vertical grid bounds
-          jkmin = MIN(2,jpk)  ! in case jpk=1 (i.e. sas2D)
           zt_bnds(2,:        ) = gdept_1d(:)
-          zt_bnds(1,jkmin:jpk) = gdept_1d(1:jpkm1)
+          zt_bnds(1,2:jpk    ) = gdept_1d(1:jpkm1)
           zt_bnds(1,1        ) = gdept_1d(1) - e3w_1d(1)
           zw_bnds(1,:        ) = gdepw_1d(:)
-          zw_bnds(2,1:jpkm1  ) = gdepw_1d(jkmin:jpk)
+          zw_bnds(2,1:jpkm1  ) = gdepw_1d(2:jpk)
           zw_bnds(2,jpk:     ) = gdepw_1d(jpk) + e3t_1d(jpk)
           CALL iom_set_axis_attr( "deptht", bounds=zw_bnds )
           CALL iom_set_axis_attr( "depthu", bounds=zw_bnds )
@@ -320,7 +320,7 @@ CONTAINS
         IF( TRIM(Agrif_CFixed()) == '0' ) THEN
            rst_file = TRIM(clpath)//TRIM(cn_ocerst_in)
         ELSE
-           rst_file = TRIM(clpath)//'1_'//TRIM(cn_ocerst_in)
+           rst_file = TRIM(clpath)//TRIM(Agrif_CFixed())//'_'//TRIM(cn_ocerst_in)
         ENDIF
 !set name of the restart file and enable available fields
         if(lwp) WRITE(numout,*) 'Setting restart filename (for XIOS) to: ',rst_file
@@ -514,6 +514,8 @@ CONTAINS
         i = i + 1; fields(i)%vname="hbl";            fields(i)%grid="grid_N"
         i = i + 1; fields(i)%vname="hbli";           fields(i)%grid="grid_N"
         i = i + 1; fields(i)%vname="wn";             fields(i)%grid="grid_N_3D"
+        i = i + 1; fields(i)%vname="a_fwb_b";        fields(i)%grid="grid_scalar"
+        i = i + 1; fields(i)%vname="a_fwb";          fields(i)%grid="grid_scalar"
 
         IF( i-1 > max_rst_fields) THEN
            WRITE(ctmp1,*) 'E R R O R : iom_set_rst_vars SIZE of RST_FIELD array is too small'
@@ -1347,6 +1349,7 @@ CONTAINS
       !
    END SUBROUTINE iom_get_123d
 
+! DRAKKAR try to follow Dr Norm strictly ...:) 
    SUBROUTINE iom_get_var( cdname, p2d)
       CHARACTER(LEN=*),             INTENT(in   )::   cdname
       REAL(wp), DIMENSION(jpi,jpj), INTENT(inout)::   p2d 
@@ -1359,6 +1362,7 @@ CONTAINS
       IF( .FALSE. )   WRITE(numout,*) cdname, p2d ! useless test to avoid compilation warnings
 #endif
    END SUBROUTINE iom_get_var
+
 
    FUNCTION iom_getszuld ( kiomid )  
       !!-----------------------------------------------------------------------
@@ -1727,6 +1731,7 @@ CONTAINS
       IF( .FALSE. )   WRITE(numout,*) cdname, pfield3d   ! useless test to avoid compilation warnings
 #endif
    END SUBROUTINE iom_p3d
+
    SUBROUTINE iom_p4d( cdname, pfield4d )
       CHARACTER(LEN=*)                  , INTENT(in) ::   cdname
       REAL(wp),       DIMENSION(:,:,:,:), INTENT(in) ::   pfield4d
@@ -1736,6 +1741,7 @@ CONTAINS
       IF( .FALSE. )   WRITE(numout,*) cdname, pfield4d   ! useless test to avoid compilation warnings
 #endif
    END SUBROUTINE iom_p4d
+
 
 #if defined key_iomput
    !!----------------------------------------------------------------------

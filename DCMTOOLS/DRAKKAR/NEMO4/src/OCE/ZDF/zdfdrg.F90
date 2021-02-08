@@ -31,6 +31,7 @@ MODULE zdfdrg
    USE lbclnk         ! ocean lateral boundary conditions (or mpp link)
    USE lib_mpp        ! distributed memory computing
    USE prtctl         ! Print control
+   USE sbc_oce , ONLY : nn_ice 
 #if defined key_drakkar
    USE fldread, ONLY : FLD_N
 #endif
@@ -43,12 +44,12 @@ MODULE zdfdrg
    PUBLIC   zdf_drg_init    ! called by zdf_phy_init
 
    !                                 !!* Namelist namdrg: nature of drag coefficient namelist *
-   LOGICAL          ::   ln_OFF       ! free-slip       : Cd = 0
+   LOGICAL , PUBLIC ::   ln_drg_OFF   ! free-slip       : Cd = 0
    LOGICAL          ::   ln_lin       !     linear  drag: Cd = Cd0_lin
    LOGICAL          ::   ln_non_lin   ! non-linear  drag: Cd = Cd0_nl |U|
    LOGICAL          ::   ln_loglayer  ! logarithmic drag: Cd = vkarmn/log(z/z0)
    LOGICAL , PUBLIC ::   ln_drgimp    ! implicit top/bottom friction flag
-
+   LOGICAL , PUBLIC ::   ln_drgice_imp ! implicit ice-ocean drag 
    !                                 !!* Namelist namdrg_top & _bot: TOP or BOTTOM coefficient namelist *
    REAL(wp)         ::   rn_Cd0       !: drag coefficient                                           [ - ]
    REAL(wp)         ::   rn_Uc0       !: characteristic velocity (linear case: tau=rho*Cd0*Uc0*u)   [m/s]
@@ -78,7 +79,7 @@ MODULE zdfdrg
 #  include "vectopt_loop_substitute.h90"
    !!----------------------------------------------------------------------
    !! NEMO/OCE 4.0 , NEMO Consortium (2018)
-   !! $Id: zdfdrg.F90 10069 2018-08-28 14:12:24Z nicolasmartin $
+   !! $Id: zdfdrg.F90 13481 2020-09-16 17:14:51Z clem $
    !! Software governed by the CeCILL license (see ./LICENSE)
    !!----------------------------------------------------------------------
 CONTAINS
@@ -233,7 +234,7 @@ CONTAINS
       INTEGER   ::   ji, jj      ! dummy loop indexes
       INTEGER   ::   ios, ioptio   ! local integers
       !!
-      NAMELIST/namdrg/ ln_OFF, ln_lin, ln_non_lin, ln_loglayer, ln_drgimp
+      NAMELIST/namdrg/ ln_drg_OFF, ln_lin, ln_non_lin, ln_loglayer, ln_drgimp, ln_drgice_imp
       !!----------------------------------------------------------------------
       !
       !                     !==  drag nature  ==!
@@ -246,38 +247,46 @@ CONTAINS
 902   IF( ios >  0 )   CALL ctl_nam( ios , 'namdrg in configuration namelist' )
       IF(lwm) WRITE ( numond, namdrg )
       !
+      IF( ln_drgice_imp .AND. nn_ice /= 2 )   ln_drgice_imp = .FALSE.
+      !
       IF(lwp) THEN
          WRITE(numout,*)
          WRITE(numout,*) 'zdf_drg_init : top and/or bottom drag setting'
          WRITE(numout,*) '~~~~~~~~~~~~'
          WRITE(numout,*) '   Namelist namdrg : top/bottom friction choices'
-         WRITE(numout,*) '      free-slip       : Cd = 0                  ln_OFF      = ', ln_OFF 
+         WRITE(numout,*) '      free-slip       : Cd = 0                  ln_drg_OFF  = ', ln_drg_OFF 
          WRITE(numout,*) '      linear  drag    : Cd = Cd0                ln_lin      = ', ln_lin
          WRITE(numout,*) '      non-linear  drag: Cd = Cd0_nl |U|         ln_non_lin  = ', ln_non_lin
          WRITE(numout,*) '      logarithmic drag: Cd = vkarmn/log(z/z0)   ln_loglayer = ', ln_loglayer
          WRITE(numout,*) '      implicit friction                         ln_drgimp   = ', ln_drgimp
+         WRITE(numout,*) '      implicit ice-ocean drag                   ln_drgice_imp  =', ln_drgice_imp
       ENDIF
       !
       ioptio = 0                       ! set ndrg and control check
-      IF( ln_OFF      ) THEN   ;   ndrg = np_OFF        ;   ioptio = ioptio + 1   ;   ENDIF
+      IF( ln_drg_OFF  ) THEN   ;   ndrg = np_OFF        ;   ioptio = ioptio + 1   ;   ENDIF
       IF( ln_lin      ) THEN   ;   ndrg = np_lin        ;   ioptio = ioptio + 1   ;   ENDIF
       IF( ln_non_lin  ) THEN   ;   ndrg = np_non_lin    ;   ioptio = ioptio + 1   ;   ENDIF
       IF( ln_loglayer ) THEN   ;   ndrg = np_loglayer   ;   ioptio = ioptio + 1   ;   ENDIF
       !
       IF( ioptio /= 1 )   CALL ctl_stop( 'zdf_drg_init: Choose ONE type of drag coef in namdrg' )
       !
+      IF ( ln_drgice_imp.AND.(.NOT.ln_drgimp) ) & 
+         &                CALL ctl_stop( 'zdf_drg_init: ln_drgice_imp=T requires ln_drgimp=T' )
       !
       !                     !==  BOTTOM drag setting  ==!   (applied at seafloor)
       !
       ALLOCATE( rCd0_bot(jpi,jpj), rCdU_bot(jpi,jpj) )
       CALL drg_init( 'BOTTOM'   , mbkt       ,                                         &   ! <== in
          &           r_Cdmin_bot, r_Cdmax_bot, r_z0_bot, r_ke0_bot, rCd0_bot, rCdU_bot )   ! ==> out
-
       !
       !                     !==  TOP drag setting  ==!   (applied at the top of ocean cavities)
       !
-      IF( ln_isfcav ) THEN              ! Ocean cavities: top friction setting
-         ALLOCATE( rCd0_top(jpi,jpj), rCdU_top(jpi,jpj) )
+      IF( ln_isfcav.OR.ln_drgice_imp ) THEN              ! Ocean cavities: top friction setting
+         ALLOCATE( rCdU_top(jpi,jpj) )
+      ENDIF
+      !
+      IF( ln_isfcav ) THEN
+         ALLOCATE( rCd0_top(jpi,jpj))
          CALL drg_init( 'TOP   '   , mikt       ,                                         &   ! <== in
             &           r_Cdmin_top, r_Cdmax_top, r_z0_top, r_ke0_top, rCd0_top, rCdU_top )   ! ==> out
       ENDIF

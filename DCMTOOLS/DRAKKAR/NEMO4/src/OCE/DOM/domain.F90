@@ -52,7 +52,7 @@ MODULE domain
 
    !!-------------------------------------------------------------------------
    !! NEMO/OCE 4.0 , NEMO Consortium (2018)
-   !! $Id: domain.F90 10425 2018-12-19 21:54:16Z smasson $
+   !! $Id: domain.F90 13436 2020-08-25 15:11:29Z acc $
    !! Software governed by the CeCILL license (see ./LICENSE)
    !!-------------------------------------------------------------------------
 CONTAINS
@@ -112,7 +112,7 @@ CONTAINS
          WRITE(numout,*)     '      Ocean model configuration used:'
          WRITE(numout,*)     '         cn_cfg = ', TRIM( cn_cfg ), '   nn_cfg = ', nn_cfg
       ENDIF
-      lwxios = .FALSE.
+      nn_wxios = 0
       ln_xios_read = .FALSE.
       !
       !           !==  Reference coordinate system  ==!
@@ -390,9 +390,9 @@ CONTAINS
          IF( nn_stock == -1 )   CALL ctl_warn( 'nn_stock = -1 --> no restart will be done' )
          IF( nn_stock == 0 .OR. nn_stock > nitend ) THEN
             WRITE(ctmp1,*) 'nn_stock = ', nn_stock, ' it is forced to ', nitend
-         CALL ctl_warn( ctmp1 )
+            CALL ctl_warn( ctmp1 )
             nn_stock = nitend
-      ENDIF
+         ENDIF
       ENDIF
 #if ! defined key_iomput
       IF( nn_write == -1 )   CALL ctl_warn( 'nn_write = -1 --> no output files will be done' )
@@ -581,7 +581,7 @@ CONTAINS
          IF( kk_cfg == -999     ) kk_cfg = -9999999
          !
       ENDIF
-      !
+       !
       idvar = iom_varid( inum, 'e3t_0', kdimsz = idimsz )   ! use e3t_0, that must exist, to get jp(ijk)glo
       kpi = idimsz(1)
       kpj = idimsz(2)
@@ -635,7 +635,7 @@ CONTAINS
       
       !
       !                             !==  ORCA family specificities  ==!
-      IF( cn_cfg == "ORCA" ) THEN
+      IF( TRIM(cn_cfg) == "orca" .OR. TRIM(cn_cfg) == "ORCA" ) THEN
          CALL iom_rstput( 0, 0, inum, 'ORCA'      , 1._wp            , ktype = jp_i4 )
          CALL iom_rstput( 0, 0, inum, 'ORCA_index', REAL( nn_cfg, wp), ktype = jp_i4 )         
       ENDIF

@@ -81,7 +81,7 @@ MODULE timing
    LOGICAL :: lwriter
    !!----------------------------------------------------------------------
    !! NEMO/OCE 4.0 , NEMO Consortium (2018)
-   !! $Id: timing.F90 10510 2019-01-14 16:13:17Z clem $
+   !! $Id: timing.F90 11536 2019-09-11 13:54:18Z smasson $
    !! Software governed by the CeCILL license (see ./LICENSE)
    !!----------------------------------------------------------------------
 CONTAINS
