@@ -5,7 +5,7 @@
 #SBATCH -J nemo_jean-zay
 #SBATCH -e nemo_jean-zay.e%j
 #SBATCH -o nemo_jean-zay.o%j
-#SBACTH -A fqx@cpu
+#SBATCH -A fqx@cpu
 #SBATCH --time=1:00:00
 #SBATCH --exclusive
 
