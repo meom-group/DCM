@@ -196,6 +196,9 @@ getforcing()        {
          tmp=$( LookInNamelist ln_clim_forcing );  tmp=$(normalize $tmp )
          if [ $tmp = T ] ; then filter="$filter | grep -v sn_wndi  | grep -v sn_wndj " ; fi
          ln_clim_forcing=$tmp
+         # check for cloud cover
+         tmp=$( LookInNamelist  sn_cc ) 
+         if [ $tmp = NOT ] ; then filter="$filter | grep -v sn_cc " ; fi
 
          getweight $blk $P_WEI_DIR $F_WEI_DIR
          getfiles $blk  $P_FOR_DIR $F_FOR_DIR
@@ -243,7 +246,7 @@ getforcing()        {
      if [ $tmp = T ] ; then blk=namsbc_wave ;  getfiles $blk $P_DTA_DIR $F_DTA_DIR ;  fi
 
      # RUN_OFF 
-     filter='| grep -v sn_s_rnf | grep -v sn_t_rnf | grep -v sn_dep_rnf '
+     filter='| grep -v sn_s_rnf | grep -v sn_t_rnf | grep -v sn_dep_rnf | grep -v sn_i_rnf '
      tmp=$(LookInNamelist ln_rnf namelist) ; tmp=$(normalize $tmp )
      if [ $tmp = T ] ; then blk=namsbc_rnf ;  getfiles $blk $P_DTA_DIR $F_DTA_DIR ;  fi
 
@@ -271,6 +274,13 @@ getforcing()        {
      else 
        extra=1
      fi 
+     #  iceberg runoff
+     tmp=$(LookInNamelist ln_rnf_icb namelist) ; tmp=$(normalize $tmp )
+     if [ $tmp = F ] ; then
+       filter="$filter | grep -v sn_i_rnf "
+     else
+       extra=1
+     fi
 
      if [ $extra = 1 ] ; then
        blk=namsbc_rnf ;  getfiles $blk $P_DTA_DIR $F_DTA_DIR 
