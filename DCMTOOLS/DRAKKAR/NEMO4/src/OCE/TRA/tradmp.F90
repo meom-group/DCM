@@ -487,20 +487,22 @@ CONTAINS
         ! Vertical limitation
         zmask = 1.
         WHERE ( gdept_1d < pz1 .OR. gdept_1d > pz2 ) zmask = 0.
+        ! Look for first 1 from the top and keep corresponding ik1 index
         iloc=MAXLOC(zmask) ; ik1 = iloc(1)
+        ! Reset the upper part of zmask to 1
         zmask(1:ik1) = 1.
-        iloc=MAXLOC(zmask) ; ik2 = iloc(1) - 1
-        zmask(1:ik1) = 1.
-        iloc=MAXLOC(zmask) ; ik2 = iloc(1) - 1
-        IF (ik2 > 2 ) THEN
-          zmask = 0._wp
+        ! Look from the first 0 from the top and infer the ik2 index
+        iloc=MINLOC(zmask) ; ik2 = iloc(1) - 1
+        ! Now restore zmask to correct value using a 2 points ramp if possible
+        zmask =0._wp
+        IF (ik2 -ik1 > 4 ) THEN
           zmask(ik1       ) = 0.25_wp
           zmask(ik1+1     ) = 0.75_wp
           zmask(ik1+2:ik2-2) = 1.0_wp
           zmask(ik2-1     ) = 0.75_wp
           zmask(ik2       ) = 0.25_wp
         ELSE
-          zmask = 1.   ! all the water column is restored the same
+          zmask(ik1:ik2) = 1._wp   ! all the water column is restored the same
         ENDIF
 
         DO jk=1, jpk
