@@ -165,7 +165,6 @@
        <field id="CO3"         long_name="Bicarbonates"                            unit="mol/m3"     grid_ref="grid_T_3D" />
        <field id="CO3sat"      long_name="CO3 saturation"                          unit="mol/m3"     grid_ref="grid_T_3D" />
        <field id="PAR"         long_name="Photosynthetically Available Radiation"  unit="W/m2"       grid_ref="grid_T_3D" />
-       <field id="PARDM"       long_name="Daily mean PAR"                          unit="W/m2"       grid_ref="grid_T_3D" />
        <field id="PPPHYN"      long_name="Primary production of nanophyto"         unit="molC/m3/s"  grid_ref="grid_T_3D" />
        <field id="PPPHYP"      long_name="Primary production of picophyto"         unit="molC/m3/s"  grid_ref="grid_T_3D" />
        <field id="PPPHYD"      long_name="Primary production of diatoms"           unit="molC/m3/s"  grid_ref="grid_T_3D" />

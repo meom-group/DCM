@@ -163,6 +163,12 @@
           <field id="hfxsensib"    long_name="Net sensible heat flux under sea ice (neg = ice cooling)"         standard_name="ice_ocean_heat_flux"                        unit="W/m2" />
           <field id="hfxcndtop"    long_name="Net conductive heat flux at the ice surface (neg = ice cooling)"  standard_name="conductive_heat_flux_at_sea_ice_surface"    unit="W/m2" /> 
           <field id="hfxcndbot"    long_name="Net conductive heat flux at the ice bottom (neg = ice cooling)"   standard_name="conductive_heat_flux_at_sea_ice_bottom"     unit="W/m2" />
+          <!-- clem: uncomment when uncommented in iceupdate.F90 -->
+          <!--
+          <field id="hfxmelt"      long_name="Melt heat flux at the ice surface"       unit="W/m2" />
+          <field id="hfxldmelt"    long_name="Heat flux in the lead for ice melting"   unit="W/m2" />
+          <field id="hfxldgrow"    long_name="Heat flux in the lead for ice growth"    unit="W/m2" />
+          -->
 
           <!-- diags -->
           <field id="hfxdhc"       long_name="Heat content variation in snow and ice (neg = ice cooling)"   unit="W/m2" />

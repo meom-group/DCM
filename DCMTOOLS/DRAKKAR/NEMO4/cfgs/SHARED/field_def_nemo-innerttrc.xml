@@ -42,8 +42,8 @@
        <field id="DeltaC14"     long_name="Delta C14"                                unit="permil"    grid_ref="grid_T_3D"  />
        <field id="C14Age"       long_name="Radiocarbon age"                          unit="yr"        grid_ref="grid_T_3D"  />
        <field id="RAge"         long_name="Reservoir Age"                            unit="yr"       />
-       <field id="qtr_C14"      long_name="Air-sea flux of C14"                      unit="1/m2/s"   />
-       <field id="qint_C14"     long_name="Cumulative air-sea flux of C14"           unit="1/m2"     />
+       <field id="qtr_c14"      long_name="Air-sea flux of C14"                      unit="1/m2/s"   />
+       <field id="qint_c14"     long_name="Cumulative air-sea flux of C14"           unit="1/m2"     />
        <field id="AtmCO2"       long_name="Global atmospheric CO2"                   unit="ppm"      />
        <field id="AtmC14"       long_name="Global atmospheric DeltaC14"              unit="permil"   />
        <field id="K_C14"        long_name="Global 14C/C exchange velocity"           unit="m/yr"     />

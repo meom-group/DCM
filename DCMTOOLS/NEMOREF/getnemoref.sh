@@ -24,4 +24,6 @@
 # as of March, 27 2020
 #svn co -r 12591  https://forge.ipsl.jussieu.fr/nemo/svn/NEMO/releases/r4.0/r4.0.2 NEMO4
 # as of February,8 2021
-svn co -r 14325  https://forge.ipsl.jussieu.fr/nemo/svn/NEMO/releases/r4.0/r4.0.5 NEMO4
+#svn co -r 14325  https://forge.ipsl.jussieu.fr/nemo/svn/NEMO/releases/r4.0/r4.0.5 NEMO4
+# as of March,15 2021
+svn co -r 14608  https://forge.ipsl.jussieu.fr/nemo/svn/NEMO/releases/r4.0/r4.0.6 NEMO4

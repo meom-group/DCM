@@ -595,7 +595,7 @@
    !                                 ! Put a test iceberg at each gridpoint in box (lon1,lon2,lat1,lat2)
    rn_test_box             = 108.0,  116.0, -66.0, -58.0
    ln_use_calving          = .false. ! Use calving data even when nn_test_icebergs > 0
-   rn_speed_limit          = 0.      ! CFL speed limit for a berg
+   rn_speed_limit          = 0.      ! CFL speed limit for a berg (safe value is 0.4, see #2581)
 
    cn_dir      = './'      !  root directory for the calving data location
    !___________!_________________________!___________________!___________!_____________!________!___________!__________________!__________!_______________!
