@@ -261,7 +261,7 @@ cleaninst:
 	@-\rm -rf $(CDIR)/W$(CONFIG)-$(CASE)/*
 
 clean:
-	@cd $(COMPIL_DIR)/CONFIG/ ; ./makenemo -r $(CONFIG)-$(CASE) clean 
+	@cd $(COMPIL_DIR) ; ./makenemo -r $(CONFIG)-$(CASE) clean 
 
 # restore target is used to restore a SINGLE file from the 3levels references
 # must be invoked like : make restore RESTORE=OPA_SRC/SBC/ocesbc.F90  (for instance, with the full path relative to NEMO)
