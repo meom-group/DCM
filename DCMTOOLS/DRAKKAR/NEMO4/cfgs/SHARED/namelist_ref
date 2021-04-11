@@ -601,7 +601,20 @@
    !___________!_________________________!___________________!___________!_____________!________!___________!__________________!__________!_______________!
    !           !  file name              ! frequency (hours) ! variable  ! time interp.!  clim  ! 'yearly'/ ! weights filename ! rotation ! land/sea mask !
    !           !                         !  (if <0  months)  !   name    !   (logical) !  (T/F) ! 'monthly' !                  ! pairing  !    filename   !
-   sn_icb     =  'calving'              ,         -1.        ,'calvingmask',  .true.   , .true. , 'yearly'  , ''               , ''       , ''
+   sn_icb     =  'calving'              ,         -12.       ,'calvingmask',  .true.   , .true. , 'yearly'  , ''               , ''       , ''
+/
+!-----------------------------------------------------------------------
+&namberg_drk      !   drakkar iceberg parameters
+!-----------------------------------------------------------------------
+      cn_icbrst_in             = "restart_icebergs"   ! name of restart file
+      cn_icbrst_out            = "restart_icebergs"
+      cn_icbdir_trj            = "<CN_DIRICB>"          ! name of directory for icb trajectory output
+   nn_icb_freq = 1                                    ! number of diffent frequencies for data input (including standard one, above)
+                                                      ! 1 means no extra frequencies
+   !___________!_________________________!___________________!___________!_____________!________!___________!__________________!__________!_______________!
+   !           !  file name              ! frequency (hours) ! variable  ! time interp.!  clim  ! 'yearly'/ ! weights filename ! rotation ! land/sea mask !
+   !           !                         !  (if <0  months)  !   name    !   (logical) !  (T/F) ! 'monthly' !                  ! pairing  !    filename   !
+   sn_icb2(1)  = 'eORCA025_calving_Greenland' , -1.          ,'soicbclv' ,  .TRUE.     , .true. , 'yearly'  , ''               , ''       , ''
 /
 
 !!======================================================================
@@ -1267,6 +1280,20 @@
    ln_mevar    = .true.    !  variable (T) or constant (F) mixing efficiency
    ln_tsdiff   = .true.    !  account for differential T/S mixing (T) or not (F)
 /
+!-----------------------------------------------------------------------
+&namzdf_iwm_drk  !    internal wave-driven mixing parameterization      (ln_zdfiwm =T)
+!-----------------------------------------------------------------------
+   cn_dir     =  './'
+   !___________!_________________________!___________________!___________!_____________!________!___________!__________________!__________!_______________!
+   !           !  file name              ! frequency (hours) ! variable  ! time interp.!  clim  ! 'yearly'/ ! weights filename ! rotation ! land/sea mask !
+   !           !                         !  (if <0  months)  !   name    !   (logical) !  (T/F) ! 'monthly' !                  ! pairing  !    filename   !
+   sn_iwmdsc   = 'eORCA025_iwm_b0.2_v0.0' ,  12.        , 'decay_scale_cri' , .false.  , .true. , 'yearly'  , ''               , ''       , ''
+   sn_iwmdsb   = 'eORCA025_iwm_b0.2_v0.0' ,  12.        , 'decay_scale_bot' , .false.  , .true. , 'yearly'  , ''               , ''       , ''
+   sn_iwmmpc   = 'eORCA025_iwm_b0.2_v0.0' ,  12.        , 'mixing_power_cri', .false.  , .true. , 'yearly'  , ''               , ''       , ''
+   sn_iwmmpp   = 'eORCA025_iwm_b0.2_v0.0' ,  12.        , 'mixing_power_pyc', .false.  , .true. , 'yearly'  , ''               , ''       , ''
+   sn_iwmmpb   = 'eORCA025_iwm_b0.2_v0.0' ,  12.        , 'mixing_power_bot', .false.  , .true. , 'yearly'  , ''               , ''       , ''
+/
+
 
 !!======================================================================
 !!                  ***  Diagnostics namelists  ***                   !!
