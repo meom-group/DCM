@@ -476,7 +476,7 @@ CONTAINS
       REAL(wp), DIMENSION(jpi,jpj) ::   zU_zu             ! bulk wind speed at height zu  [m/s]
       REAL(wp), DIMENSION(jpi,jpj) ::   ztpot             ! potential temperature of air at z=rn_zqt [K]
       REAL(wp), DIMENSION(jpi,jpj) ::   zrhoa             ! density of air   [kg/m^3]
-#ifdef key_drakkar
+#if defined key_drakkar
       REAL(wp), DIMENSION(jpi,jpj) ::   zssu              ! Ocean surface U velocity
       REAL(wp), DIMENSION(jpi,jpj) ::   zssv              ! Ocean surface V velocity
       REAL(wp) ::   zUo                  ! local variable
