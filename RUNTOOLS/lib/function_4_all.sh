@@ -458,6 +458,14 @@ getcalving()  {
         if [ $nn_test_icebergs = -1 ] ; then
            blk=namberg ; getfiles $blk  $P_DTA_DIR $F_DTA_DIR
         fi
+        # test if there are additional files to look at
+        nn_icb_freq=$(LookInNamelist nn_icb_freq  namelist namberg_drk)
+        if [ $nn_icb_freq ] ; then  # found the namberg_drk block !
+          blk=namberg_drk
+          if [ $nn_icb_freq -gt 1 ] ; then
+              getfiles $blk $P_DTA_DIR $F_DTA_DIR
+          fi
+        fi
           }
 # ---
 # get isf files
@@ -584,7 +592,7 @@ getweight() {
 # get data files associated with the block namelist ( eventually filtered )
 getfiles()  {
          # This function is now accepting bdy request
-         # the key "sn_" is thus now a variable that can take either sn_ or bn_ 9for BDY)
+         # the key "sn_" is thus now a variable that can take either sn_ or bn_ for BDY)
          zstr="sn_"
          zbdyset=""
          bdyflag=0
