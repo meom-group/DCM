@@ -77,6 +77,7 @@ CONTAINS
          !
          CALL fld_read ( kt, 1, sf_icb )
 #if defined key_drakkar
+         src_calving(:,:) = 0._wp    ! need to restore to 0 because of the accumulation
          DO ji = 1, nn_icb_freq
            src_calving     (:,:) = src_calving(:,:)+ sf_icb(ji)%fnow(:,:,1)    ! calving in km^3/year (water equivalent)
          ENDDO
