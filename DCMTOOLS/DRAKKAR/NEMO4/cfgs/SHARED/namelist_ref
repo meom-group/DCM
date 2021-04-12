@@ -492,6 +492,17 @@
    sn_i_rnf    = 'NOT_USED'              ,        -1.        , 'sorunoff',   .true.    , .true. , 'yearly'  , ''               , ''       , ''
 /
 !-----------------------------------------------------------------------
+&namsbc_rnf    !   runoffs                                              (ln_rnf =T)
+!-----------------------------------------------------------------------
+   nn_rnf_freq = 1               ! number of data set for runoff
+   ! extra data set : 
+   !___________!_________________________!___________________!___________!_____________!________!___________!__________________!__________!_______________!
+   !           !  file name              ! frequency (hours) ! variable  ! time interp.!  clim  ! 'yearly'/ ! weights filename ! rotation ! land/sea mask !
+   !           !                         !  (if <0  months)  !   name    !   (logical) !  (T/F) ! 'monthly' !                  ! pairing  !    filename   !
+   sn_rnf2(1)  = 'runoff_BSAS12_v4.3bis' , -1., 'sorunoff', .true.  , .true. , 'yearly'  , ''       , '' , ''
+   sn_rnf2(2)  = 'runoff_BSAS12_autre'   , -12., 'sorunoff', .true.  , .true. , 'yearly'  , ''       , '' , ''
+/
+!-----------------------------------------------------------------------
 &namsbc_apr    !   Atmospheric pressure used as ocean forcing           (ln_apr_dyn =T)
 !-----------------------------------------------------------------------
    rn_pref     = 101000.   !  reference atmospheric pressure   [N/m2]/
