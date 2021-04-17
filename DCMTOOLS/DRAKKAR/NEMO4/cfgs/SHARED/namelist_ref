@@ -492,9 +492,9 @@
    sn_i_rnf    = 'NOT_USED'              ,        -1.        , 'sorunoff',   .true.    , .true. , 'yearly'  , ''               , ''       , ''
 /
 !-----------------------------------------------------------------------
-&namsbc_rnf    !   runoffs                                              (ln_rnf =T)
+&namsbc_rnf_drk     !   runoffs   (key_drakkar)                           (ln_rnf =T)
 !-----------------------------------------------------------------------
-   nn_rnf_freq = 1               ! number of data set for runoff
+   nn_rnf_freq = 1               ! number of data set for runoff (at least 1)
    ! extra data set : 
    !___________!_________________________!___________________!___________!_____________!________!___________!__________________!__________!_______________!
    !           !  file name              ! frequency (hours) ! variable  ! time interp.!  clim  ! 'yearly'/ ! weights filename ! rotation ! land/sea mask !
@@ -548,6 +548,16 @@
    sn_depmin_isf ='rnfisf'   ,         -12.      ,'sozisfmin',  .false.    , .true.  , 'yearly'  ,    ''    ,   ''     ,    ''
 !* nn_isf = 2 case
    sn_Leff_isf = 'rnfisf'    ,         -12.      ,'Leff'     ,  .false.    , .true.  , 'yearly'  ,    ''    ,   ''     ,    ''
+/
+!-----------------------------------------------------------------------
+&namsbc_isf_drk    !  Top boundary layer (ISF) drakkar                   (ln_isfcav =T : read (ln_read_cfg=T) + key_drakkar
+!-----------------------------------------------------------------------             or set or usr_def_zgr )
+   nn_rnfisf_freq = 1         ! total number of files used for rnfisf (at least 1)
+   ! extra data set : 
+   !___________!_____________!___________________!___________!_____________!_________!___________!__________!__________!_______________!
+   !           !  file name  ! frequency (hours) ! variable  ! time interp.!  clim   ! 'yearly'/ ! weights  ! rotation ! land/sea mask !
+   !           !             !  (if <0  months)  !   name    !  (logical)  !  (T/F)  ! 'monthly' ! filename ! pairing  ! filename      !
+   sn_rnfisf2(1)   = 'rnfisf'    ,         -12.      ,'sofwfisf' ,  .false.    , .true.  , 'yearly'  ,    ''    ,   ''     ,    ''
 /
 !-----------------------------------------------------------------------
 &namsbc_iscpl  !   land ice / ocean coupling option                     (ln_isfcav =T : read (ln_read_cfg=T) 
@@ -622,6 +632,7 @@
       cn_icbdir_trj            = "<CN_DIRICB>"          ! name of directory for icb trajectory output
    nn_icb_freq = 1                                    ! number of diffent frequencies for data input (including standard one, above)
                                                       ! 1 means no extra frequencies
+   ! extra data set : 
    !___________!_________________________!___________________!___________!_____________!________!___________!__________________!__________!_______________!
    !           !  file name              ! frequency (hours) ! variable  ! time interp.!  clim  ! 'yearly'/ ! weights filename ! rotation ! land/sea mask !
    !           !                         !  (if <0  months)  !   name    !   (logical) !  (T/F) ! 'monthly' !                  ! pairing  !    filename   !
