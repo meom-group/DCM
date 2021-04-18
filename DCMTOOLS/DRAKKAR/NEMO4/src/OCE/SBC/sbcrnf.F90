@@ -134,6 +134,7 @@ CONTAINS
              DO ji = 1, nn_rnf_freq
                rnf(:,:) = rnf(:,:) + sf_rnf(ji)%fnow(:,:,1)    !
              ENDDO
+             rnf(:,:) = rn_rfact * rnf(:,:) * tmask(:,:,1)  ! updated runoff value at time step kt
 #else
              rnf(:,:) = rn_rfact * ( sf_rnf(1)%fnow(:,:,1) ) * tmask(:,:,1)  ! updated runoff value at time step kt
 #endif
