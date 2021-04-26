@@ -250,6 +250,15 @@ getforcing()        {
      tmp=$(LookInNamelist ln_rnf namelist) ; tmp=$(normalize $tmp )
      if [ $tmp = T ] ; then blk=namsbc_rnf ;  getfiles $blk $P_DTA_DIR $F_DTA_DIR ;  fi
 
+      # test if there are additional files to look at
+      nn_rnf_freq=$(LookInNamelist nn_rnf_freq  namelist namsbc_rnf_drk)
+      if [ $nn_rnf_freq ] ; then  # found the namberg_drk block !
+        blk_extra=namsbc_rnf_drk
+        if [ $nn_rnf_freq -gt 1 ] ; then
+            getfiles $blk_extra $P_DTA_DIR $F_DTA_DIR
+        fi
+      fi
+
      # extra files 
      filter='| grep -v sn_rnf | grep -v sn_cnf '
      extra=0
@@ -481,6 +490,15 @@ getisf () {
        if [ $nn_isf = 3 ] ; then  # 
          filter='| grep -v sn_fwfisf | grep -v sn_Leff_isf ' 
          getfiles $blk $P_DTA_DIR $F_DTA_DIR
+         # test if there are additional files to look at
+         filter=''
+         nn_rnfisf_freq=$(LookInNamelist nn_rnfisf_freq  namelist namsbc_isf_drk)
+         if [ $nn_rnfisf_freq ] ; then  # found the namsbc_isf_drk block !
+            blk=namsbc_isf_drk
+            if [ $nn_rnfisf_freq -gt 1 ] ; then
+               getfiles $blk $P_DTA_DIR $F_DTA_DIR
+            fi
+         fi
        fi
        if [ $nn_isf = 4 ] ; then  # 
          filter='| grep -v sn_rnfisf | grep -v sn_Leff_isf | grep -v sn_depmax_isf | grep -v sn_depmin_isf' 
