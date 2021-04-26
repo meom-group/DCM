@@ -71,7 +71,7 @@ go='1'
 while [ $go ] ; do 
    step=$(cat $TIMESTEP) ;
    rstep=$(echo $step $nit000 | awk '{ print $1 - $2 + 1 }' )
-   rwri=$(echo $rstep $nwrite | awk '{ print $1 / $2 }' )
+#   rwri=$(echo $rstep $nwrite | awk '{ print $1 / $2 }' )
    rday=$( echo $rstep $nstpday | awk '{ print $1 / $2 }' )
    cdate=$(grep DATE ocean.output | tail -1 | awk '{ print $10}')
    if [ $oldrstep = $rstep ] ; then
