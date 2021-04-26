@@ -38,6 +38,7 @@ MODULE icbini
    TYPE(FLD_N)                                        ::   sn_icb          !: information about the calving file to be read
 #if defined key_drakkar
    INTEGER, PUBLIC                                    ::   nn_icb_freq     !: Total number of frequency file for calving including standard
+   LOGICAL                                            ::   ln_rstart_icb   !: Namelist flag for restarting iceberg
    TYPE(FLD_N), DIMENSION(5)                          ::   sn_icb2         !: extra frequency calving file ( less than 6 files do far)
    TYPE(FLD_N), DIMENSION(6)  :: slf_icb
 #endif
@@ -306,7 +307,11 @@ CONTAINS
 #endif
       ENDIF
 
+#if defined key_drakkar
+      IF( .NOT.ln_rstart_icb .OR. .NOT. ln_rstart ) THEN
+#else
       IF( .NOT.ln_rstart ) THEN
+#endif
          IF( nn_test_icebergs > 0 )   CALL icb_ini_gen()
       ELSE
          IF( nn_test_icebergs > 0 ) THEN
@@ -415,7 +420,7 @@ CONTAINS
          &              rn_speed_limit , cn_dir, sn_icb
 #if defined key_drakkar
       CHARACTER(LEN=20) :: cl_no
-      NAMELIST/namberg_drk/ cn_icbrst_in,  cn_icbrst_out, cn_icbdir_trj, nn_icb_freq, sn_icb2
+      NAMELIST/namberg_drk/ cn_icbrst_in,  cn_icbrst_out, cn_icbdir_trj, nn_icb_freq, sn_icb2, ln_rstart_icb
 #endif
       !!----------------------------------------------------------------------
 

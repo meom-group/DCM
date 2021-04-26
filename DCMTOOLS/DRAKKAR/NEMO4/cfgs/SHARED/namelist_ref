@@ -70,7 +70,7 @@
 !-----------------------------------------------------------------------
 &namdom        !   time and space domain
 !-----------------------------------------------------------------------
-   ln_linssh   = .true.    !  =T  linear free surface  ==>>  model level are fixed in time
+   ln_linssh   = .false.   !  =T  linear free surface  ==>>  model level are fixed in time
    rn_isfhmin  =    1.00   !  treshold [m] to discriminate grounding ice from floating ice
    !
    rn_rdt      =    720.   !  time step for the dynamics and tracer
@@ -627,6 +627,7 @@
 !-----------------------------------------------------------------------
 &namberg_drk      !   drakkar iceberg parameters
 !-----------------------------------------------------------------------
+      ln_rstart_icb            = .true.               ! If false, reinitialize iceberg stuff
       cn_icbrst_in             = "restart_icebergs"   ! name of restart file
       cn_icbrst_out            = "restart_icebergs"
       cn_icbdir_trj            = "<CN_DIRICB>"          ! name of directory for icb trajectory output
@@ -1298,7 +1299,7 @@
 !-----------------------------------------------------------------------
 &namzdf_iwm    !    internal wave-driven mixing parameterization        (ln_zdfiwm =T)
 !-----------------------------------------------------------------------
-   nn_zpyc     = 1         !  pycnocline-intensified dissipation scales as N (=1) or N^2 (=2)
+   nn_zpyc     = 2         !  pycnocline-intensified dissipation scales as N (=1) or N^2 (=2)
    ln_mevar    = .true.    !  variable (T) or constant (F) mixing efficiency
    ln_tsdiff   = .true.    !  account for differential T/S mixing (T) or not (F)
 /
