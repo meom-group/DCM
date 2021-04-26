@@ -28,6 +28,10 @@ MODULE zdfiwm
    USE lib_mpp        ! MPP library
    USE lib_fortran    ! Fortran utilities (allows no signed zero when 'key_nosignedzero' defined)  
 
+#if defined key_drakkar
+   USE fldread, ONLY : FLD_N
+#endif
+
    IMPLICIT NONE
    PRIVATE
 
@@ -419,6 +423,12 @@ CONTAINS
       REAL(wp) ::   zbot, zpyc, zcri   ! local scalars
       !!
       NAMELIST/namzdf_iwm/ nn_zpyc, ln_mevar, ln_tsdiff
+#if defined key_drakkar
+      CHARACTER(len=255) :: cn_dir
+      CHARACTER(len=255) :: cf_in, cv_in
+      TYPE(FLD_N)        :: sn_iwmdsc, sn_iwmdsb, sn_iwmmpc, sn_iwmmpb, sn_iwmmpp
+      NAMELIST/namzdf_iwm_drk/ cn_dir, sn_iwmdsc, sn_iwmdsb, sn_iwmmpc, sn_iwmmpb, sn_iwmmpp
+#endif
       !!----------------------------------------------------------------------
       !
       REWIND( numnam_ref )              ! Namelist namzdf_iwm in reference namelist : Wave-driven mixing
@@ -430,6 +440,17 @@ CONTAINS
 902   IF( ios >  0 )   CALL ctl_nam ( ios , 'namzdf_iwm in configuration namelist' )
       IF(lwm) WRITE ( numond, namzdf_iwm )
       !
+#if defined key_drakkar
+      REWIND( numnam_ref )              ! Namelist namzdf_iwm in reference namelist : Wave-driven mixing
+      READ  ( numnam_ref, namzdf_iwm_drk, IOSTAT = ios, ERR = 903)
+903   IF( ios /= 0 )   CALL ctl_nam ( ios , 'namzdf_iwm_drk in reference namelist' )
+      !
+      REWIND( numnam_cfg )              ! Namelist namzdf_iwm in configuration namelist : Wave-driven mixing
+      READ  ( numnam_cfg, namzdf_iwm_drk, IOSTAT = ios, ERR = 904 )
+904   IF( ios >  0 )   CALL ctl_nam ( ios , 'namzdf_iwm_drk in configuration namelist' )
+      IF(lwm) WRITE ( numond, namzdf_iwm_drk )
+
+#endif
       IF(lwp) THEN                  ! Control print
          WRITE(numout,*)
          WRITE(numout,*) 'zdf_iwm_init : internal wave-driven mixing'
@@ -456,6 +477,37 @@ CONTAINS
       IF( zdf_iwm_alloc() /= 0 )   CALL ctl_stop( 'STOP', 'zdf_iwm_init : unable to allocate iwm arrays' )
       !
       !                             ! read necessary fields
+#if defined key_drakkar
+      cf_in=TRIM(cn_dir)//'/'//TRIM(sn_iwmmpb%clname)
+      cv_in=TRIM(sn_iwmmpb%clvar)
+      CALL iom_open(cf_in,inum)       ! energy flux for high-mode wave breaking [W/m2]
+      CALL iom_get  (inum, jpdom_data, cv_in, ebot_iwm, 1 ) 
+      CALL iom_close(inum)
+      !
+      cf_in=TRIM(cn_dir)//'/'//TRIM(sn_iwmmpp%clname)
+      cv_in=TRIM(sn_iwmmpp%clvar)
+      CALL iom_open(cf_in,inum)       ! energy flux for pynocline-intensified wave breaking [W/m2]
+      CALL iom_get  (inum, jpdom_data, cv_in, epyc_iwm, 1 )
+      CALL iom_close(inum)
+      !
+      cf_in=TRIM(cn_dir)//'/'//TRIM(sn_iwmmpc%clname)
+      cv_in=TRIM(sn_iwmmpc%clvar)
+      CALL iom_open(cf_in,inum)       ! energy flux for pynocline-intensified wave breaking [W/m2]
+      CALL iom_get  (inum, jpdom_data, cv_in, ecri_iwm, 1 )
+      CALL iom_close(inum)
+      !
+      cf_in=TRIM(cn_dir)//'/'//TRIM(sn_iwmdsb%clname)
+      cv_in=TRIM(sn_iwmdsb%clvar)
+      CALL iom_open(cf_in,inum)       ! energy flux for pynocline-intensified wave breaking [W/m2]
+      CALL iom_get  (inum, jpdom_data, cv_in, hbot_iwm, 1 )
+      CALL iom_close(inum)
+      !
+      cf_in=TRIM(cn_dir)//'/'//TRIM(sn_iwmdsc%clname)
+      cv_in=TRIM(sn_iwmdsc%clvar)
+      CALL iom_open(cf_in,inum)       ! energy flux for pynocline-intensified wave breaking [W/m2]
+      CALL iom_get  (inum, jpdom_data, cv_in, hcri_iwm, 1 )
+      CALL iom_close(inum)
+#else
       CALL iom_open('mixing_power_bot',inum)       ! energy flux for high-mode wave breaking [W/m2]
       CALL iom_get  (inum, jpdom_data, 'field', ebot_iwm, 1 ) 
       CALL iom_close(inum)
@@ -475,6 +527,7 @@ CONTAINS
       CALL iom_open('decay_scale_cri',inum)        ! spatially variable decay scale for critical slope wave breaking [m]
       CALL iom_get  (inum, jpdom_data, 'field', hcri_iwm, 1 )
       CALL iom_close(inum)
+#endif
 
       ebot_iwm(:,:) = ebot_iwm(:,:) * ssmask(:,:)
       epyc_iwm(:,:) = epyc_iwm(:,:) * ssmask(:,:)
