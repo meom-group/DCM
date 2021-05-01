@@ -159,7 +159,7 @@ if [ ! -f $filename ] ; then
 fi
 
 # filter the input file from task information (when running on irene with XIOS)
-cat $filename | grep -v '^task' | grep -v '^MIX' | grep -v NAREA | grep -v 'WARN' > zzzztmp.o
+cat $filename | grep -v '^task' | grep -v '^MIX' | grep -v NAREA | grep -v 'WARN' | grep -v 'JMM' > zzzztmp.o
 # note : with ensemble run, there are 1 line per member in the output file, for each step.
 #       linreg works fine but ...
 filename=zzzztmp.o
