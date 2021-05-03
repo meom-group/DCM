@@ -137,8 +137,8 @@ CONTAINS
             IF(lwp) WRITE(numout,*) 'usr_def_fmask : ORCA025: increase lateral friction near the following straits:'
             IF(lwp) WRITE(numout,*) '~~~~~~~~~~~~~'   
             IF(lwp) WRITE(numout,*) '       Gibraltar Strait : 3'
-            ii0 = 652           ;   ii1 = 654        ! Torres Strait
-            ij0 =1125           ;   ij1 =1127           ;   pfmsk(mi0(ii0):mi1(ii1),mj0(ij0):mj1(ij1),1:jpk) =  3._wp
+            ii0 =1125           ;   ii1 =1127        ! Gibraltar
+            ij0 = 652           ;   ij1 = 654           ;   pfmsk(mi0(ii0):mi1(ii1),mj0(ij0):mj1(ij1),1:jpk) =  3._wp
             IF(lwp) WRITE(numout,*) '       East Ombai Strait : 2 '
             ii0 = 212           ;   ii1 = 212        ! East of Ombai strait
             ij0 = 464           ;   ij1 = 465           ;   pfmsk(mi0(ii0):mi1(ii1),mj0(ij0):mj1(ij1),1:jpk) =  2._wp
