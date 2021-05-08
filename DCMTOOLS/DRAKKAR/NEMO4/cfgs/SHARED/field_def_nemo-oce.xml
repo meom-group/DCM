@@ -7,7 +7,7 @@
 =                                            DO NOT CHANGE                                                 =
 ============================================================================================================
     -->
-    <field_definition level="1" prec="4" operation="average" enabled=".TRUE." default_value="0." > <!-- time step automaticaly defined -->
+    <field_definition level="1" prec="4" operation="average" enabled=".TRUE." default_value="0.0" > <!-- time step automaticaly defined -->
 
     <!-- 
 ============================================================================================================
@@ -387,6 +387,7 @@
         <field id="utau"          long_name="Wind Stress along i-axis"                               standard_name="surface_downward_x_stress"   unit="N/m2"                            />
         <field id="uoce"          long_name="ocean current along i-axis"                             standard_name="sea_water_x_velocity"        unit="m/s"        grid_ref="grid_U_3D" />
     	<field id="uoce_e3u"      long_name="ocean current along i-axis  (thickness weighted)"                                                   unit="m/s"        grid_ref="grid_U_3D"  > uoce * e3u </field>
+        <field id="uoce2_e3u"     long_name="ocean current along i-axis squared (thickness weighted)"                                            unit="m3/s2"      grid_ref="grid_U_3D"  > uoce * uoce * e3u </field> 
     	<field id="uoce_e3u_vsum" long_name="ocean current along i-axis * e3u summed on the vertical"  field_ref="uoce_e3u"    unit="m3/s"       grid_ref="grid_U_vsum"/>
         <field id="uocetr_vsum"   long_name="ocean transport along i-axis  summed on the vertical"         field_ref="e2u"       unit="m3/s"> this * uoce_e3u_vsum  </field> 
 
@@ -458,6 +459,7 @@
         <field id="vtau"         long_name="Wind Stress along j-axis"                               standard_name="surface_downward_y_stress"   unit="N/m2"                            />
         <field id="voce"         long_name="ocean current along j-axis"                             standard_name="sea_water_y_velocity"        unit="m/s"        grid_ref="grid_V_3D" />
         <field id="voce_e3v"     long_name="ocean current along j-axis  (thickness weighted)"                                                   unit="m/s"        grid_ref="grid_V_3D"  > voce * e3v </field>
+        <field id="voce2_e3v"    long_name="ocean current along j-axis squared (thickness weighted)"                                            unit="m3/s2"      grid_ref="grid_V_3D"  > voce * voce * e3v </field> 
         <field id="ssv"          long_name="ocean surface current along j-axis"                                                                 unit="m/s"                             />
         <field id="sbv"          long_name="ocean bottom current along j-axis"                                                                  unit="m/s"                             />
         <field id="vbar"         long_name="ocean barotropic current along j-axis"                                                              unit="m/s"                             />
@@ -569,6 +571,27 @@
       <field id="ahmf_2d"      long_name=" surface f-eddy viscosity coefficient"   unit="m2/s or m4/s" />
       <field id="ahmf_3d"      long_name=" 3D      f-eddy viscosity coefficient"   unit="m2/s or m4/s"  grid_ref="grid_T_3D"/>
 
+      <!-- product fields -->
+      <field_group id="diaprod">
+        <field id="ut"           long_name="product_of_sea_water_x_velocity_and_temperature"                unit="degree_C m/s"   grid_ref="grid_U_3D"   />
+        <field id="ut_e3u"       long_name="product_of_sea_water_x_velocity_and_temperature * e3u"          unit="degree_C m2/s"  grid_ref="grid_U_3D" > ut * e3u </field >
+        <field id="us"           long_name="product_of_sea_water_x_velocity_and_salinity"                   unit="PSU m/s"        grid_ref="grid_U_3D"   />
+        <field id="us_e3u"       long_name="product_of_sea_water_x_velocity_and_salinity * e3u"             unit="PSU m2/s"       grid_ref="grid_U_3D" > us * e3u </field >
+        <field id="urhop"        long_name="product_of_sea_water_x_velocity_and_potential_density"          unit="(kg/m3).(m/s)"  grid_ref="grid_U_3D"   />
+        <field id="urhop_e3u"    long_name="product_of_sea_water_x_velocity_and_potential_density * e3u"    unit="(kg/m3).(m2/s)" grid_ref="grid_U_3D" > urhop * e3u </field >
+        <field id="vt"           long_name="product_of_sea_water_y_velocity_and_temperature"                unit="degree_C m/s"   grid_ref="grid_V_3D"   />
+        <field id="vt_e3v"       long_name="product_of_sea_water_y_velocity_and_temperature * e3v"          unit="degree_C m2/s"  grid_ref="grid_V_3D" > vt * e3v </field >
+        <field id="vs"           long_name="product_of_sea_water_y_velocity_and_salinity"                   unit="PSU m/s"        grid_ref="grid_V_3D"   />
+        <field id="vs_e3v"       long_name="product_of_sea_water_y_velocity_and_salinity * e3t"             unit="PSU m2/s"       grid_ref="grid_V_3D" > vs * e3v </field >
+        <field id="vrhop"        long_name="product_of_sea_water_y_velocity_and_potential_density"          unit="(kg/m3).(m/s)"  grid_ref="grid_V_3D"   />
+        <field id="vrhop_e3v"    long_name="product_of_sea_water_y_velocity_and_potential_density * e3t"    unit="(kg/m3).(m2/s)" grid_ref="grid_V_3D" > vrhop * e3v </field >
+        <field id="wt"           long_name="product_of_upward_sea_water_velocity_and_temperature"           unit="degree_C m/s"   grid_ref="grid_W_3D"   />
+        <field id="ws"           long_name="product_of_upward_sea_water_velocity_and_salinity"              unit="PSU m/s"        grid_ref="grid_W_3D"   />
+        <field id="wrhop"        long_name="product_of_upward_sea_water_velocity_and_potential_density"     unit="(kg/m3).(m/s)"  grid_ref="grid_W_3D"   />
+        <field id="uv"           long_name="product_of_sea_water_x_velocity_and_sea_water_y_velocity"       unit="m2/s2   "       grid_ref="grid_T_3D"   />
+        <field id="uw"           long_name="product_of_upward_sea_water_velocity_and_sea_water_x_velocity"  unit="m2/s2   "       grid_ref="grid_W_3D"   />
+        <field id="vw"           long_name="product_of_upward_sea_water_velocity_and_sea_water_y_velocity"  unit="m2/s2"          grid_ref="grid_W_3D"   />
+      </field_group>
       <field_group id="scalar"  grid_ref="grid_scalar"  >
       	<!-- Need to have a salinity reference climatological file : sali_ref_clim_monthly -->
         <field id="voltot"     long_name="global total volume"                          standard_name="sea_water_volume"                               unit="m3"   />

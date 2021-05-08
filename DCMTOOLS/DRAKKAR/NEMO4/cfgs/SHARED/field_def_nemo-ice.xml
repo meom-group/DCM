@@ -7,7 +7,7 @@
 =                                            DO NOT CHANGE                                                 =
 ============================================================================================================
     -->
-    <field_definition level="1" prec="4" operation="average" enabled=".TRUE." default_value="0." > <!-- time step automaticaly defined -->
+    <field_definition level="1" prec="4" operation="average" enabled=".TRUE." default_value="0.0" > <!-- time step automaticaly defined -->
 
     <!-- 
 ============================================================================================================
