@@ -181,6 +181,11 @@ if [ $DIAOBS = 1 ] ; then  # modify namelist block namobs (and get data files)
     ENACT=0  
     tmp=$(LookInNamelist ln_ena) ; tmp=$(normalize $tmp)
     if [ $tmp = T ] ; then ENACT=1 ; fi
+# NEMO4 uses other flags 
+    tmp=$(LookInNamelist ln_t3d) ; tmp=$(normalize $tmp)
+    if [ $tmp = T ] ; then ENACT=1 ; fi
+    tmp=$(LookInNamelist ln_s3d) ; tmp=$(normalize $tmp)
+    if [ $tmp = T ] ; then ENACT=1 ; fi
 
     SLA=0
     tmp=$(LookInNamelist ln_sla) ; tmp=$(normalize $tmp)

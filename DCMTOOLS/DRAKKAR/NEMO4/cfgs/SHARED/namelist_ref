@@ -1455,8 +1455,8 @@
    ln_sss_fp_indegs = .true.         ! Logical for SSS: T=> averaging footprint is in degrees, F=> in metres
    ln_sic_fp_indegs = .true.         ! Logical for SIC: T=> averaging footprint is in degrees, F=> in metres
 ! All of the *files* variables below are arrays. Use namelist_cfg to add more files
-   cn_profbfiles = 'profiles_01.nc'  ! Profile feedback input observation file names
-   cn_slafbfiles = 'sla_01.nc'       ! SLA feedback input observation file names
+   cn_profbfiles = 'ENACTFILES_LIST' ! Profile feedback input observation file names
+   cn_slafbfiles = 'SLAFBFILES_LIST' ! SLA feedback input observation file names
    cn_sstfbfiles = 'sst_01.nc'       ! SST feedback input observation file names
    cn_sssfbfiles = 'sss_01.nc'       ! SSS feedback input observation file names
    cn_sicfbfiles = 'sic_01.nc'       ! SIC feedback input observation file names
@@ -1485,6 +1485,11 @@
    nn_2dint_sic = 0                  ! Horizontal interpolation method for SIC
    nn_msshc     = 0                  ! MSSH correction scheme
    nn_profdavtypes = -1              ! Profile daily average types - array
+/
+!-----------------------------------------------------------------------
+&namobs_drk       !  observation DCM extension
+!-----------------------------------------------------------------------
+   cn_dir  = '<CN_DIAOBS>'           ! Directory for output feedback files
 /
 !-----------------------------------------------------------------------
 &nam_asminc    !   assimilation increments                              ('key_asminc')
