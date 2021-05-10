@@ -67,11 +67,11 @@ if [ $? != 0 ] ; then
   exit 1
 fi
 
-echo WORKING WITH ${WREFDIR}/src
 
 shift $(($OPTIND-1))
 
 file=$1
+echo WORKING WITH ${WREFDIR}/src for $file
 
 if [ ! -f $file ] ; then
    echo " ERROR: $file  does not exist."
@@ -88,15 +88,15 @@ REF_FILE=${WREFDIR}/$SOURCE_FILE
 
 if [ $WREFDIR = $REFDIR ] ; then
 if [ -f ${WCUSDIR}/$SOURCE_FILE ]  ; then
-   echo WARNING: this file is also in $WCUSDIR
-   echo ======================================
+   echo "WARNING: this file ( $file ) is also in $WCUSDIR"
+   echo ===================================================
 fi
 fi
 
 if [ $WREFDIR = $WCUSDIR ] ; then
 if [ ! -f ${WCUSDIR}/$SOURCE_FILE ]  ; then
-   echo "ERROR: this file is not in $WCUSDIR."
-   echo "======================================"
+   echo "ERROR: this file ( $file ) is not in $WCUSDIR."
+   echo "=============================================="
    echo "  --> consider using dcm_cmpfile without -d option."
    exit 1
 fi
