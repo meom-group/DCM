@@ -532,6 +532,11 @@ CONTAINS
          IF(lwp) WRITE(numout,*)
          IF(lwp) WRITE(numout,*) '   ==>>>   No specific treatment at river mouths'
          rnfmsk  (:,:) = 0._wp
+#if defined key_drakkar
+         ! rnf_msk is read from socoefr even if ln_rnf_mouth = F 
+         !   because it is used in SSS restoring
+         CALL rnf_mouth                             ! set river mouth mask
+#endif
          rnfmsk_z(:)   = 0._wp
          nkrnf = 0
       ENDIF
