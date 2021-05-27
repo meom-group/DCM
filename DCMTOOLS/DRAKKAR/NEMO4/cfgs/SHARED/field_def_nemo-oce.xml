@@ -79,6 +79,11 @@
         <field id="ssh2"         long_name="square of sea surface height"                       standard_name="square_of_sea_surface_height_above_geoid"   unit="m2" > ssh * ssh </field >
         <field id="wetdep"       long_name="wet depth"                                          standard_name="wet_depth"                                  unit="m" />
         <field id="sshmax"       long_name="max of sea surface height"        field_ref="ssh"   operation="maximum"                                                 />
+        
+        <!-- IMHOTEP : save thermo steric and halo steric ssh -->
+        <field id="sshthst"      long_name="thermosteric sea surface height"                    standard_name="thermosteric_ssh"                           unit="m" />
+        <field id="sshhast"      long_name="halosteric sea surface height"                      standard_name="halosteric_ssh"                             unit="m" />
+        <!-- END IMHOTEP -->
 
         <field id="mldkz5"       long_name="Turbocline depth (Kz = 5e-4)"                       standard_name="ocean_mixed_layer_thickness_defined_by_vertical_tracer_diffusivity"                unit="m"          />
         <field id="mldr10_1"     long_name="Mixed Layer Depth (dsigma = 0.01 wrt 10m)"          standard_name="ocean_mixed_layer_thickness_defined_by_sigma_theta"                                unit="m"          />
