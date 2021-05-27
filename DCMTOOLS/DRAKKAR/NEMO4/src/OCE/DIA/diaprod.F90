@@ -69,21 +69,10 @@ CONTAINS
       ALLOCATE( z2d(jpi,jpj), z3d(jpi,jpj,jpk), zrhop(jpi,jpj,jpk) )
       !
 
-      IF( iom_use("urhop") .OR. iom_use("vrhop") .OR. iom_use("wrhop") &
-#if ! defined key_diaar5
-     &  .OR. iom_use("rhop") &
-#endif
-     & ) THEN
-         CALL eos( tsn, z3d, zrhop )                 ! now in situ and potential density
-         zrhop(:,:,:) = zrhop(:,:,:)-1000.e0         ! reference potential density to 1000 to avoid precision issues in rhop2 calculation
-         zrhop(:,:,jpk) = 0._wp
-#if ! defined key_diaar5
-         CALL iom_put( 'rhop', zrhop )
-#else
-         ! If key_diaar5 set then there is already an iom_put call to
-         ! output rhop.
-         ! Really should be a standard diagnostics option?
-#endif
+      IF( iom_use("urhop") .OR. iom_use("vrhop") .OR. iom_use("wrhop") ) THEN 
+!        CALL eos( tsn, z3d, zrhop )                 ! now in situ and potential density
+         zrhop(:,:,:) = rhop(:,:,:)-1000.e0*tmask(:,:,:)         ! reference potential density to 1000 to avoid precision issues in rhop2 calculation
+!        CALL iom_put( 'rhop', zrhop )
       ENDIF
 
       IF( iom_use("ut") ) THEN
