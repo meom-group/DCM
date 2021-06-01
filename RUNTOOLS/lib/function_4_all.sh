@@ -506,6 +506,12 @@ getisf () {
        fi
           }
 # ---
+# getsteric for getting TS climatology used in IMHOTEP
+getsteric()   {
+        filter=''
+        blk=nam_diaar5_drk  ; getfiles $blk $P_DTA_DIR $F_DTA_DIR
+              }
+# ---
 # get diaptr subbasins mask obsolete in Nemo4 so far ... (harcoded names)
 getdiaptr()  {
         filter=''

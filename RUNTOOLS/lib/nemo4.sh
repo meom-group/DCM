@@ -633,6 +633,38 @@ eof
 #        -e "s/<NDATE0>/$ndate0/" > ztmp
 #       mv ztmp file_def.xml
 #    fi
+# Check for specific iom_put 
+   STERIC=0
+   xmldef=file_def_nemo-oce.xml
+   # look for specific field_ref in file_def xml file
+   grep -q -w 'field field_ref="sshthst"' $xml
+   if [ $? = 0 ] ; then
+   # look for comment
+     com=$( grep -w 'field field_ref="sshthst"' $xmldef | awk '{print $1}' )
+     # if many lines in file_def with requested field, com will have many words. Check first..;
+     com=$( echo $com | awk '{print $1}' )
+     if [ $com = '<!--' ] ; then
+       STERIC=0
+     else
+       # look for enabled= syntax
+       grep  -w 'field field_ref="sshthst"' $xmldef  | grep enabled
+       if [ $? != 0 ] ; then
+         STERIC=1
+       else
+         grep  -w 'field field_ref="sshthst"' $xmldef  | grep true
+         if [ $? = 0 ] ; then
+           STERIC=1
+         else
+           STERIC=0
+         fi
+       fi
+     fi
+  else
+     STERIC=0
+  fi
+  echo " STERIC = " $STERIC
+
+
 
 fi
 #--------------------------------------
@@ -681,6 +713,11 @@ fi
 ## iceshelve fluxes and/or circulation
 if [ $ISF = 1 ] ; then
     getisf
+fi
+
+## TS climatology for STERIC SSH 
+if [ $STERIC = 1 ] ; then
+    getsteric
 fi
 
 ## diaobs : for memory : needed files are already copied (when updating namelist)
