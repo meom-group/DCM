@@ -515,7 +515,7 @@ echo "   ***  RSTO = $RSTO"
 DIAOBS=0
  tmp=$(LookInNamelist ln_diaobs namelist_cfg namobs ) ; tmp=$(normalize $tmp)
  if [ $tmp = T ] ; then DIAOBS=1 ; fi
- echo "   *** DIAOBS  = $DIAOBS"
+ echo "   ***  DIAOBS  = $DIAOBS"
 
 if [ $DIAOBS = 1 ] ; then
     missing_err=0
@@ -637,7 +637,7 @@ eof
    STERIC=0
    xmldef=file_def_nemo-oce.xml
    # look for specific field_ref in file_def xml file
-   grep -q -w 'field field_ref="sshthst"' $xml
+   grep -q -w 'field field_ref="sshthst"' $xmldef
    if [ $? = 0 ] ; then
    # look for comment
      com=$( grep -w 'field field_ref="sshthst"' $xmldef | awk '{print $1}' )
@@ -662,7 +662,7 @@ eof
   else
      STERIC=0
   fi
-  echo " STERIC = " $STERIC
+  echo "   *** STERIC = " $STERIC
 
 
 
