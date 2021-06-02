@@ -529,14 +529,14 @@ if [ $DIAOBS = 1 ] ; then
         missing_err=$(( missing_err + 1 ))
     fi
 
-    chkfile $P_UTL_DIR/bin/fbcomb.exe
-    if [ $? = 0 ] ; then
-        rcopy $P_UTL_DIR/bin/fbcomb.exe ./fbcomb.exe
-    else
-        echo "   === ERROR : missing fbcomb with diaobs in use "
-        echo "       (Must be in $P_UTL_DIR/bin. Sources are in TOOLS/OBSTOOLS ) "
-        missing_err=$(( missing_err + 1 ))
-    fi
+#    chkfile $P_UTL_DIR/bin/fbcomb.exe
+#    if [ $? = 0 ] ; then
+#        rcopy $P_UTL_DIR/bin/fbcomb.exe ./fbcomb.exe
+#    else
+#        echo "   === ERROR : missing fbcomb with diaobs in use "
+#        echo "       (Must be in $P_UTL_DIR/bin. Sources are in TOOLS/OBSTOOLS ) "
+#        missing_err=$(( missing_err + 1 ))
+#    fi
 
     if [ $missing_err != 0 ] ; then exit 1 ; fi
 
