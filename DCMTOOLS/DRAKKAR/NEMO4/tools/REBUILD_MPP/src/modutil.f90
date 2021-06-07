@@ -272,10 +272,14 @@ print *, 'JMMMM : ', sf_out%nlen(sf_out%kdimid)
     ipos       = INDEX( cl_dum,'-')
     cl_tagi    = cl_dum(ipos+1 : )
 
-    IF ( TRIM(cl_tagi(7:8)) /= '' )  THEN
-       cl_tago    = 'y'//TRIM(cl_tagi(1:4))//'m'//TRIM(cl_tagi(5:6))//'d'//TRIM(cl_tagi(7:8))
-    ELSE
-       cl_tago    = 'y'//TRIM(cl_tagi(1:4))//'m'//TRIM(cl_tagi(5:6))
+    IF ( TRIM(cl_tagi(5:6)) /= '' ) THEN
+      IF ( TRIM(cl_tagi(7:8)) /= '' ) THEN
+         cl_tago    = 'y'//TRIM(cl_tagi(1:4))//'m'//TRIM(cl_tagi(5:6))//'d'//TRIM(cl_tagi(7:8))
+      ELSE
+         cl_tago    = 'y'//TRIM(cl_tagi(1:4))//'m'//TRIM(cl_tagi(5:6))
+      ENDIF
+    ELSE 
+      cl_tago   = 'y'//TRIM(cl_tagi(1:4))
     ENDIF
 
     ! build the final name
