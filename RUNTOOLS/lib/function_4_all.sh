@@ -548,7 +548,7 @@ getobs () {
    flist=''
    for y in $(seq $yyyy1 $yyyy2) ; do
      for m in $(seq -f '%02g' 1 12 ) ; do
-       f=$root_enact$y$m_fdbk.nc
+       f=$root_enact${y}${m}_fdbk.nc
        if [ $y = $yyyy1 ] ; then
          if [ $m -ge $mm1 ] ; then 
            if [ -f $P_ENA_DIR/$f ] ; then
