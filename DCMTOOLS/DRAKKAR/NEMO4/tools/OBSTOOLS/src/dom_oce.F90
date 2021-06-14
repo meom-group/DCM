@@ -74,6 +74,8 @@ MODULE dom_oce
    !                                !  = 6 cyclic East-West AND North fold F-point pivot
    !                                !  = 7 bi-cyclic East-West AND North-South
    LOGICAL, PUBLIC ::   l_Iperio, l_Jperio   !   should we explicitely take care I/J periodicity 
+   LOGICAL, PUBLIC ::   l_Westedge, l_Eastedge, l_Northedge, l_Southedge ! flag to detect global domain edges
+                                                                         ! on local domain (needed for AGRIF)
 
    !                                 !  domain MPP decomposition parameters
    INTEGER             , PUBLIC ::   nimpp, njmpp     !: i- & j-indexes for mpp-subdomain left bottom
@@ -215,7 +217,7 @@ MODULE dom_oce
 
    !!----------------------------------------------------------------------
    !! NEMO/OCE 4.0 , NEMO Consortium (2018)
-   !! $Id: dom_oce.F90 10068 2018-08-28 14:09:04Z nicolasmartin $ 
+   !! $Id: dom_oce.F90 12859 2020-05-03 09:33:32Z smasson $ 
    !! Software governed by the CeCILL license (see ./LICENSE)
    !!----------------------------------------------------------------------
 CONTAINS
@@ -231,6 +233,10 @@ CONTAINS
    CHARACTER(len=3) FUNCTION Agrif_CFixed()
       Agrif_CFixed = '0' 
    END FUNCTION Agrif_CFixed
+
+   INTEGER FUNCTION Agrif_Fixed()
+      Agrif_Fixed = 0 
+   END FUNCTION Agrif_Fixed
 #endif
 
    INTEGER FUNCTION dom_oce_alloc()
