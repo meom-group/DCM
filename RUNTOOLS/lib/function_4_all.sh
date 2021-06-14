@@ -527,7 +527,7 @@ getobs () {
   fi
 
   # hard coded file names
-  root_enact=EN3_v2a_Profiles_
+  root_enact=EN.4.2.1.f.profiles.l09.
   root_sla=fdbk_j2_
   slaRefLevel='slaReferenceLevel.nc'
 
@@ -548,7 +548,7 @@ getobs () {
    flist=''
    for y in $(seq $yyyy1 $yyyy2) ; do
      for m in $(seq -f '%02g' 1 12 ) ; do
-       f=$root_enact$y$m.nc
+       f=$root_enact$y$m_fdbk.nc
        if [ $y = $yyyy1 ] ; then
          if [ $m -ge $mm1 ] ; then 
            if [ -f $P_ENA_DIR/$f ] ; then

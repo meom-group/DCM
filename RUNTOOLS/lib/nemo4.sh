@@ -206,6 +206,8 @@ sed -e "s/<NN_NO>/$no/" \
     -e "s@<CN_DIRICB>@$DDIR/${CN_DIRICB}.$no@"   \
     -e "s@<CN_DIRRST>@$DDIR/${CN_DIRRST}@"   namelist > znamelist1
 \cp znamelist1 namelist
+\cp namelist  namelist_ref
+\cp namelist  namelist_cfg
 
 if [ $DIAOBS = 1 ] ; then  # modify namelist block namobs (and get data files)
     # Observation operator
@@ -227,8 +229,6 @@ if [ $DIAOBS = 1 ] ; then  # modify namelist block namobs (and get data files)
     getobs
 fi
 
-\cp namelist  namelist_ref
-\cp namelist  namelist_cfg
 
 ## Agrif namelist update if any
 if [ $AGRIF = 1 ] ; then
