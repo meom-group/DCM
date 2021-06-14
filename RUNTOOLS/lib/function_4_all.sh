@@ -545,7 +545,7 @@ getobs () {
 
  if [ $ENACT = 1 ] ; then
    # ENACT
-   flist=''
+   flist=
    for y in $(seq $yyyy1 $yyyy2) ; do
      for m in $(seq -f '%02g' 1 12 ) ; do
        f=$root_enact${y}${m}_fdbk.nc
@@ -572,13 +572,13 @@ getobs () {
      done
    done
 
-   cat namelist | sed -e "s/ENACTFILES_LIST/$flist/" > znamelist1
-   mv znamelist1 namelist
+   cat namelist_cfg | sed -e "s/ENACTFILES_LIST/$flist/" > znamelist1
+   mv znamelist1 namelist_cfg
  fi
 
  if [ $SLA = 1 ] ; then
    rapatrie $slaRefLevel $P_SLA_DIR $F_SLA_DIR $slaRefLevel
-   flist=''
+   flist=
    for y in $(seq $yyyy1 $yyyy2) ; do
       f=$root_sla$y.nc
       if [ -f  $P_SLA_DIR/$f ] ; then
@@ -587,8 +587,8 @@ getobs () {
       fi
    done
 
-   cat namelist | sed -e "s/SLAFBFILES_LIST/$flist/" > znamelist1
-   mv znamelist1 namelist
+   cat namelist_cfg | sed -e "s/SLAFBFILES_LIST/$flist/" > znamelist1
+   mv znamelist1 namelist_cfg
  fi
         }
 #---

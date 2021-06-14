@@ -127,36 +127,6 @@ CFC=0 ; C14=0 ; MYTRC=0
 #@@@@@@@@ FLXISH=0  ;  if [ $(keychk key_iceshelf) ] ; then FLXISH=1  ; fi   ===> ln_isf
 #@@@@@@@@ DIAOBS=0  ;  if [ $(keychk key_diaobs )  ] ; then DIAOBS=1  ; fi
 
-# Use of the observation operator.
-DIAOBS=0
- tmp=$(LookInNamelist ln_diaobs namelist_cfg namobs ) ; tmp=$(normalize $tmp)
- if [ $tmp = T ] ; then DIAOBS=1 ; fi
- echo "   ***  DIAOBS  = $DIAOBS"
-
-if [ $DIAOBS = 1 ] ; then
-    missing_err=0
-    # check if datfinyyyy and fbcomb are available
-    chkfile $P_UTL_DIR/bin/datfinyyyy
-    if [ $? = 0 ] ; then
-        rcopy $P_UTL_DIR/bin/datfinyyyy ./datfinyyyy
-    else
-        echo "   === ERROR : missing datfinyyyy with diaobs in use "
-        echo "       (Must be in $P_UTL_DIR/bin. Sources are in $RUN_TOOLS/UTILS )"
-        missing_err=$(( missing_err + 1 ))
-    fi
-
-#    chkfile $P_UTL_DIR/bin/fbcomb.exe
-#    if [ $? = 0 ] ; then
-#        rcopy $P_UTL_DIR/bin/fbcomb.exe ./fbcomb.exe
-#    else
-#        echo "   === ERROR : missing fbcomb with diaobs in use "
-#        echo "       (Must be in $P_UTL_DIR/bin. Sources are in TOOLS/OBSTOOLS ) "
-#        missing_err=$(( missing_err + 1 ))
-#    fi
-
-    if [ $missing_err != 0 ] ; then exit 1 ; fi
-
-fi
 
 # 
 ## check if we are using new xml layout (ie with files like 04-files.xml
@@ -209,7 +179,35 @@ sed -e "s/<NN_NO>/$no/" \
 \cp namelist  namelist_ref
 \cp namelist  namelist_cfg
 
-if [ $DIAOBS = 1 ] ; then  # modify namelist block namobs (and get data files)
+# Use of the observation operator.
+DIAOBS=0
+ tmp=$(LookInNamelist ln_diaobs namelist_cfg namobs ) ; tmp=$(normalize $tmp)
+ if [ $tmp = T ] ; then DIAOBS=1 ; fi
+ echo "   ***  DIAOBS  = $DIAOBS"
+
+if [ $DIAOBS = 1 ] ; then
+    missing_err=0
+    # check if datfinyyyy and fbcomb are available
+    chkfile $P_UTL_DIR/bin/datfinyyyy
+    if [ $? = 0 ] ; then
+        rcopy $P_UTL_DIR/bin/datfinyyyy ./datfinyyyy
+    else
+        echo "   === ERROR : missing datfinyyyy with diaobs in use "
+        echo "       (Must be in $P_UTL_DIR/bin. Sources are in $RUN_TOOLS/UTILS )"
+        missing_err=$(( missing_err + 1 ))
+    fi
+
+#    chkfile $P_UTL_DIR/bin/fbcomb.exe
+#    if [ $? = 0 ] ; then
+#        rcopy $P_UTL_DIR/bin/fbcomb.exe ./fbcomb.exe
+#    else
+#        echo "   === ERROR : missing fbcomb with diaobs in use "
+#        echo "       (Must be in $P_UTL_DIR/bin. Sources are in TOOLS/OBSTOOLS ) "
+#        missing_err=$(( missing_err + 1 ))
+#    fi
+
+    if [ $missing_err != 0 ] ; then exit 1 ; fi
+
     # Observation operator
     ENACT=0  
     tmp=$(LookInNamelist ln_ena) ; tmp=$(normalize $tmp)
