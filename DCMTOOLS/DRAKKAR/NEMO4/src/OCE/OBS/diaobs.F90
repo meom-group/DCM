@@ -200,8 +200,10 @@ CONTAINS
       cn_sstbiasfiles(:) = ''
       nn_profdavtypes(:) = -1
 
+#if ! defined key_drakkar
       CALL ini_date( rn_dobsini )
       CALL fin_date( rn_dobsend )
+#endif
 
       ! Read namelist namobs : control observation diagnostics
       REWIND( numnam_ref )   ! Namelist namobs in reference namelist
@@ -228,6 +230,11 @@ CONTAINS
          IF(lwp) WRITE(numout,*) '~~~~~~~~~~~~'
          RETURN
       ENDIF
+
+#if  defined key_drakkar
+      CALL ini_date( rn_dobsini )
+      CALL fin_date( rn_dobsend )
+#endif
 
       IF(lwp) THEN
          WRITE(numout,*)
