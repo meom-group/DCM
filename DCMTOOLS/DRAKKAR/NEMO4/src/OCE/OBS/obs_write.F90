@@ -81,7 +81,11 @@ CONTAINS
 
       !! * Local declarations
       TYPE(obfbdata) :: fbdata
+#if defined key_drakkar
+      CHARACTER(LEN=255) :: clfname
+#else
       CHARACTER(LEN=40) :: clfname
+#endif
       CHARACTER(LEN=10) :: clfiletype
       INTEGER :: ilevel
       INTEGER :: jvar
@@ -179,7 +183,7 @@ CONTAINS
       fbdata%caddname(1)   = 'Hx'
 
 #if defined key_drakkar
-      WRITE(clfname, FMT="(A,'_fdbk_',I4.4,'.nc')") TRIM(profdata%cdir)//TRIM(clfiletype), nproc
+      WRITE(clfname, FMT="(A,'_fdbk_',I4.4,'.nc')") TRIM(profdata%cdir)//'/'//TRIM(clfiletype), nproc
 #else
       WRITE(clfname, FMT="(A,'_fdbk_',I4.4,'.nc')") TRIM(clfiletype), nproc
 #endif
@@ -324,7 +328,11 @@ CONTAINS
 
       !! * Local declarations
       TYPE(obfbdata) :: fbdata
+#if defined key_drakkar
+      CHARACTER(LEN=255) :: clfname         ! netCDF filename
+#else
       CHARACTER(LEN=40) :: clfname         ! netCDF filename
+#endif
       CHARACTER(LEN=10) :: clfiletype
       CHARACTER(LEN=12), PARAMETER :: cpname = 'obs_wri_surf'
       INTEGER :: jo
@@ -604,8 +612,15 @@ CONTAINS
 
          IF (lwp) THEN
             WRITE(numout,*) 'Type: ',fbdata%cname(jvar),'  Total number of good observations: ',inumgoodobsmpp 
+#if defined key_drakkar
+           IF ( inumgoodobsmpp /= 0 ) THEN
+              WRITE(numout,*) 'Overall mean obs minus model of the good observations: ',zsumx/inumgoodobsmpp
+              WRITE(numout,*) 'Overall RMS obs minus model of the good observations: ',sqrt( zsumx2/inumgoodobsmpp )
+           ENDIF
+#else
             WRITE(numout,*) 'Overall mean obs minus model of the good observations: ',zsumx/inumgoodobsmpp
             WRITE(numout,*) 'Overall RMS obs minus model of the good observations: ',sqrt( zsumx2/inumgoodobsmpp )
+#endif
             WRITE(numout,*) ''
          ENDIF
 
