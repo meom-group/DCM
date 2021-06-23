@@ -1395,10 +1395,23 @@ eof
               for f in *scalar*_0000.nc ; do
                  CONFCASE=\$( echo \$f | awk -F_ '{print \$1}' )
                  freq=\$( echo \$f | awk -F_ '{print \$2}' )
+                 freq_unit=\${freq:1}
                  tag=\$( echo \$f | awk -F_ '{print \$5}' | awk -F- '{print \$1}' )
-                 date=y\${tag:0:4}m\${tag:4:2}d\${tag:6:2}
 
-                 g=\${CONFCASE}_\${date}.\${freq}_icescalar.nc
+                 case  \$freq_unit  in
+                 ('m') date=y\${tag:0:4}m\${tag:4:2} ;;
+                 ('y') date=y\${tag:0:4} ;;
+                 ( * ) date=y\${tag:0:4}m\${tag:4:2}d\${tag:6:2} ;;
+                 esac
+
+                 typ=\$(echo $f | awk -F_ '{ print \$3}')
+                 case \$typ in
+                 ( 'SBC' ) filext='icescalar' ;;
+                 ( 'FWB' ) filext='fwbscalar' ;;
+                 ( *     ) filext='unkscalar' ;;
+                 esac
+
+                 g=\${CONFCASE}_\${date}.\${freq}_\${filext}.nc
                  OUTDIR=../\${freq}_OUTPUT
                  mkdir -p \$OUTDIR
                  cp \$f \$OUTDIR/\$g
