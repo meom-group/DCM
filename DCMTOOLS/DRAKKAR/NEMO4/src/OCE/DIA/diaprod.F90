@@ -157,6 +157,18 @@ CONTAINS
          CALL iom_put( "ws", z3d )                  ! product  salinity and vertical velocity at W points
       ENDIF
 
+      IF( iom_use("uu") ) THEN
+         z3d(:,:,:) = 0.e0
+         DO jk = 1, jpkm1
+            DO jj = 1, jpj
+               DO ji = 1, jpi   ! vector opt.
+                  z3d(ji,jj,jk) =   un(ji,jj,jk) * un(ji,jj,jk) 
+               END DO
+            END DO
+         END DO
+         CALL iom_put( "uu", z3d )                  ! product of velocity and meridional velocity at T points
+      ENDIF
+
       IF( iom_use("uv") ) THEN
          z3d(:,:,:) = 0.e0 
          DO jk = 1, jpkm1
@@ -186,6 +198,17 @@ CONTAINS
          CALL iom_put( "uw", z3d )                  ! product of velocity and vertical velocity at UW points
       ENDIF
 
+      IF( iom_use("vv") ) THEN
+         z3d(:,:,:) = 0.e0
+         DO jk = 1, jpkm1
+            DO jj = 1, jpj
+               DO ji = 1 , jpi   ! vector opt.
+                  z3d(ji,jj,jk) =   vn(ji,jj,jk) * vn(ji,jj,jk) 
+               END DO
+            END DO
+         END DO
+         CALL iom_put( "vv", z3d )                  ! product of velocity and meridional velocity at T points
+      ENDIF
       IF( iom_use("vw") ) THEN
          z3d(:,:,:) = 0.e0 
          DO jj = 2, jpjm1
