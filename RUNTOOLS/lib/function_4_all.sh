@@ -1404,7 +1404,7 @@ eof
                  ( * ) date=y\${tag:0:4}m\${tag:4:2}d\${tag:6:2} ;;
                  esac
 
-                 typ=\$(echo $f | awk -F_ '{ print \$3}')
+                 typ=\$(echo \$f | awk -F_ '{ print \$3}')
                  case \$typ in
                  ( 'SBC' ) filext='icescalar' ;;
                  ( 'FWB' ) filext='fwbscalar' ;;
