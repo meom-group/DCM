@@ -70,9 +70,7 @@ CONTAINS
       !
 
       IF( iom_use("urhop") .OR. iom_use("vrhop") .OR. iom_use("wrhop") ) THEN 
-!        CALL eos( tsn, z3d, zrhop )                 ! now in situ and potential density
          zrhop(:,:,:) = rhop(:,:,:)-1000.e0*tmask(:,:,:)         ! reference potential density to 1000 to avoid precision issues in rhop2 calculation
-!        CALL iom_put( 'rhop', zrhop )
       ENDIF
 
       IF( iom_use("ut") ) THEN
