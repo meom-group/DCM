@@ -708,8 +708,8 @@ CONTAINS
       CALL iom_put( "qsb_oce" , - zqsb )                 ! output downward sensible heat over the ocean
       CALL iom_put( "qla_oce" , - zqla )                 ! output downward latent   heat over the ocean
       CALL iom_put( "qemp_oce",   qns-zqlw+zqsb+zqla )   ! output downward heat content of E-P over the ocean
-      CALL iom_put( "tair",   sf(jp_tair)%fnow(:,:,1))   ! output air temperature (t2)
-      CALL iom_put( "qair",   sf(jp_humi)%fnow(:,:,1))   ! output air specific humidity (q2)
+      CALL iom_put( "tair",   sf(jp_tair)%fnow(:,:,1)*tmask(:,:,1) )   ! output air temperature (t2)
+      CALL iom_put( "qair",   sf(jp_humi)%fnow(:,:,1)*tmask(:,:,1) )  ! output air specific humidity (q2)
       IF ( nn_ice == 0 ) THEN
          ! if nn_ice /= 0, then those fields are output in ice_update
          CALL iom_put( "qns_oce" ,   qns  )                 ! output downward non solar heat over the ocean

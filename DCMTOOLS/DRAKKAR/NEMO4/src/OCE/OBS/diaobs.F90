@@ -561,11 +561,13 @@ CONTAINS
 
       !-----------------------------------------------------------------------
 
+#if ! defined key_drakkar
       IF(lwp) THEN
          WRITE(numout,*)
          WRITE(numout,*) 'dia_obs : Call the observation operators', kstp
          WRITE(numout,*) '~~~~~~~'
       ENDIF
+#endif
 
       idaystp = NINT( rday / rdt )
 
