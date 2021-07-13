@@ -162,7 +162,8 @@ SetYears()          {
      else
        yearm1=$( tail -2 $dbfile | head -1 | awk '{ print int($NF/10000) }' )
        yearm1=$(( yearm1 - 1 ))
-       yearp1=$(( yearm1 + $znyear + 1 ))
+#JMM add 1 to be sure ...
+       yearp1=$(( yearm1 + $znyear + 2 ))
      fi
 
        yearm1=$( printf "%04d" $yearm1 )
@@ -1816,15 +1817,31 @@ update_db_file()  {
     # add a new last line for the next run
     nstep_per_day=$(( 86400 / $rdt ))
 
+    # actual limit of current segment
+    nit000=`tail -1 $CONFIG_CASE.db | awk '{print $2}' `
+    nitend=`tail -1 $CONFIG_CASE.db | awk '{print $3}' `
+
+    dif=$((  $nitend - $nit000  + 1  ))
+
+   # specific case (6month segments)
    if [ $ndays = 185 ] ; then
      dif=$(( 180 * $nstep_per_day ))
    elif [ $ndays = 180 ] ; then
      dif=$(( 185 * $nstep_per_day ))
-   else
-  nit000=`tail -1 $CONFIG_CASE.db | awk '{print $2}' `
-  nitend=`tail -1 $CONFIG_CASE.db | awk '{print $3}' `
-#     dif=$(( 365 * $nstep_per_day ))
-     dif=$((  $nitend - $nit000  + 1  ))
+   fi
+
+   # add trick for one year segment and leap year (note that yr 2100 is not a leap year ...)
+   if [ $ndays = 365 ] ; then
+      znxty=$(( ${aammdd:0:4} + 1 ))
+      if [ $(( $znxty % 4 )) = 0 ] ; then  # leap year
+        if [ $(( $znxty % 100 )) -eq  0   -a   $(( $znxty % 400 )) -ne  0 ] ; then
+          dif=$(( 365 * $nstep_per_day ))
+        else
+          dif=$(( 366 * $nstep_per_day ))
+        fi
+      fi
+   elif [ $ndays = 366 ] ; then
+        dif=$(( 365 * $nstep_per_day ))
    fi
 
     nit000=$(( $nitend + 1 ))
