@@ -16,6 +16,8 @@ set -x
  RST_DIRS=1                           # if set, assumes that restart files are written on multiple directories.
  RST_READY=1                          # if set assumes that restart file are ready to be read by NEMO (no links).
 
+ monthly=0                            # set to 1 for monthly (1mo/xios) job segments
+
 #########################################################################
 
  CONFIG=<CONFIG>
