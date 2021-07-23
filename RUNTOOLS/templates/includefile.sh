@@ -17,6 +17,7 @@ set -x
  RST_READY=1                          # if set assumes that restart file are ready to be read by NEMO (no links).
 
  monthly=0                            # set to 1 for monthly (1mo/xios) job segments
+ semestrial=0                         # set to 1 for semestrial (6mo/xios) job segments 
 
 #########################################################################
 

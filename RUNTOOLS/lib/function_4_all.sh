@@ -1878,10 +1878,30 @@ update_db_file()  {
        fi
        dif=$(( $dnew * $nstep_per_day ))
    fi
+   #  trick for semestrial segments
+   if [ $ndays -eq 181  -o $ndays -eq 182 -o $ndays -eq 184 ] && [ $semestrial = 1 ] ; then
+      ybase=$((10#${aammdd:0:4} ))
+      mbase=$((10#${aammdd:4:2} ))
+      dbase=$((10#${aammdd:6:2} ))
+
+      case $ndays in
+      ( 181 | 182 )  dnew=184 ;;
+      ( 184       )  ynew=$(( ybase + 1 ))
+          if [ $(( $ynew % 4 )) = 0 ] ; then  # leap year
+             if [ $(( $ynew % 100 )) -eq  0  -a  $(( $ynew % 400 )) -ne  0  ] ; then
+               dnew=181
+             else
+               dnew=182
+             fi
+          else
+             dnew=181
+          fi ;;
+      esac
+      dif=$(( dnew * $nstep_per_day ))
+   fi
+
 
 echo $dnew $dif
-
-   
 
     nit000=$(( $nitend + 1 ))
     nitend=$(( $nitend + $dif ))
