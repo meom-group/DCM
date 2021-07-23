@@ -1820,6 +1820,7 @@ update_db_file()  {
     # actual limit of current segment
     nit000=`tail -1 $CONFIG_CASE.db | awk '{print $2}' `
     nitend=`tail -1 $CONFIG_CASE.db | awk '{print $3}' `
+    ndays=$(( ( nitend - nit000 + 1 ) / nstep_per_day ))
 
     dif=$((  $nitend - $nit000  + 1  ))
 
@@ -1843,6 +1844,44 @@ update_db_file()  {
    elif [ $ndays = 366 ] ; then
         dif=$(( 365 * $nstep_per_day ))
    fi
+
+   # add tricks for monthly segments (true month for XIOS)
+   # monthly is either 1 or other number, defined in includefile.sh
+   if [ $ndays -le 31 -a $monthly  -eq  1 ] ; then
+      # get end-date of last segment # note 10# trick to force numbers such as 01 02 ...07 to be decimal (and not Octal ! )
+      ybase=$((10#${aammdd:0:4} ))
+      mbase=$((10#${aammdd:4:2} ))
+      dbase=$((10#${aammdd:6:2} ))
+      if [ $mbase = 12 ]; then
+        ynew=$(( ybase + 1 ))
+        mnew=1
+        dnew=31
+      else
+        ynew=$ybase
+        mnew=$(( mbase + 1 ))
+        case $mnew in
+        (1|3|5|7|8|10|12 )
+           dnew=31 ;;
+        (4|6|9|11 )
+          dnew=30 ;;
+        (2 )
+          if [ $(( $ynew % 4 )) = 0 ] ; then  # leap year
+             if [ $(( $ynew % 100 )) -eq  0  -a  $(( $ynew % 400 )) -ne  0  ] ; then
+               dnew=28
+             else
+               dnew=29
+             fi
+          else
+             dnew=28
+          fi ;;
+         esac
+       fi
+       dif=$(( $dnew * $nstep_per_day ))
+   fi
+
+echo $dnew $dif
+
+   
 
     nit000=$(( $nitend + 1 ))
     nitend=$(( $nitend + $dif ))
