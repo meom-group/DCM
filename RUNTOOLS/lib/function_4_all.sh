@@ -536,40 +536,60 @@ getobs () {
   rdt=$(echo 1 | awk "{ rdt=int($rdt); print rdt}" )
 
   ndays=$( echo 1 | awk "{ a=int( ($nitend - $nit000 +1)*$rdt /86400.) ; print a }" )
+#  ndays=$(( ndays + 10 ))
+  ndays=$(( ndays  ))
   ndastpfin=$( ./datfinyyyy $ndastpdeb $ndays )
 
   yyyy1=${ndastpdeb:0:4}
   mm1=${ndastpdeb:4:2}
+#JM
+  tmp=$(( 10#${mm1} + 1 ))
+  if  [ $tmp = 13 ] ; then
+    yyyy1=$(( yyyy1 + 1 ))
+    tmp=1
+  fi
+  mm1=$( printf "%02d" $tmp )
+
+  mdastpdeb=${yyyy1}$mm1  
+#  mdastpdeb=${ndastpdeb:0:6}
 
   yyyy2=${ndastpfin:0:4}
   mm2=${ndastpfin:4:2}
+  mdastpfin=${ndastpfin:0:6}
 
  if [ $ENACT = 1 ] ; then
    # ENACT
    flist=
    for y in $(seq $yyyy1 $yyyy2) ; do
      for m in $(seq -f '%02g' 1 12 ) ; do
+       mdastpcur=$y$m
        f=$root_enact${y}${m}_fdbk.nc
-       if [ $y = $yyyy1 ] ; then
-         if [ $m -ge $mm1 ] ; then 
+       if [ $mdastpcur -ge $mdastpdeb  -a $mdastpcur -le $mdastpfin ] ; then
            if [ -f $P_ENA_DIR/$f ] ; then
              flist="$flist '$f' "
              rapatrie $f  $P_ENA_DIR $F_ENA_DIR $f
            fi
-         fi
-       elif [ $y = $yyyy2 ] ; then
-         if [ $m -le $mm2 ] ; then 
-           if [ -f $P_ENA_DIR/$f ] ; then
-             flist="$flist '$f' "
-             rapatrie $f  $P_ENA_DIR $F_ENA_DIR $f
-           fi
-         fi
-       else
-         if [ -f $P_ENA_DIR/$f ] ; then
-           flist="$flist '$f' "
-           rapatrie $f  $P_ENA_DIR $F_ENA_DIR $f
-         fi
        fi
+#       if [ $y = $yyyy1 ] ; then
+#         if [ $m -ge $mm1 -a  $m -le $mm2] ; then 
+#           if [ -f $P_ENA_DIR/$f ] ; then
+#             flist="$flist '$f' "
+#             rapatrie $f  $P_ENA_DIR $F_ENA_DIR $f
+#           fi
+#         fi
+#       elif [ $y = $yyyy2 ] ; then
+#         if [ $m -le $mm2 ] ; then 
+#           if [ -f $P_ENA_DIR/$f ] ; then
+#             flist="$flist '$f' "
+#             rapatrie $f  $P_ENA_DIR $F_ENA_DIR $f
+#           fi
+#         fi
+#       else
+#         if [ -f $P_ENA_DIR/$f ] ; then
+#           flist="$flist '$f' "
+#           rapatrie $f  $P_ENA_DIR $F_ENA_DIR $f
+#         fi
+#       fi
      done
    done
 
