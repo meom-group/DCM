@@ -1,0 +1,113 @@
+#!/bin/bash
+
+CONFIG=eORCA025.L75
+CASE=IMHOTEP02
+
+CONFCASE=${CONFIG}-${CASE}
+
+if [ $# != 2 ] ; then
+  echo "  USAGE:"
+  echo "      dcmtk_clean_files  SEGMENT-deb  SEGMENT-end "
+  echo " "
+  echo "  PURPOSE:"
+  echo "      DELETE (!!!) DIAOBS ICB XIOS RST (!!!!!) files "
+  echo "        for run segments between deb and end" 
+  echo "        This script must be run in CTL "
+  echo "  "
+  exit 0
+fi
+
+here=$(pwd)
+
+tmp=$(basename $here )
+
+if [ $tmp != CTL ] ; then
+  echo " ***** ERROR : you must be in CTL"
+  exit 1
+fi
+CONFCASE=$( basename $(dirname $here) )
+CONFIG=${CONFCASE%-*}
+CASE=${CONFCASE#*-}
+
+echo " CONFIG   :  $CONFIG"
+echo " CASE     :  $CASE"
+echo " CONFCASE : $CONFCASE"
+
+n1=$1
+n2=$2
+
+y1=$( cat  ${CONFCASE}.db | head -$n1 | tail -1 | awk '{print $NF}' )
+y2=$( cat  ${CONFCASE}.db | head -$n2 | tail -1 | awk '{print $NF}' )
+
+echo "first segment ends at ${y1:0:4}-${y1:4:2}-${y1:6:2}"
+echo "last  segment ends at ${y2:0:4}-${y2:4:2}-${y2:6:2}"
+read -n 1 -p " Proceed ? (y/n) " answer
+
+if [ $answer != 'y' ] ; then
+   echo cleaning cancelled !
+   exit
+fi
+
+cd $DDIR
+
+lastrst=$( ls -1tdr ${CONFCASE}-RST.* | tail -1 )
+nfinal=$( echo $lastrst | awk -F. '{print $NF}' )
+
+if [ $(( n2 + 2 ))  -gt $nfinal ] ; then
+  echo "WARNING: cannot erase RST file till $n2"
+  echo "         last segment is $nfinal"
+  echo "  n2 set to $(( nfinal - 2 )) "
+  n2=$(( nfinal - 2 ))
+fi
+
+lstobs=''
+lsticb=''
+lstxios=''
+lstrst=''
+for n in $( seq $n1 $n2 ) ; do
+  lstobs="$lstobs ${CONFCASE}-DIAOBS.$n"
+  lsticb="$lsticb ${CONFCASE}-ICB.$n"
+  lstxios="$lstxios ${CONFCASE}-XIOS.$n"
+  lstrst="$lstrst ${CONFCASE}-RST.$n"
+done
+
+echo "YOU ARE GOING TO ERASE :"
+
+echo ${lstobs[@]}
+echo ${lsticb[@]}
+echo ${lstxios[@]}
+echo ${lstrst[@]}
+
+read -n 1 -p " OK ? (y/n) " answer
+echo
+if [ $answer = 'y' ] ; then
+
+  for d in ${lstobs[@]} ; do
+    echo -n " Deleting  $d "
+     rm -rf $d 
+    echo " ... erased !"
+  done
+
+  for d in ${lsticb[@]} ; do
+    echo -n " Deleting  $d "
+     rm -rf $d 
+    echo " ... erased !"
+  done
+
+  for d in ${lstxios[@]} ; do
+    echo -n " Deleting  $d "
+     rm -rf $d 
+    echo " ... erased !"
+  done
+
+  for d in ${lstrst[@]} ; do
+    echo -n " Deleting  $d "
+     rm -rf $d 
+    echo " ... erased !"
+  done
+
+else
+   echo "NOTHING ERASED !"
+fi
+
+  

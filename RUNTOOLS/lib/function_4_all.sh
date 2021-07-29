@@ -197,18 +197,28 @@ getforcing()        {
          tmp=$( LookInNamelist ln_clim_forcing );  tmp=$(normalize $tmp )
          if [ $tmp = T ] ; then filter="$filter | grep -v sn_wndi  | grep -v sn_wndj " ; fi
          ln_clim_forcing=$tmp
+
          # check for cloud cover
          tmp=$( LookInNamelist  sn_cc ) 
          if [ $tmp = NOT ] ; then filter="$filter | grep -v sn_cc " ; fi
 
+         # check for WDMP forcing
+         tmp=$( LookInNamelist ln_wdmp );  tmp=$(normalize $tmp )
+         ln_wdmp=$tmp
+
          getweight $blk $P_WEI_DIR $F_WEI_DIR
          getfiles $blk  $P_FOR_DIR $F_FOR_DIR
 
-         if [ $ln_clim_forcing = T ] ; then
-           filter="$filter | grep -v sn_kati | grep -v sn_katj"
-           blk_clim=namsbc_blk_drk
-           getweight $blk_clim $P_WEI_DIR $F_WEI_DIR
-           getfiles $blk_clim  $P_FOR_DIR $F_FOR_DIR
+         # note than ln_clim_forcing and ln_wdmp cannot be T at the same time !!!
+         if [ $ln_clim_forcing = T -o $ln_wdmp = T ] ; then
+           if [ $ln_clim_forcing = T ] ; then
+             filter="$filter | grep -v sn_kati | grep -v sn_katj | grep -v sn_wdmp "
+           elif [ $ln_wdmp = T ] ; then
+             filter="$filter | grep -v sn_kati | grep -v sn_katj | grep -v sn_wmod | grep -v sn_uw | grep -v sn_vw "
+           fi
+           blk_drk=namsbc_blk_drk
+           getweight $blk_drk $P_WEI_DIR $F_WEI_DIR
+           getfiles $blk_drk  $P_FOR_DIR $F_FOR_DIR
          fi ;;
     
 
@@ -231,7 +241,7 @@ getforcing()        {
         filter=''
         tmp=$( LookInNamelist ln_kata namelist namsbc_blk_drk)  ;  tmp=$(normalize $tmp )
         if [ $tmp = T ] ; then 
-          filter="$filter | grep -v sn_wmod | grep -v sn_uw | grep -v sn_vw"
+          filter="$filter | grep -v sn_wmod | grep -v sn_uw | grep -v sn_vw | grep -v s sn_wdmp"
           getfiles namsbc_blk_drk  $P_DTA_DIR $F_DTA_DIR 
         fi
      fi
