@@ -17,21 +17,32 @@ if [ $# != 2 ] ; then
   exit 0
 fi
 
-here=$(pwd)
+# some usefull funcion
+get_confcase() {
+   here=$(pwd)
+   b_name=$( basename $here )
 
-tmp=$(basename $here )
+  case $b_name in
+  (CTL) tmp=$(dirname  $here )
+      echo "paf $tmp "
+      CONFCASE=$( basename $tmp )
+      CONFIG=${CONFCASE%-*}
+      CASE=${CONFCASE#*-} ;;
 
-if [ $tmp != CTL ] ; then
-  echo " ***** ERROR : you must be in CTL"
-  exit 1
-fi
-CONFCASE=$( basename $(dirname $here) )
-CONFIG=${CONFCASE%-*}
-CASE=${CONFCASE#*-}
-
-echo " CONFIG   :  $CONFIG"
-echo " CASE     :  $CASE"
-echo " CONFCASE : $CONFCASE"
+  (CDF ) tmp=$(dirname $here  )
+       tmp=$(dirname $tmp  )
+      CONFCASE=$( basename $tmp )
+      CONFIG=${CONFCASE%-*}
+      CASE=${CONFCASE#*-} ;;
+  ( * ) echo " cannot infer CONFASE !"
+      echo " This is not a CTL dir nor a CTL/CDF dir "
+      exit 1 ;;
+  esac
+echo "     CONFIG   : " $CONFIG
+echo "     CASE     : " $CASE
+echo " ==> CONFCASE : " $CONFCASE
+               }
+get_confcase
 
 n1=$1
 n2=$2
