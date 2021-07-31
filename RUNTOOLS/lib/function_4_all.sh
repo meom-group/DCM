@@ -473,6 +473,7 @@ getgeo()  {
 # ---
 # get calving file
 getcalving()  {
+        SetYears
         filter=''
         nn_test_icebergs=$(LookInNamelist nn_test_icebergs  namelist)
         if [ $nn_test_icebergs = -1 ] ; then
@@ -490,6 +491,7 @@ getcalving()  {
 # ---
 # get isf files
 getisf () {
+       SetYears
        filter=''
        nn_isf=$(LookInNamelist nn_isf  namelist)
        blk=namsbc_isf
