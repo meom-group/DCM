@@ -43,34 +43,124 @@ get_confcase
 CTLDIR=$PDIR/RUN_${CONFIG}/${CONFCASE}/CTL
 SSDIR=$DDIR/${CONFIG}/${CONFCASE}-S
 STDIR=$SDIR/${CONFIG}/${CONFCASE}-S
+ICBDIR=$SDIR/${CONFIG}/${CONFCASE}-S/ICBTRJ
 MWDIR=$WORK/${CONFIG}/${CONFCASE}-MEAN
 DIADIR=$WORK/${CONFIG}/${CONFCASE}-DIAGS/NC
 
 DBFILE=${CONFCASE}.db
 cd $CTLDIR
+echo 
 
 echo "      Last completed segment:  $( tail -2 $DBFILE | head -1 | awk '{print $1}' ) "
             tmp=$(tail -2 $DBFILE  | head -1 | awk '{print $NF}' )
+            last_seg=$tmp
 echo "      Last date             : ${tmp:0:4}"-"${tmp:4:2}"-"${tmp:6:2}"
+            last_date=$tmp
 echo
 echo " status on scratch :"
-cd $SSDIR/1d
-tmp=$( ls -1d *-concat | tail -1 )
-echo "      Last concatenate year : " ${tmp%-concat}
+if [ -d $SSDIR/1d ] ; then
+   cd $SSDIR/1d
+   tmp=$( ls -1d *-concat | tail -1 )
+   echo "      Last concatenate year : " ${tmp%-concat}
+   last_concat=${tmp%-concat}
+else
+   echo "      No files migrated to scratch yet"
+fi
+
 echo
-echo " status in WORK (-MEAN) "
-cd $MWDIR/1y
-tmp=$( ls -1d * | tail -1 )
-echo "      Last year in -MEAN    : " ${tmp}
+
+echo " status in WORK (-MEAN) :"
+if [ -d $MWDIR/1y ] ; then
+
+  cd $MWDIR/1y
+  tmp=$( ls -1d * | tail -1 )
+  echo "      Last year in -MEAN    : " ${tmp}
+  last_mean=${tmp}
+  echo 
+else
+  echo "      No files in MEAN yet "
+fi
+
 echo 
+echo " status on STORE : "
+if [ -d $STDIR/1d ] ; then
+   cd $STDIR/1d
+   tmp=$( ls -1d *-concat | tail -1 )
+   echo "      Last stored year : " ${tmp%-concat}
+   last_stored=${tmp%-concat}
+else
+   echo "      No files migrated to STORE yet"
+fi
+cd $CTLDIR
+echo 
+
 echo " Monitoring :"
-cd $DIADIR
-tmp=$(ls -1 *TSMEAN*nc | tail -1)
-tmp=$( echo $tmp | sed -e "s/${CONFCASE}_y//" )
-echo "      Last monitored year  : " ${tmp%%.*}
+if [ -d $DIADIR ] ; then
+  cd $DIADIR
+  tmp=$(ls -1 *TSMEAN*nc | tail -1)
+  tmp=$( echo $tmp | sed -e "s/${CONFCASE}_y//" )
+  echo "      Last monitored year  : " ${tmp%%.*}
+  last_monit=${tmp%%.*}
+else
+  echo "      No monitoring done yet !"
+  last_monit=9999
+fi
 
 echo
+echo "SUGGESTION for Post Process :"
+echo "============================="
+
+echo "   (1) keeping files from XIOS etc.."
+cd $CTLDIR
+tmp=$( grep -e " ....1231"  $DBFILE  | tail -1 | awk '{print $NF}' )
+  echo "       Last year completed   : "${tmp:0:4}
+  last_completed=${tmp:0:4}
+  ghost=''
+  if [ $last_completed -gt $last_concat ] ; then
+     if [  $(( last_concat + 1 )) = $last_completed ] ; then ghost=$last_completed ; fi
+     echo "       "./keepclear.sh  $( seq -s " " $(( last_concat + 1 )) $last_completed  ) $ghost
+  else
+     echo "        no need for  keepclear.sh  now"
+  fi
+
+echo "   (2) copying files to -MEAN"
+  if [ $last_concat -gt $last_mean ] ; then
+     echo "     cp2mean.sh $(seq -s " " $(( last_mean + 1 )) $last_concat)"
+     echo "     need to edit ./cpmean.sh to change date"
+  else
+     echo "     MEAN is already updated !"
+  fi
+
+echo "   (3) Launch monitoring "
+if [ $(( last_monit + 1 )) -lt $last_mean ] ; then
+   echo "    RUN_metamon $( seq -s " " $(( last_monit + 1 )) $last_mean ) "
+else
+   echo "     Monitoring not ready to launch ... $last_monit "
+fi
 
 
-#eORCA025.L75-IMHOTEP.GAI_y1996.1y_1y_TSMEAN.nc
+echo "   (4) Cleaning files in DDIR"
+cd $CTLDIR
+last_concat_seg=$( cat $DBFILE | grep "${last_concat}1231" | awk '{print $1}' )
+cd $DDIR
+seg1=$(   tmp=$(ls -1d ${CONFCASE}-XIOS.* | head -1 ) ; echo ${tmp##*.} )
+if [ -f $ICBDIR/${CONFCASE}_y${last_concat}m12d31_trajectory_icebergs.${last_concat_seg}.nc ]  ; then
+if [ $seg1 -lt $last_concat_seg ] ; then 
+   echo "          Safe cleaning from segments  $seg1 to $last_concat_seg "
+   echo "         dcmtk_clean_files  $seg1 $last_concat_seg "
+else
+   echo "        Nothing to clean now!"
+fi
+else
+   echo "       ICB files not yet ready ... wait "
+fi
+echo "   (5) sending files to STORE:"
+if [ $last_stored -lt $last_concat ] ; then 
+   echo  "           sbatch store_concat.sh $( seq -s " " $(( $last_stored + 1 )) $last_concat ) "
+   echo  "             WARNING : check that there are no on-going CONCAT jobs !"
+else
+   echo  "           STORE is already updated"
+fi
+echo
+
 
