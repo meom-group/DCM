@@ -1,9 +1,5 @@
 #!/bin/bash
 
-CONFIG=eORCA025.L75
-CASE=IMHOTEP02
-
-CONFCASE=${CONFIG}-${CASE}
 
 if [ $# != 2 ] ; then
   echo "  USAGE:"
