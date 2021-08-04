@@ -24,7 +24,7 @@ case $b_name in
       CONFCASE=$( basename $tmp )
       CONFIG=${CONFCASE%-*}
       CASE=${CONFCASE#*-} ;;
-( * ) echo " cannot infer CONFASE !"
+( * ) echo " cannot infer CONFCASE !"
       echo " This is not a CTL dir nor a CTL/CDF dir "
       exit 1
 esac
@@ -36,27 +36,31 @@ echo " ==> CONFCASE : " $CONFCASE
 
 
 # Main
-
 get_confcase
 
+# define path of key directories according to CONFCASE
+CTLDIR=$PDIR/RUN_${CONFIG}/${CONFCASE}/CTL    # CTL
+SSDIR=$DDIR/${CONFIG}/${CONFCASE}-S           # -S on SCRATCH
+STDIR=$SDIR/${CONFIG}/${CONFCASE}-S           # -S on STORE
+ICBDIR=$SDIR/${CONFIG}/${CONFCASE}-S/ICBTRJ   # ICB on STORE
+MWDIR=$WORK/${CONFIG}/${CONFCASE}-MEAN        # -MEAN on WORK
+DIADIR=$WORK/${CONFIG}/${CONFCASE}-DIAGS/NC   # -DIAGS on WORK
+
+DBFILE=${CONFCASE}.db                         # db file
+
 # ensure to be in CTL dir
-CTLDIR=$PDIR/RUN_${CONFIG}/${CONFCASE}/CTL
-SSDIR=$DDIR/${CONFIG}/${CONFCASE}-S
-STDIR=$SDIR/${CONFIG}/${CONFCASE}-S
-ICBDIR=$SDIR/${CONFIG}/${CONFCASE}-S/ICBTRJ
-MWDIR=$WORK/${CONFIG}/${CONFCASE}-MEAN
-DIADIR=$WORK/${CONFIG}/${CONFCASE}-DIAGS/NC
-
-DBFILE=${CONFCASE}.db
 cd $CTLDIR
+#   Actual status of the job 
+echo " Actual status of the job : "
+echo " ======================== "
 echo 
-
 echo "      Last completed segment:  $( tail -2 $DBFILE | head -1 | awk '{print $1}' ) "
             tmp=$(tail -2 $DBFILE  | head -1 | awk '{print $NF}' )
             last_seg=$tmp
 echo "      Last date             : ${tmp:0:4}"-"${tmp:4:2}"-"${tmp:6:2}"
             last_date=$tmp
 echo
+# files status according to file system
 echo " status on scratch :"
 if [ -d $SSDIR/1d ] ; then
    cd $SSDIR/1d
@@ -66,7 +70,6 @@ if [ -d $SSDIR/1d ] ; then
 else
    echo "      No files migrated to scratch yet"
 fi
-
 echo
 
 echo " status in WORK (-MEAN) :"
@@ -80,8 +83,8 @@ if [ -d $MWDIR/1y ] ; then
 else
   echo "      No files in MEAN yet "
 fi
-
 echo 
+
 echo " status on STORE : "
 if [ -d $STDIR/1d ] ; then
    cd $STDIR/1d
@@ -94,6 +97,7 @@ fi
 cd $CTLDIR
 echo 
 
+# status of on-going monitoring
 echo " Monitoring :"
 if [ -d $DIADIR ] ; then
   cd $DIADIR
@@ -115,25 +119,23 @@ cd $CTLDIR
 tmp=$( grep -e " ....1231"  $DBFILE  | tail -1 | awk '{print $NF}' )
   echo "       Last year completed   : "${tmp:0:4}
   last_completed=${tmp:0:4}
-  ghost=''
   if [ $last_completed -gt $last_concat ] ; then
-     if [  $(( last_concat + 1 )) = $last_completed ] ; then ghost=$last_completed ; fi
-     echo "       "./keepclear.sh  $( seq -s " " $(( last_concat + 1 )) $last_completed  ) $ghost
+     echo "       "./keepclear.sh  $(( last_concat + 1 )) $last_completed  
   else
      echo "        no need for  keepclear.sh  now"
   fi
 
 echo "   (2) copying files to -MEAN"
   if [ $last_concat -gt $last_mean ] ; then
-     echo "     cp2mean.sh $(seq -s " " $(( last_mean + 1 )) $last_concat)"
+     echo "     cp2mean.sh  $(( last_mean + 1))  $last_concat)"
      echo "     need to edit ./cpmean.sh to change date"
   else
      echo "     MEAN is already updated !"
   fi
 
 echo "   (3) Launch monitoring "
-if [ $(( last_monit + 1 )) -lt $last_mean ] ; then
-   echo "    RUN_metamon $( seq -s " " $(( last_monit + 1 )) $last_mean ) "
+if [ $(( last_monit + 1 )) -le $last_mean ] ; then
+   echo "    RUN_metamon  $(( last_monit + 1 )) $last_mean  "
 else
    echo "     Monitoring not ready to launch ... $last_monit "
 fi
@@ -143,14 +145,16 @@ echo "   (4) Cleaning files in DDIR"
 cd $CTLDIR
 last_concat_seg=$( cat $DBFILE | grep "${last_concat}1231" | awk '{print $1}' )
 cd $DDIR
-seg1=$(   tmp=$(ls -1d ${CONFCASE}-XIOS.* | head -1 ) ; echo ${tmp##*.} )
+seg1=$(   tmp=$(ls -1trd ${CONFCASE}-XIOS.* | head -1 ) ; echo ${tmp##*.} )
 if [ -f $ICBDIR/${CONFCASE}_y${last_concat}m12d31_trajectory_icebergs.${last_concat_seg}.nc ]  ; then
-if [ $seg1 -lt $last_concat_seg ] ; then 
-   echo "          Safe cleaning from segments  $seg1 to $last_concat_seg "
-   echo "         dcmtk_clean_files  $seg1 $last_concat_seg "
-else
-   echo "        Nothing to clean now!"
-fi
+  echo "       first remaining seg in DDIR : $seg1 "
+  echo "       last concatenated segment in DDIR : $last_concat_seg "
+  if [ $seg1 -lt $last_concat_seg ] ; then 
+     echo "          Safe cleaning from segments  $seg1 to $last_concat_seg "
+     echo "         dcmtk_clean_files  $seg1 $last_concat_seg "
+  else
+      echo "        Nothing to clean now!"
+  fi
 else
    echo "       ICB files not yet ready ... wait "
 fi
@@ -158,6 +162,13 @@ echo "   (5) sending files to STORE:"
 if [ $last_stored -lt $last_concat ] ; then 
    echo  "           sbatch store_concat.sh $( seq -s " " $(( $last_stored + 1 )) $last_concat ) "
    echo  "             WARNING : check that there are no on-going CONCAT jobs !"
+   cd $SSDIR/1d/${last_concat}-concat
+   ls *tmp > /dev/null 2>&1
+   if [ $? != 0 ] ; then
+      echo "              there are on going CONCAT for $CONFCASE"
+   else
+      echo "              Likely that there are no on going CONCAT for $CONFCASE"
+   fi
 else
    echo  "           STORE is already updated"
 fi
