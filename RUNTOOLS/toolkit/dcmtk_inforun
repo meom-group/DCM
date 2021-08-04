@@ -45,6 +45,7 @@ STDIR=$SDIR/${CONFIG}/${CONFCASE}-S           # -S on STORE
 ICBDIR=$SDIR/${CONFIG}/${CONFCASE}-S/ICBTRJ   # ICB on STORE
 MWDIR=$WORK/${CONFIG}/${CONFCASE}-MEAN        # -MEAN on WORK
 DIADIR=$WORK/${CONFIG}/${CONFCASE}-DIAGS/NC   # -DIAGS on WORK
+MONDIR=$WORK/${CONFIG}/${CONFCASE}-MONITOR    # monitoring time series
 
 DBFILE=${CONFCASE}.db                         # db file
 
@@ -135,11 +136,19 @@ echo "   (2) copying files to -MEAN"
 
 echo "   (3) Launch monitoring "
 if [ $(( last_monit + 1 )) -le $last_mean ] ; then
-   echo "    RUN_metamon  $(( last_monit + 1 )) $last_mean  "
+   echo "        RUN_metamon  $(( last_monit + 1 )) $last_mean  "
 else
-   echo "     Monitoring not ready to launch ... $last_monit "
+   echo "         Monitoring not ready to launch ... $last_monit "
 fi
+last_diag=$( ls -1rt $DIADIR/*.nc | tail -1 )
+last_time=$( ls -1rt $MONDIR/*.nc | tail -1 )
 
+if [ $last_diag -nt $last_time ] ; then
+    echo "  Monitoring time series are not up to date:"
+    echo "  cd CDF ; ./make_ncdf_timeseries -a ; ./run_monitor_py_standalone  ; cd $CTLDIR"
+else
+    echo " Time series are updated "
+fi
 
 echo "   (4) Cleaning files in DDIR"
 cd $CTLDIR
@@ -164,8 +173,8 @@ if [ $last_stored -lt $last_concat ] ; then
    echo  "             WARNING : check that there are no on-going CONCAT jobs !"
    cd $SSDIR/1d/${last_concat}-concat
    ls *tmp > /dev/null 2>&1
-   if [ $? != 0 ] ; then
-      echo "              there are on going CONCAT for $CONFCASE"
+   if [ $? = 0 ] ; then
+      echo "              There are on going CONCAT for $CONFCASE"
    else
       echo "              Likely that there are no on going CONCAT for $CONFCASE"
    fi
