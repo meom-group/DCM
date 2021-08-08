@@ -3,12 +3,24 @@
 # functions
 ##  give usage of the script
 usage() {
-   echo "USAGE   :  dcmtk_inforun.sh"
-   echo "PURPOSE : Give informations about the run corresponding to this CTL or CDF directory"
+   echo "USAGE   : "
+   echo "       dcmtk_inforun.sh [-h] "
+   echo
+   echo "PURPOSE : "
+   echo "       Give informations about the run corresponding to this CTL or CDF directory"
+   echo
+   echo "OPTIONS :"
+   echo "       -h : print this short help message !"
+   echo
    exit 0
         }
 
 ## determine CONFCASE from the actual directory (CTL or CDF)
+if [ $# != 0 ] ; then
+  if [ $1 = '-h' ] ; then
+   usage
+  fi
+fi
 get_confcase() {
 here=$(pwd)
 b_name=$( basename $here )
@@ -32,6 +44,9 @@ echo "     CONFIG   : " $CONFIG
 echo "     CASE     : " $CASE
 echo " ==> CONFCASE : " $CONFCASE
                }
+qma()   { 
+  squeue -u $USER  -o  "%.10i %.9P %.15j %.8u %.2t %.10M %.6D %.13l %.13L %20S %r"
+        }
 
 
 
@@ -63,11 +78,20 @@ echo "      Last date             : ${tmp:0:4}"-"${tmp:4:2}"-"${tmp:6:2}"
 echo
 # files status according to file system
 echo " status on scratch :"
+lconcat=0
 if [ -d $SSDIR/1d ] ; then
    cd $SSDIR/1d
    tmp=$( ls -1d *-concat | tail -1 )
    echo "      Last concatenate year : " ${tmp%-concat}
    last_concat=${tmp%-concat}
+   jobids=( $( qma | grep CONCAT |awk '{print $1}' ) )
+   for jj in ${jobids[@]} ; do
+     ls ${CTLDIR}/*${jj} > /dev/null 2>&1
+     if [ $? = 0 ] ; then
+        echo "      Job concat ( $jj ) is going on "
+        lconcat=1
+     fi
+   done
 else
    echo "      No files migrated to scratch yet"
 fi
@@ -96,10 +120,33 @@ else
    echo "      No files migrated to STORE yet"
 fi
 cd $CTLDIR
+   lstore=0
+   jobids=( $( qma | grep JOB_store |awk '{print $1}' ) )
+   for jj in ${jobids[@]} ; do
+     ls ${CTLDIR}/*${jj} > /dev/null 2>&1
+     if [ $? = 0 ] ; then
+        echo "      Job store ( $jj ) is going on "
+        lstore=1
+     fi
+     ls ${CTLDIR}/CDF/*${jj} > /dev/null 2>&1
+     if [ $? = 0 ] ; then
+       echo "      Job store ( $jj ) is going on "
+       lstore=1
+     fi
+   done
 echo 
 
 # status of on-going monitoring
 echo " Monitoring :"
+   lmonitor=0
+   jobids=( $( qma | grep zmetamon |awk '{print $1}' ) )
+   for jj in ${jobids[@]} ; do
+     ls ${CTLDIR}/CDF/*${jj} > /dev/null 2>&1
+     if [ $? = 0 ] ; then
+        echo "      Job monitorin ( $jj ) is going on "
+        lmonitor=1
+     fi
+   done
 if [ -d $DIADIR ] ; then
   cd $DIADIR
   tmp=$(ls -1 *TSMEAN*nc | tail -1)
@@ -135,6 +182,9 @@ echo "   (2) copying files to -MEAN"
   fi
 
 echo "   (3) Launch monitoring "
+if [ $lmonitor = 1 ] ; then
+   echo "      Job monitoring is runing .... wait for news...!"
+else
 if [ $(( last_monit + 1 )) -le $last_mean ] ; then
    echo "        RUN_metamon  $(( last_monit + 1 )) $last_mean  "
 else
@@ -148,6 +198,7 @@ if [ $last_diag -nt $last_time ] ; then
     echo "  cd CDF ; ./make_ncdf_timeseries -a ; ./run_monitor_py_standalone  ; cd $CTLDIR"
 else
     echo " Time series are updated "
+fi
 fi
 
 echo "   (4) Cleaning files in DDIR"
@@ -167,20 +218,30 @@ if [ -f $ICBDIR/${CONFCASE}_y${last_concat}m12d31_trajectory_icebergs.${last_con
 else
    echo "       ICB files not yet ready ... wait "
 fi
+
 echo "   (5) sending files to STORE:"
-if [ $last_stored -lt $last_concat ] ; then 
-   echo  "           sbatch store_concat.sh $( seq -s " " $(( $last_stored + 1 )) $last_concat ) "
-   echo  "             WARNING : check that there are no on-going CONCAT jobs !"
-   cd $SSDIR/1d/${last_concat}-concat
-   ls *tmp > /dev/null 2>&1
-   if [ $? = 0 ] ; then
-      echo "              There are on going CONCAT for $CONFCASE"
-   else
-      echo "              Likely that there are no on going CONCAT for $CONFCASE"
-   fi
+if [ $lconcat = 1 ] ; then
+    echo "    Concatenated files are under construction... wait before sending on STORE.."
 else
-   echo  "           STORE is already updated"
-fi
+  if [ $lstore = 1 ] ; then
+    echo "    JOB store is allready running ..."
+  else
+    if [ $last_stored -lt $last_concat ] ; then 
+       echo  "           sbatch store_concat.sh $( seq -s " " $(( $last_stored + 1 )) $last_concat ) "
+       echo  "             WARNING : check that there are no on-going CONCAT jobs !"
+       cd $SSDIR/1d/${last_concat}-concat
+       ls *tmp > /dev/null 2>&1
+       if [ $? = 0 ] ; then
+          echo "              There are on going CONCAT for $CONFCASE"
+       else
+          echo "              Likely that there are no on going CONCAT for $CONFCASE"
+        fi
+  
+    else
+      echo  "           STORE is already updated"
+    fi
+  fi
 echo
+fi
 
 
