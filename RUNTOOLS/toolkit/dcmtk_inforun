@@ -98,6 +98,15 @@ fi
 echo
 
 echo " status in WORK (-MEAN) :"
+   lmean=0
+   jobids=( $( qma | grep JOB_annual |awk '{print $1}' ) )
+   for jj in ${jobids[@]} ; do
+     ls ${CTLDIR}/*${jj} > /dev/null 2>&1
+     if [ $? = 0 ] ; then
+        echo "      Job  annual ( $jj ) is going on "
+        lmean=1
+     fi
+   done
 if [ -d $MWDIR/1y ] ; then
 
   cd $MWDIR/1y
@@ -174,11 +183,15 @@ tmp=$( grep -e " ....1231"  $DBFILE  | tail -1 | awk '{print $NF}' )
   fi
 
 echo "   (2) copying files to -MEAN"
+  if [ $lmean = 1 ] ; then 
+     echo "       JOB annual is going on, wait for news"
+  else
   if [ $last_concat -gt $last_mean ] ; then
      echo "     cp2mean.sh  $(( last_mean + 1))  $last_concat)"
      echo "     need to edit ./cpmean.sh to change date"
   else
      echo "     MEAN is already updated !"
+  fi
   fi
 
 echo "   (3) Launch monitoring "
