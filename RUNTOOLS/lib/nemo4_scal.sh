@@ -266,8 +266,8 @@ if [ $TOP = 1 ] ; then
     echo ' [2.2]  Tracer namelist(s)'
     echo " ========================="
     rcopy $P_CTL_DIR/namelist_top ./
-    sed -e "s@<CN_DIRRST>@$DDIR/${CN_DIRRST}@"   namelist_top > ztmp
-    mv ztmp namelist_top
+    sed -e "s@<CN_DIRRST>@$DDIR/${CN_DIRRST}@"   namelist_top > ztmpnmtop
+    mv ztmpnmtop namelist_top
     cp namelist_top namelist_top_ref
     cp namelist_top namelist_top_cfg
     if [ $CFC = 1    ] ; then rapatrie $CFCATM $P_I_DIR $F_DTA_DIR $NEMO_CFCATM ; fi
@@ -282,8 +282,8 @@ if [ $ICE != 0 ] ; then
     echo ' [2.3]  Ice namelist'
     echo " ========================="
     rcopy $P_CTL_DIR/namelist_ice.${CONFIG_CASE} namelist_ice
-    sed -e "s@<CN_DIRRST>@$DDIR/${CN_DIRRST}@"   namelist_ice > ztmp
-    mv ztmp namelist_ice
+    sed -e "s@<CN_DIRRST>@$DDIR/${CN_DIRRST}@"   namelist_ice > ztmpnmice
+    mv ztmpnmice namelist_ice
     cp namelist_ice namelist_ice_ref
     cp namelist_ice namelist_ice_cfg
     if [ $AGRIF = 1 ] ; then
@@ -613,8 +613,8 @@ eof
     cat $xml_fil | sed -e "s@<OUTDIR>@$DDIR/${CONFIG_CASE}-XIOS_${JPNI}_${JPNJ}_${JPNIJ}.$no@"  \
         -e "s@<MOORDIR>@$DDIR/${CONFIG_CASE}-MOORINGS.$no@" \
         -e "s/<CONFIG>/$CONFIG/" -e "s/<CASE>/$CASE/" \
-        -e "s/<NDATE0>/$ndate0/" > ztmp
-    mv ztmp $xml_fil
+        -e "s/<NDATE0>/$ndate0/" > ztmpxml
+    mv ztmpxml $xml_fil
    done
 #    if [ $XIOS2 = 1 ] ; then
 #       cat file_def.xml | sed -e "s@<OUTDIR>@$DDIR/${CONFIG_CASE}-XIOS.$no@"  \

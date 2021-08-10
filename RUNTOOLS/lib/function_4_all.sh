@@ -999,7 +999,7 @@ cat << eof >> $1    # Submit script name given as argument
    # $ to be maintained in the final script are replaces by @, then automatic edition
    # replace the @ by $ [ this is necessary because we are at the second level of script
    # creation !
-   cat << eof1 > ztmp
+   cat << eof1 > ztmprst
 #!/bin/bash
    set -x
    . ./includefile.sh
@@ -1016,7 +1016,7 @@ cat << eof >> $1    # Submit script name given as argument
    cd $DDIR
    tar cf $F_R_DIR/${CONFIG_CASE}\${mmm}-RST.$ext.tar ${CONFIG_CASE}-RST.$ext/\$mmm
 eof1
-   cat ztmp | sed -e 's/@/\$/g' > ./$1\${mmm}.sh    # change @ into \$ and create script for current member
+   cat ztmprst | sed -e 's/@/\$/g' > ./$1\${mmm}.sh    # change @ into \$ and create script for current member
    chmod 755 ./$1\${mmm}.sh                         # made it executable
 
    mpmd_arg="\$mpmd_arg 1 ./$1\${mmm}.sh"           # prepare the command line for runcode function
@@ -1067,7 +1067,7 @@ cat << eof >> $1    # Submit script name given as argument
    # $ to be maintained in the final script are replaces by @, then automatic edition
    # replace the @ by $ [ this is necessary because we are at the second level od script
    # creation !
-   cat << eof1 > ztmp
+   cat << eof1 > ztmprst2
 #!/bin/bash
    set -x
    . ./includefile.sh
@@ -1218,7 +1218,7 @@ cat << eof >> $1    # Submit script name given as argument
 
    touch RST_DONE\${mmm}.\$ext
 eof1
-   cat ztmp | sed -e 's/@/\$/g' > ./$1\${mmm}.sh    # change @ into \$ and create script for current member
+   cat ztmprst2 | sed -e 's/@/\$/g' > ./$1\${mmm}.sh    # change @ into \$ and create script for current member
    chmod 755 ./$1\${mmm}.sh                         # made it executable
 
    mpmd_arg="\$mpmd_arg 1 ./$1\${mmm}.sh"           # prepare the command line for runcode function
@@ -1560,16 +1560,16 @@ post_process_one_file()  {
          DDIR=${DDIR:-$CDIR}
          ls -ld WRK.* > /dev/null 2>&1
          if [ $? = 0 ] ; then
-            ztmp=../WRK.*
+            ztmpof=../WRK.*
          else
-            ztmp=.
+            ztmpof=.
          fi
          # mkdir <freq>_OUTPUT directories according to existing files
          for freq in 1ts 1h 3h 1d 3d 5d 1m 1mo ; do
 #            ls *${freq}*_????????-????????.nc  > /dev/null 2>&1 
             ls *${freq}*_*-*.nc  > /dev/null 2>&1 
             if [ $? = 0 ] ; then 
-               mkdir -p ${ztmp}/${freq}_OUTPUT
+               mkdir -p ${ztmpof}/${freq}_OUTPUT
             fi
          done
          # check if zoom coordinates are there in case of zoom
@@ -1649,8 +1649,8 @@ post_process_one_file()  {
          # cd TMPDIR required in the calling program
                          }
 # ---
-# rename_out : rename NEMO output file to <ztmp>/<freq>_OUTPUT/<CONFIG><zoomid>-<CASE>_<tag>_<type>.nc
-#    ztmp is either . in case of standard output or the name of a WRK directory (ensemble run)
+# rename_out : rename NEMO output file to <ztmpof>/<freq>_OUTPUT/<CONFIG><zoomid>-<CASE>_<tag>_<type>.nc
+#    ztmpof is either . in case of standard output or the name of a WRK directory (ensemble run)
 #    it takes the NEMO name as input
 rename_out() {
             nemo_file=$1
@@ -1666,7 +1666,7 @@ rename_out() {
             zdd=${zndastp:6:2} ; zdd=${zdd:=00}
             ztag=y${zyy}m${zmm}d${zdd}.$zfreq
 
-            drak_file=${ztmp}/${zfreq}_OUTPUT/${CONFIG}${zoomid}-${CASE}${mmm}_${ztag}_$ztype.nc
+            drak_file=${ztmpof}/${zfreq}_OUTPUT/${CONFIG}${zoomid}-${CASE}${mmm}_${ztag}_$ztype.nc
             cp $nemo_file $drak_file
 #            mv $nemo_file $drak_file
              }
