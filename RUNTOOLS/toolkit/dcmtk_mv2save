@@ -1,0 +1,35 @@
+#!/bin/bash
+# This script is used to keep only restart files coresponding to the end of one year
+# it is usefull for monthly or yearly segmented jobs.
+
+here=$(pwd)
+tmp=$(basename $here )
+ext=${tmp##*-}
+
+if [ $ext != 'R' ] ; then
+   echo "   This script must be used in a -R directory on $SDIR"
+   exit 1
+fi
+CONFCASE=${tmp%-R}
+
+echo $CONFCASE
+CONFIG=${CONFCASE%-*}
+CASE=${CONFCASE#*-}
+echo $CONFIG
+echo $CASE
+
+CTLDIR=$PDIR/RUN_${CONFIG}/${CONFCASE}/CTL
+mkdir -p SAVE
+
+cat $CTLDIR/${CONFCASE}.db | grep 1231$ > db_1231
+
+seg=( $(cat db_1231 | awk '{print $1}')  )
+
+echo ${seg[@]}
+
+for n in ${seg[@]} ; do
+  echo -n mv ${CONFCASE}-RST.$n.tar SAVE/ ....
+  mv ${CONFCASE}-RST.$n.tar SAVE/
+  echo done
+done
+
