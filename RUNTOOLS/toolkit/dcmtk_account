@@ -1,0 +1,90 @@
+#!/bin/bash
+# look for CPU concumption of a project
+# class = @Run progression tools@
+
+usage()  { 
+echo
+echo "USAGE: $(basename $0)  [-h] -p PROJECT -u USER "
+echo
+echo "  PURPOSE:"
+echo "     This tools uses sacct slurm command to look for CPU consumption. It ends up with"
+echo "     a graph showing the cumulated consumption during the period of the current allocation."
+echo "     It is primarlily desined for IDRIS (use of idrxxx commands) but it should work on "
+echo "     any machine where SLURM is used as a batch scheduler, with few adjustments."
+echo "     At some HPC center (e.g. IDRIS), a given user can only watch its own "
+echo "     consumption, and therefore no details can be given for other."
+echo
+echo "  ARGUMENTS:"
+echo "   -p PROJECT : a  code identifying the project to work with (e.g.  cli@cpu )"
+echo "   -u USER    : user name used to filter the sacct results"
+echo 
+echo "  OPTIONS:"
+echo "   -h : print this help message "
+echo
+    exit 0
+         }
+
+get_info()  {
+   pcod=${1%@*}
+   idrpro=(  $(idrproj | grep $pcod) )
+   prid=$( echo ${idrpro[@]}  | awk -F/ '{print $1}' | awk -F\( '{print $2}' )
+   AO=$(   echo ${idrpro[@]}  | awk -F/ '{print $2}' | awk      '{print substr($1,1,4)}' )
+
+   idraccount=( $( idracct -s | grep $prid ) )
+   Alloc=$( echo ${idraccount[@]} | awk '{print $5}' )
+
+   tmp=$(  echo ${idraccount[@]}| awk '{print $3}' )
+   Sdat=${tmp:6:4}-${tmp:3:2}-${tmp:0:2}
+   tmp=$(  echo ${idraccount[@]}| awk '{print $4}' )
+   Edat=${tmp:6:4}-${tmp:3:2}-${tmp:0:2}
+            }
+
+user=none
+proj=none
+
+if [ $# = 0 ] ; then usage ; fi
+while getopts :hp:u: opt ; do
+   case $opt in 
+   (h)  usage ;;
+   (p)  proj=${OPTARG} ;;
+   (u)  user=${OPTARG} ;;
+   (*)  usage ;;
+   esac
+done
+
+if  [ $user = none ] ; then
+   echo " Missing user..."
+   usage
+fi
+if  [ $proj = none ] ; then
+   echo " Missing project..."
+   usage
+fi
+
+get_info $proj
+
+echo "USER        : $user"
+echo "Group       : $pcod"
+echo " Project ID : $prid"
+echo " Allocation : $Alloc CPUH"
+echo " Start Date : $Sdat "
+echo " End Date   : $Edat "
+echo " Call name  : $AO   "
+
+Syy=${Sdat:0:4}
+Smm=${Sdat:5:2}
+Sdd=${Sdat:8:2}
+
+
+export SACCT_FORMAT="start,end,elapsedraw,jobid%20,account,jobname%20,user,cputimeraw,ncpus"
+sacct -S $Sdat -E $Edat  | grep $proj | grep $user | grep -vi unknown > ${proj}_${user}_account.txt
+
+cat ${proj}_${user}_account.txt | sort -k2 | awk 'BEGIN{ s=0 }{ s0=mktime(Sdatspec); y  = substr($1,1,4) ; \
+                                                                           mm = substr($1,6,2) ; \
+                                                                           dd = substr($1,9,2) ; \
+                                                                           hh = substr($1,12,2) ; \
+                                                                           mn = substr($1,15,2) ; \
+                                                                           ss = substr($1,18,2) ; \
+    datspec=y " " mm " " dd " " hh " " mn " " ss ; snow=( mktime( datspec) -s0 )/86400. ; cpu= s=s+$8/2/3600;   print snow " " cpu }' Sdatspec="$Syy $Smm $Sdd 00 00 00" \
+     | graph -C -TX -x 0 365 -y 0 $Alloc -L "$proj call $AO on Jean Zay" -X "days since $Sdat" -Y "CPUh"
+
