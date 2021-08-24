@@ -157,7 +157,9 @@ runcode_mpmd_dp()  {
           esac
      esac
    done
-   nb_node_nemo=$(( nb_core_nemo / core_per_node ))
+#   nb_node_nemo=$(( nb_core_nemo / core_per_node ))
+   # the following line allows for nemo core not being a multiple of core per node...
+   nb_node_nemo=$( echo $nb_core_nemo $core_per_node | awk '{frac=0; if ( $1%$2 > 0 ) frac=1 ; print int($1/$2) + frac }')
    nb_node_xios=$(( nb_core_xios / xios_core_per_node ))
    # create multi-prog file : ztask_file.conf 
    rm -f ./ztask_file.conf
