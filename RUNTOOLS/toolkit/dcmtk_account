@@ -78,6 +78,9 @@ Sdd=${Sdat:8:2}
 
 export SACCT_FORMAT="start,end,elapsedraw,jobid%20,account,jobname%20,user,cputimeraw,ncpus"
 sacct -S $Sdat -E $Edat  | grep $proj | grep $user | grep -vi unknown > ${proj}_${user}_account.txt
+cpuused=$( cat ${proj}_${user}_account.txt | awk 'BEGIN{s=0} {s=s+$8/2/3600} END{printf "%d\n", s}' )
+echo " $user cpu : $cpuused"
+echo " left (*) : $(( Alloc - cpuused ))"
 
 cat ${proj}_${user}_account.txt | sort -k2 | awk 'BEGIN{ s=0 }{ s0=mktime(Sdatspec); y  = substr($1,1,4) ; \
                                                                            mm = substr($1,6,2) ; \
