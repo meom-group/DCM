@@ -79,7 +79,7 @@ echo
 
 echo " status on mergexios :"
 lmerge=0
-jobids=( $( qma | grep zmergexios |awk '{print $1}' ) )
+jobids=( $( qma | grep zmergxios |awk '{print $1}' ) )
 if [ ${#jobids[@]} = 0 ] ; then
    echo "     no mergexios running or waiting. "
 else
