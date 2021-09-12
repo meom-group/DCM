@@ -89,9 +89,9 @@ else
     if [ $ST = PD ] ; then
       echo mergexios $jj waiting 
     fi
-    ls ${CTLDIR}/zmergexios.e${jj} > /dev/null 2>&1
+    ls ${CTLDIR}/zmergxios.e${jj} > /dev/null 2>&1
     if [ $? = 0 ] ; then
-        mergeseg=$( grep zXIOS ${CTLDIR}/zmergexios.e${jj} | awk -F. '{print $NF}' )
+        mergeseg=$( grep zXIOS ${CTLDIR}/zmergxios.e${jj} | awk -F. '{print $NF}' )
         echo "      Job mergexios ( $jj ) is going on "
         echo "      working for segment $mergeseg "
        
