@@ -76,6 +76,30 @@ echo "      Last completed segment:  $( tail -2 $DBFILE | head -1 | awk '{print 
 echo "      Last date             : ${tmp:0:4}"-"${tmp:4:2}"-"${tmp:6:2}"
             last_date=$tmp
 echo
+
+echo " status on mergexios :"
+lmerge=0
+jobids=( $( qma | grep zmergexios |awk '{print $1}' ) )
+if [ ${#jobids[@]} = 0 ] ; then
+   echo "     no mergexios running or waiting. "
+else
+        lmerge=1
+   for jj in ${jobids[@]} ; do
+    ST=$( qma | grep $jj | awk '{print $5}')
+    if [ $ST = PD ] ; then
+      echo mergexios $jj waiting 
+    fi
+    ls ${CTLDIR}/zmergexios.e${jj} > /dev/null 2>&1
+    if [ $? = 0 ] ; then
+        mergeseg=$( grep zXIOS ${CTLDIR}/zmergexios.e${jj} | awk -F. '{print $NF}' )
+        echo "      Job mergexios ( $jj ) is going on "
+        echo "      working for segment $mergeseg "
+       
+    fi
+   done
+fi
+echo
+   
 # files status according to file system
 echo " status on scratch :"
 lconcat=0
@@ -177,6 +201,9 @@ tmp=$( grep -e " ....1231"  $DBFILE  | tail -1 | awk '{print $NF}' )
   echo "       Last year completed   : "${tmp:0:4}
   last_completed=${tmp:0:4}
   if [ $last_completed -gt $last_concat ] ; then
+     if [ $lmerge = 1 ] ; then
+       echo "   W A R N I N G :  mergexios running or waiting "
+     fi
      echo "       "./keepclear.sh  $(( last_concat + 1 )) $last_completed  
   else
      echo "        no need for  keepclear.sh  now"
