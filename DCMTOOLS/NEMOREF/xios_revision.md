@@ -1,21 +1,21 @@
 # recomended revision of XIOS : 
       svn info
 Path: .
-Working Copy Root Path: /gpfsddn2/gpfswork/rech/fqx/rcli002/DEV/xios-2.5_trunk
-URL: http://forge.ipsl.jussieu.fr/ioserver/svn/XIOS/branchs/xios-2.5
-Relative URL: ^/XIOS/branchs/xios-2.5
+Working Copy Root Path: /gpfsdswork/projects/rech/cli/rcli002/DEV/xios-trunk
+URL: http://forge.ipsl.jussieu.fr/ioserver/svn/XIOS/trunk
+Relative URL: ^/XIOS/trunk
 Repository Root: http://forge.ipsl.jussieu.fr/ioserver/svn
 Repository UUID: d613d254-d18a-4304-b296-5125d4c4d670
-Revision: 1684
+Revision: 2236
 Node Kind: directory
 Schedule: normal
-Last Changed Author: aclsce
-Last Changed Rev: 1660
-Last Changed Date: 2019-03-18 13:17:11 +0100 (Mon, 18 Mar 2019)
+Last Changed Author: jderouillat
+Last Changed Rev: 2219
+Last Changed Date: 2021-09-06 17:21:22 +0200 (Mon, 06 Sep 2021)
 
  * you can obtain this release with the following command
 
-        svn co -r 1684 http://forge.ipsl.jussieu.fr/ioserver/svn/XIOS/branchs/xios-2.5  xios-2.5_rev1684
+        svn co -r 2236 http://forge.ipsl.jussieu.fr/ioserver/svn/XIOS/trunk  xios-trunk
 
  * Follow the instruction for compilation with ``make_xios``.
 
