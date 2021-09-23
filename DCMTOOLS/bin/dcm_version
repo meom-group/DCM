@@ -54,6 +54,10 @@ printf "$g"
  git remote -v | grep fetch | awk '{print $2}'
 printf "$k"
 echo
+printf "$m"
+  echo -n " current branch: "
+git branch |  grep \* | awk '{print $2}'
+echo 
 
 printf "$b" 
   echo " current commit:  "
