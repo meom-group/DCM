@@ -1,0 +1,52 @@
+!-----------------------------------------------------------------------                                      
+&namdom        !   space and time domain (bathymetry, mesh, timestep)                                         
+!-----------------------------------------------------------------------                                      
+   ln_read_cfg = .false.   !  Read from a domain_cfg file
+   nn_bathy    =    1      !  compute analyticaly (=0) or read (=1) the bathymetry file
+                           !  or compute (2) from external bathymetry
+   nn_interp   =    1                          ! type of interpolation (nn_bathy =2)
+   cn_domcfg   = ' '       ! Name of the domain_cfg input file
+   cn_fcoord   =  'coordinates.nc'             ! external coordinates file (jphgr_msh = 0)
+   cn_topo     =  'bathy_meter.nc           '  ! external topo file (nn_bathy =1/2)
+   cn_topolvl  =  'bathy_level.nc           '  ! external topo file (nn_bathy =1)
+   cn_fisfd    =  'isf_draft_meter.nc'         ! external isf draft (nn_bathy =1 and ln_isfcav = .true.)
+   cn_bath     =  'Bathymetry'                 ! topo name in file  (nn_bathy =1/2)
+   cn_bathlvl  =  'Bathy_level'                ! lvl name in file   (nn_bathy =1)
+   cn_visfd    =  'isf_draft'                  ! isf draft variable (nn_bathy =1 and ln_isfcav = .true.)
+   cn_lon      =  'nav_lon'                    ! lon  name in file  (nn_bathy =2)
+   cn_lat      =  'nav_lat'                    ! lat  name in file  (nn_bathy =2)
+   rn_scale    =    1.     !  Scaling coefficient for bathymetry ( can be -1 ;) )
+   rn_bathy    =    0.     !  value of the bathymetry. if (=0) bottom flat at jpkm1                           
+   nn_msh      =    1      !  create (=1) a mesh file or not (=0)                                             
+   rn_hmin     =   10.     !  min depth of the ocean (>0) or min number of ocean level (<0)                   
+   rn_e3zps_min=   25.     !  partial step thickness is set larger than the minimum of                        
+   rn_e3zps_rat=    0.2    !  rn_e3zps_min and rn_e3zps_rat*e3t, with 0<rn_e3zps_rat<1                        
+                           !                                                                                  
+   rn_rdt      = 5760.     !  time step for the dynamics (and tracer if nn_acc=0)                             
+   rn_atfp     =    0.1    !  asselin time filter parameter                                                   
+   ln_crs      = .false.      !  Logical switch for coarsening module                                         
+   jphgr_msh   =       0               !  type of horizontal mesh                                             
+                                       !  = 0 curvilinear coordinate on the sphere read in coordinate.nc      
+                                       !  = 1 geographical mesh on the sphere with regular grid-spacing       
+                                       !  = 2 f-plane with regular grid-spacing                               
+                                       !  = 3 beta-plane with regular grid-spacing                            
+                                       !  = 4 Mercator grid with T/U point at the equator                     
+                                                                                                              
+   ppglam0     =  999999.0             !  longitude of first raw and column T-point (jphgr_msh = 1)           
+   ppgphi0     =  999999.0             ! latitude  of first raw and column T-point (jphgr_msh = 1)            
+   ppe1_deg    =  999999.0             !  zonal      grid-spacing (degrees)                                   
+   ppe2_deg    =  999999.0             !  meridional grid-spacing (degrees)                                   
+   ppe1_m      =  999999.0             !  zonal      grid-spacing (degrees)                                   
+   ppe2_m      =  999999.0             !  meridional grid-spacing (degrees)                                   
+   ppsur       =   -3958.951371276829  !  ORCA r4, r2 and r05 coefficients                                    
+   ppa0        =     103.9530096000000 ! (default coefficients)                                               
+   ppa1        =       2.415951269000000   !                                                                  
+   ppkth       =      15.35101370000000    !                                                                  
+   ppacr       =       7.0             !                                                                      
+   ppdzmin     =  999999.0             !  Minimum vertical spacing                                            
+   pphmax      =  999999.0             !  Maximum depth                                                       
+   ldbletanh   =   .TRUE.              !  Use/do not use double tanf function for vertical coordinates        
+   ppa2        =     100.7609285000000 !  Double tanh function parameters                                     
+   ppkth2      =      48.02989372000000    !                                                                  
+   ppacr2      =      13.00000000000   !                                                                      
+/  
