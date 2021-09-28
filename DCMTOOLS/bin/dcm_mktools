@@ -4,7 +4,7 @@
 
 #set -vx
 usage() {
-        echo " usage : ${b_n} [-h] [-a] [-n name] [-m compiler] [-c confname]"
+        echo " usage : ${b_n} [-h] [-a] [-n name] [-m compiler] [-c confname] [-r]"
         echo
         echo "    PURPOSE : install one of the tools provided as"
         echo "         companions program to NEMO distribution"
@@ -18,6 +18,7 @@ usage() {
         echo "      -c confcase : if specified, installs the tools in the same"
         echo "                 working directory than confcase, otherwise, create"
         echo "                 its own working area in $CDIR/WTOOLS"
+        echo "      -r : compile the NEMOREF version of the tool. No DRAKKAR adds."
         echo 
         echo "    The name of the compiler can be search with dcm_lsarch"
         exit 0
@@ -33,16 +34,18 @@ avail_tools() {
 b_n=$(basename ${0})
 x_m=gfortran_linux_legi
 confcase=''
+lref=0
 
 if [ $# = 0 ] ; then usage ; fi 
 
-while  getopts :han:m:c: V  ; do
+while  getopts :han:m:c:r V  ; do
    case $V in
      (h)  usage ;;
      (a) avail_tools ;;
      (n) x_n=${OPTARG} ;;
      (m) x_m=${OPTARG} ;;
      (c) confcase=${OPTARG} ;;
+     (r) lref=1 ;;
      (:)  echo ${b_n}" : -"${OPTARG}" option : missing value" 1>&2;
         exit 2;;
      (\?) echo ${b_n}" : -"${OPTARG}" option : not supported" 1>&2;
@@ -72,17 +75,18 @@ cp -rf ${REFDIR}/arch/ $CDIR/$WTOOLS/
 cp -rf ${REFDIR}/ext/FCM  $CDIR/$WTOOLS/ext
 cp -rf ${REFDIR}/tools/$x_n  $CDIR/$WTOOLS/tools/
 
-# copy customization
-cp -rf ${CUSDIR}/mk  $CDIR/$WTOOLS
-if [ -f ${CUSDIR}/tools/maketools ] ; then
-  cp -rf ${CUSDIR}/tools/maketools  $CDIR/$WTOOLS/tools/
-fi
-cp -rf ${CUSDIR}/arch/ $CDIR/$WTOOLS/
+if [ $lref = 0 ] ; then
+  # copy customization
+  cp -rf ${CUSDIR}/mk  $CDIR/$WTOOLS
+  if [ -f ${CUSDIR}/tools/maketools ] ; then
+    cp -rf ${CUSDIR}/tools/maketools  $CDIR/$WTOOLS/tools/
+  fi
+  cp -rf ${CUSDIR}/arch/ $CDIR/$WTOOLS/
 
-if [ -d ${CUSDIR}/tools/$x_n ] ; then 
-  cp -rf ${CUSDIR}/tools/$x_n   $CDIR/$WTOOLS/tools/
+  if [ -d ${CUSDIR}/tools/$x_n ] ; then 
+    cp -rf ${CUSDIR}/tools/$x_n   $CDIR/$WTOOLS/tools/
+  fi
 fi
-
 # compile the tool
 cd $CDIR/$WTOOLS/tools
 export PATH=$PATH:$CDIR/$WTOOLS/ext/FCM/bin
