@@ -251,7 +251,7 @@ CONTAINS
       !                            !------------------------!
       !                            !==  finalize the run  ==!
       !                            !------------------------!
-# if defined key_drakkar
+#if defined key_drakkar
       !{ DRAKKAR : to have information  for scripts
       IF(lwp) WRITE(numout,*) 'run stop at : ',ndastp
       IF ( lwp ) THEN 
@@ -314,9 +314,32 @@ CONTAINS
          &             nn_isplt , nn_jsplt, nn_jctls, nn_jctle,             &
          &             ln_timing, ln_diacfl
       NAMELIST/namcfg/ ln_read_cfg, cn_domcfg, ln_closea, ln_write_cfg, cn_domcfg_out, ln_use_jattr
+#if defined key_drakkar_ensemble
+      INTEGER ::    imember_comm
+      CHARACTER(LEN=256) :: cloutput  ! name of output file in ensemble simulations
+      NAMELIST/nammpp_drk/ln_ensemble, ln_ens_rst_in, nn_ens_size, nn_ens_start, ln_ens_diag, ln_ens_forcing
+
+      !  Read nammpp_drk for ln_ensemble ASAP
+      ! open reference and configuration namelist files
+      CALL ctl_opn( numnam_ref, 'namelist_ref', 'OLD', 'FORMATTED', 'SEQUENTIAL', -1, -1, .FALSE. )
+      CALL ctl_opn( numnam_cfg, 'namelist_cfg', 'OLD', 'FORMATTED', 'SEQUENTIAL', -1, -1, .FALSE. )
+      ! Read nammpp in namelist_ref; necessary to read ln_ensemble = .TRUE. or  .FALSE.
+      REWIND( numnam_ref )              ! Namelist nammpp in reference namelist: Control prints & Benchmark
+      READ  ( numnam_ref, nammpp_drk, IOSTAT = ios, ERR = 905)
+905   IF( ios /= 0 ) CALL ctl_nam ( ios , 'nammpp_drk in reference namelist' )
+
+      ! Read nammpp in namelist_cfg; necessary to read ln_ensemble = .TRUE. or  .FALSE.
+      REWIND( numnam_cfg )              ! Namelist nammpp in configuration namelist: Control prints & Benchmark
+      READ  ( numnam_cfg, nammpp_drk, IOSTAT = ios, ERR = 906 )
+906   IF( ios /= 0 ) CALL ctl_nam ( ios , 'nammpp_drk in configuration namelist' )
+      ! some sanity check : force ln_ens_diag to be true if ln_ens_forcing is true
+      IF ( ln_ens_forcing ) ln_ens_diag = .TRUE.
+
+#endif
       !!----------------------------------------------------------------------
       !
       cxios_context = 'nemo'
+
       !
       !                             !-------------------------------------------------!
       !                             !     set communicator & select the local rank    !
@@ -332,7 +355,17 @@ CONTAINS
             CALL xios_initialize( "for_xios_mpi_id", return_comm=ilocal_comm )   ! nemo local communicator given by xios
          ENDIF
       ENDIF
+#if defined key_drakkar_ensemble
+      IF( ln_ensemble ) THEN
+         CALL mpp_start_ensemble( imember_comm, ilocal_comm )
+         CALL mpp_start( imember_comm )
+      ELSE
+         CALL mpp_start( ilocal_comm )
+      ENDIF
+#else
+
       CALL mpp_start( ilocal_comm )
+#endif
 #else
       IF( lk_oasis ) THEN
          IF( Agrif_Root() ) THEN
@@ -340,7 +373,16 @@ CONTAINS
          ENDIF
          CALL mpp_start( ilocal_comm )
       ELSE
+#if defined key_drakkar_ensemble
+         IF( ln_ensemble ) THEN
+            CALL mpp_start_ensemble( imember_comm )
+            CALL mpp_start( imember_comm )
+         ELSE
+            CALL mpp_start( )
+         ENDIF
+#else
          CALL mpp_start( )
+#endif
       ENDIF
 #endif
       !
@@ -352,10 +394,18 @@ CONTAINS
       !                             !---------------------------------------------------------------!
       !
       ! open ocean.output as soon as possible to get all output prints (including errors messages)
+#if defined key_drakkar_ensemble
+      cloutput = 'ocean.output'
+      IF(ln_ensemble) cloutput = cn_member//TRIM(cloutput)
+      IF( lwm )   CALL ctl_opn(     numout,              cloutput, 'REPLACE', 'FORMATTED', 'SEQUENTIAL', -1, -1, .FALSE. )
+      ! when key_drakkar_ensemble is defined, namelists are already open at this level.
+#else
       IF( lwm )   CALL ctl_opn(     numout,        'ocean.output', 'REPLACE', 'FORMATTED', 'SEQUENTIAL', -1, -1, .FALSE. )
+
       ! open reference and configuration namelist files
                   CALL ctl_opn( numnam_ref,        'namelist_ref',     'OLD', 'FORMATTED', 'SEQUENTIAL', -1, -1, .FALSE. )
                   CALL ctl_opn( numnam_cfg,        'namelist_cfg',     'OLD', 'FORMATTED', 'SEQUENTIAL', -1, -1, .FALSE. )
+#endif
       IF( lwm )   CALL ctl_opn(     numond, 'output.namelist.dyn', 'REPLACE', 'FORMATTED', 'SEQUENTIAL', -1, -1, .FALSE. )
       ! open /dev/null file to be able to supress output write easily
       IF( Agrif_Root() ) THEN
@@ -381,8 +431,13 @@ CONTAINS
       !
       IF(lwp) THEN                      ! open listing units
          !
+#if defined key_drakkar_ensemble
+         IF( .NOT. lwm )   &            ! alreay opened for narea == 1
+            &            CALL ctl_opn( numout, cloutput, 'REPLACE', 'FORMATTED', 'SEQUENTIAL', -1, -1, .FALSE., narea )
+#else
          IF( .NOT. lwm )   &            ! alreay opened for narea == 1
             &            CALL ctl_opn( numout, 'ocean.output', 'REPLACE', 'FORMATTED', 'SEQUENTIAL', -1, -1, .FALSE., narea )
+#endif
          !
          WRITE(numout,*)
          WRITE(numout,*) '   CNRS - NERC - Met OFFICE - MERCATOR-ocean - CMCC'
@@ -515,7 +570,13 @@ CONTAINS
                            CALL dyn_ldf_init      ! lateral mixing
                            CALL dyn_hpg_init      ! horizontal gradient of Hydrostatic pressure
                            CALL dyn_spg_init      ! surface pressure gradient
-
+#if defined key_drakkar
+      ! JMM stochastic param init must be called before TOP init
+      ! this is not only for ensemble but for any stochastic param
+      !                                      ! Misc. options
+                           CALL sto_par_init    ! Stochastic parametrization
+      IF( ln_sto_eos   )   CALL sto_pts_init    ! RRandom T/S fluctuations
+#endif
 #if defined key_top
       !                                      ! Passive tracers
                            CALL     trc_init
@@ -525,9 +586,11 @@ CONTAINS
       !                                      ! Icebergs
                            CALL icb_init( rdt, nit000)   ! initialise icebergs instance
 
+#if ! defined key_drakkar
       !                                      ! Misc. options
                            CALL sto_par_init    ! Stochastic parametrization
       IF( ln_sto_eos   )   CALL sto_pts_init    ! RRandom T/S fluctuations
+#endif
      
       !                                      ! Diagnostics
                            CALL     flo_init    ! drifting Floats

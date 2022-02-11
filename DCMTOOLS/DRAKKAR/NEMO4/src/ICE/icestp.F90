@@ -317,16 +317,40 @@ CONTAINS
       IF(lwm) WRITE( numoni, nampar )
 
 #if defined key_drakkar
+!{ DRAKKAR modification : NEMO reads restart files :
+!       <CN_ICERST_INDIR>.<<nn_no-1>>/<CN_ICERST_IN>-<<nn_no -1 >>_<RANK>.nc
       ! Add extension (job number to the restart dir. Differ for restart input and restart output
-!{ DRAKKAR modification : NEMO reads restart files :<CN_ICERST_INDIR>.<<nn_no-1>>/<CN_ICERST_IN>-<<nn_no -1 >>_<RANK>.nc
       WRITE(cl_no,*) nn_no-1 ; cl_no = TRIM(ADJUSTL(cl_no) )
+#if defined key_drakkar_ensemble
+  ! cn_member is '.001'  ... '.032' ... 
+  IF (ln_ens_rst_in)  THEN  ! each member read its own restart
+      cn_icerst_indir=TRIM(cn_icerst_indir)//'.'//TRIM(cl_no)//'/'//TRIM(cn_member(2:))
+      cn_icerst_in   = TRIM(cn_icerst_in)//'-'//TRIM(cl_no)//TRIM(cn_member)
+  ELSE   ! all members restart from the same restart file
       cn_icerst_indir=TRIM(cn_icerst_indir)//'.'//TRIM(cl_no)
       cn_icerst_in= TRIM(cn_icerst_in)//'-'//TRIM(cl_no)
+  ENDIF
+#else
+      cn_icerst_indir=TRIM(cn_icerst_indir)//'.'//TRIM(cl_no)
+      cn_icerst_in= TRIM(cn_icerst_in)//'-'//TRIM(cl_no)
+#endif
 
-!  DRAKKAR modification : NEMO write restart files :<CN_ICERST_OUTDIR>.<<nn_no>>/<CN_ICERST_OUT>-<<nn_no >>_<RANK>.nc
+!  DRAKKAR modification : NEMO writes restart files :
+!       <CN_ICERST_INDIR>.<<nn_no>>/<CN_ICERST_IN>-<<nn_no  >>_<RANK>.nc
       WRITE(cl_no,*) nn_no   ; cl_no = TRIM(ADJUSTL(cl_no) )
+#if defined key_drakkar_ensemble
+      IF (ln_ensemble ) THEN
+          cn_icerst_outdir=TRIM(cn_icerst_outdir)//'.'//TRIM(cl_no)//'/'//TRIM(cn_member(2:))
+          cn_icerst_out= TRIM(cn_icerst_out)//'-'//TRIM(cl_no)//TRIM(cn_member)
+      ELSE
+          cn_icerst_outdir=TRIM(cn_icerst_outdir)//'.'//TRIM(cl_no)
+          cn_icerst_out= TRIM(cn_icerst_out)//'-'//TRIM(cl_no)
+      ENDIF
+#else
       cn_icerst_outdir=TRIM(cn_icerst_outdir)//'.'//TRIM(cl_no)
       cn_icerst_out= TRIM(cn_icerst_out)//'-'//TRIM(cl_no)
+#endif
+!}
 #endif
       !
       IF(lwp) THEN                  ! control print

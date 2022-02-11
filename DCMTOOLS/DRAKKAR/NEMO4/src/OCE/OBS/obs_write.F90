@@ -83,10 +83,11 @@ CONTAINS
       TYPE(obfbdata) :: fbdata
 #if defined key_drakkar
       CHARACTER(LEN=255) :: clfname
+      CHARACTER(LEN=20)  :: clfiletype
 #else
       CHARACTER(LEN=40) :: clfname
-#endif
       CHARACTER(LEN=10) :: clfiletype
+#endif
       INTEGER :: ilevel
       INTEGER :: jvar
       INTEGER :: jo
@@ -122,6 +123,9 @@ CONTAINS
       CASE('POTM')
 
          clfiletype='profb'
+#if defined key_drakkar_ensemble
+         IF (ln_ensemble ) clfiletype=TRIM(clfiletype)//TRIM(cn_member)
+#endif
          CALL alloc_obfbdata( fbdata, 2, profdata%nprof, ilevel, &
             &                 1 + iadd, 1 + iext, .TRUE. )
          fbdata%cname(1)      = profdata%cvars(1)
@@ -154,6 +158,9 @@ CONTAINS
       CASE('UVEL')
 
          clfiletype='velfb'
+#if defined key_drakkar_ensemble
+         IF (ln_ensemble ) clfiletype=TRIM(clfiletype)//TRIM(cn_member)
+#endif
          CALL alloc_obfbdata( fbdata, 2, profdata%nprof, ilevel, 1, 0, .TRUE. )
          fbdata%cname(1)      = profdata%cvars(1)
          fbdata%cname(2)      = profdata%cvars(2)
@@ -362,6 +369,9 @@ CONTAINS
             &                 2 + iadd, 1 + iext, .TRUE. )
 
          clfiletype = 'slafb'
+#if defined key_drakkar_ensemble
+         IF (ln_ensemble ) clfiletype=TRIM(clfiletype)//TRIM(cn_member)
+#endif
          fbdata%cname(1)      = surfdata%cvars(1)
          fbdata%coblong(1)    = 'Sea level anomaly'
          fbdata%cobunit(1)    = 'Metres'
@@ -391,6 +401,9 @@ CONTAINS
             &                 1 + iadd, iext, .TRUE. )
 
          clfiletype = 'sstfb'
+#if defined key_drakkar_ensemble
+         IF (ln_ensemble ) clfiletype=TRIM(clfiletype)//TRIM(cn_member)
+#endif
          fbdata%cname(1)      = surfdata%cvars(1)
          fbdata%coblong(1)    = 'Sea surface temperature'
          fbdata%cobunit(1)    = 'Degree centigrade'
@@ -414,6 +427,9 @@ CONTAINS
             &                 1 + iadd, iext, .TRUE. )
 
          clfiletype = 'sicfb'
+#if defined key_drakkar_ensemble
+         IF (ln_ensemble ) clfiletype=TRIM(clfiletype)//TRIM(cn_member)
+#endif
          fbdata%cname(1)      = surfdata%cvars(1)
          fbdata%coblong(1)    = 'Sea ice'
          fbdata%cobunit(1)    = 'Fraction'
@@ -437,6 +453,9 @@ CONTAINS
             &                 1 + iadd, iext, .TRUE. )
 
          clfiletype = 'sssfb'
+#if defined key_drakkar_ensemble
+         IF (ln_ensemble ) clfiletype=TRIM(clfiletype)//TRIM(cn_member)
+#endif
          fbdata%cname(1)      = surfdata%cvars(1)
          fbdata%coblong(1)    = 'Sea surface salinity'
          fbdata%cobunit(1)    = 'psu'

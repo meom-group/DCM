@@ -34,6 +34,9 @@ MODULE lib_mpp
    !!----------------------------------------------------------------------
    !!----------------------------------------------------------------------
    !!   mpp_start     : get local communicator its size and rank
+#if defined key_drakkar_ensemble
+   !!   mpp_start_ensemble : divide input communicator in ensemble members and assign local communicator
+#endif
    !!   mpp_lnk       : interface (defined in lbclnk) for message passing of 2d or 3d arrays (mpp_lnk_2d, mpp_lnk_3d)
    !!   mpp_lnk_icb   : interface for message passing of 2d arrays with extra halo for icebergs (mpp_lnk_2d_icb)
    !!   mpprecv       :
@@ -58,6 +61,13 @@ MODULE lib_mpp
    !
    PUBLIC   ctl_stop, ctl_warn, ctl_opn, ctl_nam
    PUBLIC   mpp_start, mppstop, mppsync, mpp_comm_free
+#if defined key_drakkar_ensemble
+   PUBLIC   mpp_start_ensemble
+   PUBLIC   mpp_ens_ave_std
+   INTERFACE mpp_ens_ave_std
+      MODULE PROCEDURE mpp_ens_ave_std_2d, mpp_ens_ave_std_3d
+   END INTERFACE
+#endif
    PUBLIC   mpp_ini_north
    PUBLIC   mpp_min, mpp_max, mpp_sum, mpp_minloc, mpp_maxloc
    PUBLIC   mpp_delay_max, mpp_delay_sum, mpp_delay_rcv
@@ -168,6 +178,19 @@ MODULE lib_mpp
 
    LOGICAL, PUBLIC ::   ln_nnogather                !: namelist control of northfold comms
    LOGICAL, PUBLIC ::   l_north_nogather = .FALSE.  !: internal control of northfold comms
+#if defined key_drakkar_ensemble
+   ! ensemble simulation
+   LOGICAL, PUBLIC                                  :: ln_ensemble = .FALSE.   ! control of ensemble simulations
+   LOGICAL, PUBLIC                                  :: ln_ens_diag = .FALSE.   ! ensemble online diagnoostic
+   LOGICAL, PUBLIC                                  :: ln_ens_rst_in = .FALSE. ! use ensemble (T) or single (F) input restart file
+   LOGICAL, PUBLIC                                  :: ln_ens_forcing = .FALSE. ! use ensemble average Heat and Fresh water fluxes.
+   INTEGER, PUBLIC                                  :: nn_ens_size = 1        ! ensemble size
+   INTEGER, PUBLIC                                  :: nn_ens_start = 1       ! index of the first ensemble member
+
+   INTEGER, DIMENSION(:), ALLOCATABLE, SAVE         :: ncomm_member   ! communicator for every ensemble member
+   INTEGER, PUBLIC, DIMENSION(:), ALLOCATABLE, SAVE :: ncomm_area     ! communicator for every subdomain
+
+#endif
    
    !!----------------------------------------------------------------------
    !! NEMO/OCE 4.0 , NEMO Consortium (2018)
@@ -231,6 +254,239 @@ CONTAINS
 #endif
    END SUBROUTINE mpp_start
 
+
+#if defined key_drakkar_ensemble
+   SUBROUTINE mpp_start_ensemble( memberComm, localComm )
+      !!----------------------------------------------------------------------
+      !!                  ***  routine mpp_start_ensemble  ***
+      !!
+      !! ** Purpose : initialize MPI if not yet done, and then
+      !!              divide input communicator (localComm) in ensemble members
+      !!              and assign local communicator (memberComm)
+      !!----------------------------------------------------------------------
+      INTEGER                      , INTENT(out  ) ::   memberComm   ! communicator for current member
+      INTEGER         , OPTIONAL   , INTENT(in   ) ::   localComm    ! available input communicator
+      !
+      INTEGER ::   icomm_global, ierr
+      LOGICAL ::   llmpi_init
+      !
+      INTEGER, DIMENSION(:), ALLOCATABLE ::   irank_member ! list of processors for current member (dim: jpnij)
+      INTEGER, DIMENSION(:), ALLOCATABLE ::   igrp_member  ! group ID for every ensemble member
+      INTEGER, DIMENSION(:), ALLOCATABLE ::   irank_area   ! list of processors for current subdomain (dim: nn_ens_size)
+      INTEGER, DIMENSION(:), ALLOCATABLE ::   igrp_area    ! group ID for every subdomain
+
+      !!----------------------------------------------------------------------
+#if defined key_mpp_mpi
+      !
+      CALL mpi_initialized ( llmpi_init, ierr )
+      IF( ierr /= MPI_SUCCESS ) CALL ctl_stop( 'STOP', ' lib_mpp: Error in routine mpi_initialized' )
+
+      ! initialize MPI if not yet done
+      IF( .NOT. llmpi_init ) THEN
+         IF( PRESENT(localComm) ) THEN
+            WRITE(ctmp1,*) ' lib_mpp: You cannot provide a local communicator '
+            WRITE(ctmp2,*) '          without calling MPI_Init before ! '
+            CALL ctl_stop( 'STOP', ctmp1, ctmp2 )
+         ENDIF
+         CALL mpi_init( ierr )
+         IF( ierr /= MPI_SUCCESS ) CALL ctl_stop( 'STOP', ' lib_mpp: Error in routine mpi_init' )
+      ENDIF
+
+      ! set available global communicator for ensemble simulation (icomm_global)
+      IF( .NOT. PRESENT(localComm) ) THEN
+         CALL mpi_comm_dup( mpi_comm_world, icomm_global, ierr)
+         IF( ierr /= MPI_SUCCESS ) CALL ctl_stop( 'STOP', ' lib_mpp: Error in routine mpi_comm_dup' )
+      ELSE
+         icomm_global = localComm
+      ENDIF
+
+      ! set ensemble communicators
+      ! assign current communicator and current member index
+      IF( Agrif_Root() ) THEN
+         CALL mpp_set_ensemble( nmember, memberComm, icomm_global )
+# if defined key_agrif
+      ELSE
+         nmember = Agrif_Parent(nmember)
+# endif
+      ENDIF
+
+      WRITE(cn_member,'(".",(I3.3))') nmember
+      cxios_context = TRIM(cxios_context)//TRIM(cn_member)
+
+#else
+      IF( PRESENT( localComm ) ) memberComm = localComm
+      nmember = 1
+#endif
+
+   END SUBROUTINE mpp_start_ensemble
+
+
+   SUBROUTINE mpp_set_ensemble( kmember, memberComm, localComm )
+      !!----------------------------------------------------------------------
+      !!                  ***  routine mpp_set_ensemble  ***
+      !!
+      !! ** Purpose : divide input communicator (localComm) in ensemble members
+      !!              and assign local communicator (memberComm)
+      !!----------------------------------------------------------------------
+      INTEGER, INTENT(out  ) ::   kmember      ! current member index
+      INTEGER, INTENT(out  ) ::   memberComm   ! communicator for current member
+      INTEGER, INTENT(in   ) ::   localComm    ! available input communicator
+      !
+      INTEGER ::   igrp_global, imember, imppsize, impprank, ierr
+      INTEGER ::   jmember, jjproc, jpproc, jarea
+      LOGICAL ::   llmpi_init
+      !
+      INTEGER, DIMENSION(:), ALLOCATABLE ::   irank_member ! list of processors for current member (dim: jpnij)
+      INTEGER, DIMENSION(:), ALLOCATABLE ::   igrp_member  ! group ID for every ensemble member
+      INTEGER, DIMENSION(:), ALLOCATABLE ::   irank_area   ! list of processors for current subdomain (dim: nn_ens_size)
+      INTEGER, DIMENSION(:), ALLOCATABLE ::   igrp_area    ! group ID for every subdomain
+
+      !!----------------------------------------------------------------------
+
+      ! compute number of processors available for each member (jpproc)
+      CALL mpi_comm_size( localComm, imppsize, ierr )
+      IF( MOD(imppsize,nn_ens_size) /= 0 ) CALL ctl_stop( 'STOP', ' lib_mpp: nbr of proc not multiple of ensemble size' )
+      jpproc = imppsize / nn_ens_size
+
+      ALLOCATE( ncomm_member(nn_ens_size)  )   ! communicator for members
+      ALLOCATE( irank_member(jpproc), igrp_member(nn_ens_size)  ) ! temporary array of domain rank for a specific member
+
+      ! Create global group
+      CALL mpi_comm_group( localComm, igrp_global, ierr )
+
+      ! Create one communicator for each ensemble member
+      DO jmember = 1, nn_ens_size
+         irank_member(:) = (/ (jjproc, jjproc=0,jpproc-1) /)
+         irank_member(:) = irank_member(:) + ( jmember - 1 ) * jpproc
+         ! Create the group for current member from the global group
+         CALL mpi_group_incl( igrp_global, jpproc, irank_member, igrp_member(jmember), ierr )
+         ! Create communicator for jmember
+         CALL mpi_comm_create( localComm, igrp_member(jmember), ncomm_member(jmember), ierr )
+      ENDDO
+
+      ! Deallocate arrays
+      DEALLOCATE( irank_member , igrp_member )
+
+      ! Get rank of processor in global communicator
+      ! and identify to which member communicator it belongs
+      CALL mpi_comm_rank( localComm, impprank, ierr )
+      imember = 1 + impprank / jpproc
+
+      ! Set current member communicator
+      memberComm = ncomm_member(imember)
+
+      ! Return index of current ensemble member
+      kmember = nn_ens_start + imember - 1
+
+      ! Define communicators for ensemble diagnostics
+      IF (ln_ens_diag) THEN
+         ALLOCATE( ncomm_area(jpproc)  )     ! communicator for members
+         ALLOCATE( irank_area(nn_ens_size),  igrp_area(jpproc) )
+         ! Create one communicator for every subdomain
+         DO jarea = 1, jpproc
+             irank_area(:) = (/ (jjproc, jjproc=jarea-1,nn_ens_size*jpproc-1,jpproc) /)
+             ! Create the group for current subdomain from the global group
+             CALL mpi_group_incl( igrp_global, nn_ens_size, irank_area, igrp_area(jarea), ierr )
+             ! Create the communicator for current subdomain
+             CALL mpi_comm_create( localComm, igrp_area(jarea), ncomm_area(jarea), ierr )
+         ENDDO
+         ! Deallocate arrays
+         DEALLOCATE( irank_area , igrp_area )
+      ENDIF
+
+   END SUBROUTINE mpp_set_ensemble
+
+   SUBROUTINE mpp_ens_ave_std_2d( ptab, pave, pstd )
+      !!----------------------------------------------------------------------
+      !!                  ***  routine mpp_ens_ave_std_2d ***
+      !!
+      !! ** Purpose :   compute ensemble mean and standard deviation
+      !!                for a 2D array
+      !!
+      !!-----------------------------------------------------------------------
+      !
+      REAL(wp), DIMENSION(jpi,jpj), INTENT(in )  :: ptab              ! input array
+      REAL(wp), DIMENSION(jpi,jpj), INTENT(out)  :: pave              ! ensemble average
+      REAL(wp), DIMENSION(jpi,jpj), INTENT(out), OPTIONAL  :: pstd    ! ensemble standard deviation
+
+      !! * Local variables   (MPI version)
+      INTEGER  :: ierror, localcomm
+      REAL(wp), DIMENSION(:,:) , ALLOCATABLE ::   ztab   ! temporary workspace
+      !!----------------------------------------------------------------------
+      localcomm = ncomm_area(narea)
+
+      ! compute ensemble mean
+      CALL MPI_ALLREDUCE (ptab, pave, jpi*jpj, MPI_DOUBLE_PRECISION, &
+                          MPI_SUM, localcomm, ierror)
+      pave = pave / nn_ens_size
+
+      ! compute ensemble standard deviation
+      IF( PRESENT(pstd) ) THEN
+         ALLOCATE( ztab(jpi,jpj) )
+
+         ! compute anomalies with respect to the mean
+         ztab = ptab - pave
+         ! compute squared anomalies
+         ztab = ztab * ztab
+
+         ! compute ensemble mean squared anomalies
+         CALL MPI_ALLREDUCE (ztab, pstd, jpi*jpj, MPI_DOUBLE_PRECISION, &
+                             MPI_SUM, localcomm, ierror)
+         pstd = SQRT ( pstd / ( nn_ens_size - 1 ) )
+
+         DEALLOCATE( ztab )
+      ENDIF
+
+   END SUBROUTINE mpp_ens_ave_std_2d
+
+   SUBROUTINE mpp_ens_ave_std_3d( ptab, pave, pstd )
+      !!----------------------------------------------------------------------
+      !!                  ***  routine mpp_ens_ave_std_3d ***
+      !!
+      !! ** Purpose :   compute ensemble mean and standard deviation
+      !!                for a 3D array
+      !!
+      !!-----------------------------------------------------------------------
+      !
+      REAL(wp), DIMENSION(:,:,:), INTENT(in )  :: ptab              ! input array
+      REAL(wp), DIMENSION(:,:,:), INTENT(out)  :: pave              ! ensemble average
+      REAL(wp), DIMENSION(:,:,:), INTENT(out), OPTIONAL  :: pstd    ! ensemble standard deviation
+
+      !! * Local variables   (MPI version)
+      INTEGER  :: ierror, localcomm, ini, inj, ink
+      REAL(wp), DIMENSION(:,:,:), ALLOCATABLE ::   ztab   ! temporary workspace
+      !!----------------------------------------------------------------------
+      localcomm = ncomm_area(narea)
+
+      ini = SIZE(ptab,1)
+      inj = SIZE(ptab,2)
+      ink = SIZE(ptab,3)
+
+      ! compute ensemble mean
+      CALL MPI_ALLREDUCE (ptab, pave, ini*inj*ink, MPI_DOUBLE_PRECISION, &
+                          MPI_SUM, localcomm, ierror)
+      pave = pave / nn_ens_size
+
+      ! compute ensemble standard deviation
+      IF( PRESENT(pstd) ) THEN
+         ALLOCATE (ztab(ini,inj,ink) )
+
+         ! compute anomalies with respect to the mean
+         ztab = ptab - pave
+         ! compute squared anomalies
+         ztab = ztab * ztab
+
+         ! compute ensemble mean squared anomalies
+         CALL MPI_ALLREDUCE (ztab, pstd, ini*inj*ink, MPI_DOUBLE_PRECISION, &
+                             MPI_SUM, localcomm, ierror)
+         pstd = SQRT ( pstd / ( nn_ens_size - 1 ) )
+
+         DEALLOCATE (ztab )
+      ENDIF
+
+   END SUBROUTINE mpp_ens_ave_std_3d
+
+#endif
 
    SUBROUTINE mppsend( ktyp, pmess, kbytes, kdest, md_req )
       !!----------------------------------------------------------------------

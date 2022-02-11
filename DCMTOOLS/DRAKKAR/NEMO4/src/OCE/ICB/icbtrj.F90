@@ -92,7 +92,15 @@ CONTAINS
       IF( lwp .AND. nn_verbose_level >= 0 )   WRITE(numout,'(2a)') 'icebergs, icb_trj_init: creating ',TRIM(cl_filename)
 
 #if defined key_drakkar
+#if defined key_drakkar_ensemble
+     IF (ln_ensemble ) THEN
+         iret = NF90_CREATE( TRIM(cn_icbdir_trj)//"/"//TRIM(cn_member)//"/"//TRIM(cl_filename), NF90_CLOBBER, ntrajid )
+     ELSE
+         iret = NF90_CREATE( TRIM(cn_icbdir_trj)//"/"//TRIM(cl_filename), NF90_CLOBBER, ntrajid )
+     ENDIF
+#else
       iret = NF90_CREATE( TRIM(cn_icbdir_trj)//"/"//TRIM(cl_filename), NF90_CLOBBER, ntrajid )
+#endif
 #else
       iret = NF90_CREATE( TRIM(cl_filename), NF90_CLOBBER, ntrajid )
 #endif

@@ -462,10 +462,26 @@ CONTAINS
       ! set name full path of icb restart files
       !  NEMO reads restart files :<CN_ICERST_INDIR>.<<nn_no-1>>/<CN_ICERST_IN>-<<nn_no -1 >>_<RANK>.nc
       WRITE(cl_no,*) nn_no-1 ; cl_no = TRIM(ADJUSTL(cl_no) )
+#if defined key_drakkar_ensemble
+      IF (ln_ensemble) THEN
+         cn_icbrst_in= TRIM(cn_icbrst_in)//'-'//TRIM(cl_no)//TRIM(cn_member)
+      ELSE
+         cn_icbrst_in= TRIM(cn_icbrst_in)//'-'//TRIM(cl_no)
+      ENDIF
+#else
       cn_icbrst_in= TRIM(cn_icbrst_in)//'-'//TRIM(cl_no)
+#endif
       !  NEMO write restart files :<CN_ICERST_OUTDIR>.<<nn_no>>/<CN_ICERST_OUT>-<<nn_no >>_<RANK>.nc
       WRITE(cl_no,*) nn_no   ; cl_no = TRIM(ADJUSTL(cl_no) )
+#if defined key_drakkar_ensemble
+      IF (ln_ensemble) THEN
+        cn_icbrst_out= TRIM(cn_icbrst_out)//'-'//TRIM(cl_no)//TRIM(cn_member)
+      ELSE
+        cn_icbrst_out= TRIM(cn_icbrst_out)//'-'//TRIM(cl_no)
+      ENDIF
+#else
       cn_icbrst_out= TRIM(cn_icbrst_out)//'-'//TRIM(cl_no)
+#endif
 
 #endif
       !
