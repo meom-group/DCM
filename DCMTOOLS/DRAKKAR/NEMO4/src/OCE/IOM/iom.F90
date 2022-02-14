@@ -2320,6 +2320,14 @@ CONTAINS
                clname = clname(1:idx-1)//TRIM(cexper)//clname(idx+9:LEN_TRIM(clname))
                idx = INDEX(clname,'@expname@') + INDEX(clname,'@EXPNAME@')
             END DO
+#if defined key_drakkar
+      ! add @dirout@ in the path of the output file 
+            idx = INDEX(clname,'@dirout@') + INDEX(clname,'@DIROUT@')
+            DO WHILE ( idx /= 0 ) 
+               clname = clname(1:idx-1)//TRIM(cn_dirout)//clname(idx+9:LEN_TRIM(clname))
+               idx = INDEX(clname,'@dirout@') + INDEX(clname,'@DIROUT@')
+            END DO
+#endif
             !
             idx = INDEX(clname,'@freq@') + INDEX(clname,'@FREQ@')
             DO WHILE ( idx /= 0 ) 
@@ -2486,6 +2494,7 @@ CONTAINS
       CALL xios_get_field_attr( cdname, default_value = pmiss_val )
 #else
       IF( .FALSE. )   WRITE(numout,*) cdname, pmiss_val   ! useless test to avoid compilation warnings
+      IF( .FALSE. )   pmiss_val = 0._wp                   ! useless assignment to avoid compilation warnings
 #endif
    END SUBROUTINE iom_miss_val
   
