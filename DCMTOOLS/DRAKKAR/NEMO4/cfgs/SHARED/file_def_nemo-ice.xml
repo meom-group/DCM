@@ -9,7 +9,7 @@
 ============================================================================================================
  -->
     
- <file_definition type="multiple_file" name="<OUTDIR>/@expname@_@freq@" sync_freq="1d" min_digits="4">
+ <file_definition type="multiple_file" name="@dirout@/@expname@_@freq@" sync_freq="1d" min_digits="4">
 
    
    <file_group id="5d" output_freq="5d"  split_freq="5d" output_level="10" enabled=".TRUE.">  <!-- 5d files -->   	
