@@ -173,6 +173,48 @@ sed -e "s/<NN_NO>/$no/" \
 \cp namelist  namelist_ref
 \cp namelist  namelist_cfg
 
+# Check for ensemble run
+# Ensemble run [ if not an ensemble run it is mandatory to have both ENSEMBLE_START and ENSEMBLE_END set to -1 ]
+ENSEMBLE=0 ; ENSEMBLE_SIZE=1 ; ENSEMBLE_START=-1 ; ENSEMBLE_END=-1 ; ENSEMBLE_RST_IN=0
+ENSDIAGS=0
+
+tmp=$(LookInNamelist ln_ensemble) ; tmp=$(normalize $tmp)
+if [ $tmp = T ] ; then  ENSEMBLE=1 ; fi
+
+if [ $ENSEMBLE = 1 ] ; then
+      # set ensemble parameters from namelist
+    ENSEMBLE_SIZE=$(LookInNamelist nn_ens_size)   
+    ENSEMBLE_START=$(LookInNamelist nn_ens_start)
+    ENSEMBLE_END=$(( ENSEMBLE_START + ENSEMBLE_SIZE -1 ))
+
+      # check if members require individual restart file.
+      # if not, all members restart from the same file 
+      # ie, link will be made to the proper file
+    tmp=$(LookInNamelist ln_ens_rst_in) ; tmp=$(normalize $tmp)
+    if [ $tmp = T ] ; then 
+    ENSEMBLE_RST_IN=1 
+    fi
+    
+  #vvvvv#######" JMM ############""  W A R N I N G (jpnij do not exit anymore)...
+      # check the number of available cores vs the required number of cores
+    jpnij=$(LookInNamelist jpnij)  # core per member
+    core_required=$(( jpnij * ENSEMBLE_SIZE ))
+    if [ $core_required != $NB_NPROC ] ; then
+        echo 'ERROR: inconsistent number of processors ...'
+        exit
+    fi
+  #^^^^^#######" JMM ############""  W A R N I N G (jpnij do not exit anymore)...
+    # Re-read CN_DIROUT from actual namelist
+    CN_DIROUT=$(LookInNamelist cn_dirout )
+    for member in $(seq $ENSEMBLE_START $ENSEMBLE_END) ; do
+        nnn=$(getmember_extension $member  nodot )  # number of the member without .
+        mkdir -p  ${CN_DIROUT}/$nnn
+        if [ $RST_DIRS = 1 ] ; then
+            mkdir -p  $DDIR/${CN_DIRRST}.${no}/$nnn
+        fi
+    done
+fi
+
 # Use of the observation operator.
 DIAOBS=0
  tmp=$(LookInNamelist ln_diaobs namelist_cfg namobs ) ; tmp=$(normalize $tmp)
