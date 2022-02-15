@@ -27,7 +27,7 @@ mkdir -p  $P_S_DIR/ANNEX
 CN_DIAOBS=${CONFIG_CASE}-DIAOBS     # receive files from diaobs functionality, if used
 CN_DIRRST=${CONFIG_CASE}-RST        # receive restart files
 CN_DIRICB=${CONFIG_CASE}-ICB        # receive Iceberg Output files
-CN_DIROUT=${CONFIG_CASE}-XIOS       # receive Iceberg Output files
+CN_DIROUT=${CONFIG_CASE}-XIOS       # receive XIOS output files
 
 ## -----------------------------------------------------
 echo '(1) get all the working tools on the TMPDIR directory'
@@ -464,6 +464,10 @@ ENSDIAGS=0
 tmp=$(LookInNamelist ln_ensemble) ; tmp=$(normalize $tmp)
 if [ $tmp = T ] ; then  ENSEMBLE=1 ; fi
 
+##################################################################################################""
+##################################################################################################""
+##################################################################################################""
+##################################################################################################""
 if [ $ENSEMBLE = 1 ] ; then
       # check if inter members diags are requested
     tmp=$(LookInNamelist ln_ens_diag) ; tmp=$(normalize $tmp)
@@ -513,6 +517,10 @@ if [ $ENSEMBLE = 1 ] ; then
         fi
     done
 fi
+##################################################################################################""
+##################################################################################################""
+##################################################################################################""
+##################################################################################################""
 echo "   ***  ENSEMBLE  = $ENSEMBLE"
 echo "   ***  ENSEMBLE_SIZE  = $ENSEMBLE_SIZE"
 echo "   ***  ENSEMBLE_START = $ENSEMBLE_START"
