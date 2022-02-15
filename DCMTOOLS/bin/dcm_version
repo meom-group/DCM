@@ -52,6 +52,8 @@ printf "$g"
   echo " origin git repository : "
   cd $HOMEDCM
  git remote -v | grep fetch | awk '{print $2}'
+ branch=$( git br | grep '*' | awk '{print $2}' )
+ echo "Actual Branch : $branch"
 printf "$k"
 echo
 
