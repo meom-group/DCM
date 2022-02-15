@@ -27,6 +27,7 @@ mkdir -p  $P_S_DIR/ANNEX
 CN_DIAOBS=${CONFIG_CASE}-DIAOBS     # receive files from diaobs functionality, if used
 CN_DIRRST=${CONFIG_CASE}-RST        # receive restart files
 CN_DIRICB=${CONFIG_CASE}-ICB        # receive Iceberg Output files
+CN_DIROUT=${CONFIG_CASE}-XIOS       # receive Iceberg Output files
 
 ## -----------------------------------------------------
 echo '(1) get all the working tools on the TMPDIR directory'
@@ -129,14 +130,7 @@ CFC=0 ; C14=0 ; MYTRC=0
 
 
 # 
-## check if we are using new xml layout (ie with files like 04-files.xml
-NEWXML=0
-if [ $XIOS = 1 ] ; then
-   if [ -f $P_CTL_DIR/04-file.xml ] ; then NEWXML=1 ; fi
-fi
-   
 echo "   *** XIOS   = " $XIOS
-echo "   *** NEWXML = " $NEWXML
 
 ## copy of the control files ( .db and and template namelist )
 rcopy $P_CTL_DIR/namelist.${CONFIG_CASE} namelist
@@ -146,7 +140,6 @@ if [ $AGRIF = 1 ] ; then
     initagrif 
     for idx in ${agrif_pref[@]} ; do
         rcopy $P_CTL_DIR/${idx}_namelist.${CONFIG_CASE} ${idx}_namelist
-        rcopy $P_CTL_DIR/${idx}_namelistio ${idx}_namelistio
     done
 fi
 
@@ -172,6 +165,7 @@ sed -e "s/<NN_NO>/$no/" \
     -e "s/<NIT000>/$nit000/" \
     -e "s/<NITEND>/$nitend/" \
     -e "s/<RESTART>/$restart_flag/" \
+    -e "s@<CN_DIROUT>@$DDIR/${CN_DIROUT}.$no@"   \
     -e "s@<CN_DIAOBS>@$DDIR/${CN_DIAOBS}.$no@"   \
     -e "s@<CN_DIRICB>@$DDIR/${CN_DIRICB}.$no@"   \
     -e "s@<CN_DIRRST>@$DDIR/${CN_DIRRST}@"   namelist > znamelist1
@@ -546,12 +540,6 @@ if [ $XIOS = 1 ] ; then
     echo ' [2.6]  XML files for XIOS'
     echo " ========================="
     cp $P_CTL_DIR/*xml ./
-#   rcopy $P_CTL_DIR/field_def.xml field_def.xml
-#   rcopy $P_CTL_DIR/domain_def.xml domain_def.xml
-#   if [ $XIOS2 = 1 ] ; then
-#      rcopy $P_CTL_DIR/file_def.xml file_def.xml
-#      rcopy $P_CTL_DIR/grid_def.xml grid_def.xml
-#   fi
     rcopy $XIOS_EXEC xios_server.exe
 
     if [ $NEWXML = 1 ] ; then
