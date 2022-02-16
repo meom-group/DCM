@@ -12,9 +12,6 @@ set -x
  WAFDMP=0                             # Use WAter Flux DaMPing ( read previous SSS damping climatology in a file)
 
  RST_SKIP=1                           # if set, checking of the existence of the full set of restart files is disable (save time !)
- # next flags should be set to 1 if using DCM rev > 1674, to 0 otherwise.
- RST_DIRS=1                           # if set, assumes that restart files are written on multiple directories.
- RST_READY=1                          # if set assumes that restart file are ready to be read by NEMO (no links).
 
  monthly=0                            # set to 1 for monthly (1mo/xios) job segments
  semestrial=0                         # set to 1 for semestrial (6mo/xios) job segments 
