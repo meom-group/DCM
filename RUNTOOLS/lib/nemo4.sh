@@ -25,8 +25,8 @@ mkdir -p  $P_S_DIR/ANNEX
 
 ## Generic name for some directories
 CN_DIAOBS=$DDIR/${CONFIG_CASE}-DIAOBS     # receive files from diaobs functionality, if used
-CN_DIRRST=$DDIR/${CONFIG_CASE}-RST        # receive restart files
-CN_DIRICB=$DDIR/${CONFIG_CASE}-ICB        # receive Iceberg Output files
+CN_DIRRST=$DDIR/${CONFIG_CASE}-RST        # receive restart files (so far oce, ice, iceberg, stochastic
+CN_DIRICB=$DDIR/${CONFIG_CASE}-ICB        # receive Iceberg Output files (trajectories)
 CN_DIROUT=$DDIR/${CONFIG_CASE}-XIOS       # receive XIOS output files
 
 ## -----------------------------------------------------
@@ -516,92 +516,49 @@ fi
 echo "   ***  STO  = $STO"
 echo "   ***  RSTO = $RSTO"
 
-
-
 if [ $XIOS = 1 ] ; then
     echo ' [2.6]  XML files for XIOS'
     echo " ========================="
-    cp $P_CTL_DIR/*xml ./
-    rcopy $XIOS_EXEC xios_server.exe
+    cp $P_CTL_DIR/*xml ./              # copy all CTL/*xml in TMPDIR
+    rcopy $XIOS_EXEC xios_server.exe   # copy server to TMPDIR
 
-    if [ $NEWXML = 1 ] ; then
-        if [ $ENSDIAGS = 1 ] ; then
-            rcopy $P_CTL_DIR/01-ifile.xml  .
-            rcopy $P_CTL_DIR/02-iseczo.xml .
-            rcopy $P_CTL_DIR/03-isecme.xml .
-        fi
-        rcopy $P_CTL_DIR/04-file.xml   .
-        rcopy $P_CTL_DIR/05-seczo.xml  .
-        rcopy $P_CTL_DIR/06-secme.xml  .
+    # change <CONFIG> <CASE> and <NDATE0> in xml file
+    ndate0=$(LookInNamelist nn_date0)
+    for cf_xml in *.xml ; do
+      sed -e "s/<CONFIG>/$CONFIG/" \
+          -e "s/<CASE>/$CASE/"     \
+          -e "s/<NDATE0>/$ndate0/"  $cf_xml > ztmp
+      mv ztmp $cf_xml
+    done
 
-       # build a iodef.xml from template according to the members
-        rcopy $P_CTL_DIR/iodef_nemo_context.xml .
-        rcopy $P_CTL_DIR/iodef_xios_context.xml .
-        cat << eof > iodef.xml
-<?xml version="1.0"?>
-<simulation>
-
-eof
-       # first deal with 1rst member ( eventual inter member diags )
-        member=$ENSEMBLE_START
-        mmm=$(getmember_extension $member)  # if no ensemble, this function return empty string
-        nnn=$(getmember_extension $member nodot )
-
-        if [ $ENSDIAGS = 1 ] ; then
-            cat iodef_nemo_context.xml | sed -e "/01-ifile.xml/r  01-ifile.xml"  \
-                -e "/02-iseczo.xml/r 02-iseczo.xml" \
-                -e "/03-isecme.xml/r 03-isecme.xml" \
-                -e "/04-file.xml/r   04-file.xml"   \
-                -e "/05-seczo.xml/r  05-seczo.xml"  \
-                -e "/06-secme.xml/r  06-secme.xml" > ztemp.xml
-        else
-            cat iodef_nemo_context.xml | sed -e "/04-file.xml/r   04-file.xml"   \
-                -e "/05-seczo.xml/r  05-seczo.xml"  \
-                -e "/06-secme.xml/r  06-secme.xml" > ztemp.xml
-        fi
-        
-        cat ztemp.xml | sed -e "s/<NEMO.MEMBER>/nemo$mmm/"  \
-            -e "s@<OUTDIR>@$DDIR/${CONFIG_CASE}-XIOS.$no/$nnn@" \
-            -e "s/<CASE>/$CASE${mmm}/" >>  iodef.xml
-       # Then deal with other members (each identical so far)
-        cat iodef_nemo_context.xml | sed -e "/04-file.xml/r   04-file.xml"   \
-            -e "/05-seczo.xml/r  05-seczo.xml"  \
-            -e "/06-secme.xml/r  06-secme.xml" > ztemp.xml
-
-        memberp1=$(( ENSEMBLE_START + 1 ))
-        for member in $(seq $memberp1 $ENSEMBLE_END) ; do
+    if [ $ENSEMBLE = 1 ] ; then
+      if [ ! -f context_nemo_MBR.xml ] ; then
+         echo "  ERROR : context_nemo_MBR.xml missing"
+         echo "          Unable to build member context file"
+         exit
+      fi
+      # Create as many context files as members from template (context_nemo_MBR.xml)
+        for member in $( seq $ENSEMBLE_START $ENSEMBLE_END) ; do
             mmm=$(getmember_extension $member)  # if no ensemble, this function return empty string
             nnn=$(getmember_extension $member nodot )
-            cat ztemp.xml | sed -e "s/<NEMO.MEMBER>/nemo$mmm/"  \
-                -e "s@<OUTDIR>@$DDIR/${CONFIG_CASE}-XIOS.$no/$nnn@" \
-                -e "s@<MOORDIR>@$DDIR/${CONFIG_CASE}-MOORINGS.$no/$nnn@" \
-                -e "s/<CASE>/$CASE${mmm}/" >>  iodef.xml
+            cat context_nemo_MBR.xml | sed -e "s/nemo.<MBR>/nemo$mmm/" > context_nemo_${nnn}.xml
         done
-
-        cat iodef_xios_context.xml >> iodef.xml
-        cat << eof >> iodef.xml
-
-</simulation>
-eof
-        rcopy $P_CTL_DIR/iodef.xml iodef.xml
+      # Modify iodef.xml to include member contexts, from iodef_MBR.xml
+      if [ ! -f iodef_MBR.xml ] ; then
+         echo "  ERROR : iodef_MBR.xml missing"
+         echo "          Unable to build iodef.xml for ensemble run"
+         exit
+      fi
+      sed -n -e "1,/START/"p iodef_MBR.xml > ztmp
+      for member in $( seq $ENSEMBLE_START $ENSEMBLE_END) ; do
+          mmm=$(getmember_extension $member)  # if no ensemble, this function return empty string
+          nnn=$(getmember_extension $member nodot )
+          echo "    <context id=\"nemo$mmm\" src=\"./context_nemo.xml\"/>       <!--  NEMO       -->"  >> ztmp
+      done
+      sed -n -e "/END/,$ "p iodef_MBR.xml >> ztmp
+      mv ztmp iodef.xml
     fi
-    echo "  ***   Customize iodef.xml from template"
-    # set <OUTDIR> in iodef.xml
-    ndate0=$(LookInNamelist nn_date0)
-   for  xml_fil in *.xml ; do
-    cat $xml_fil | sed -e "s@<OUTDIR>@$DDIR/${CONFIG_CASE}-XIOS.$no@"  \
-        -e "s@<MOORDIR>@$DDIR/${CONFIG_CASE}-MOORINGS.$no@" \
-        -e "s/<CONFIG>/$CONFIG/" -e "s/<CASE>/$CASE/" \
-        -e "s/<NDATE0>/$ndate0/" > ztmpxml
-    mv ztmpxml $xml_fil
-   done
-#    if [ $XIOS2 = 1 ] ; then
-#       cat file_def.xml | sed -e "s@<OUTDIR>@$DDIR/${CONFIG_CASE}-XIOS.$no@"  \
-#        -e "s@<MOORDIR>@$DDIR/${CONFIG_CASE}-MOORINGS.$no@" \
-#        -e "s/<CONFIG>/$CONFIG/" -e "s/<CASE>/$CASE/" \
-#        -e "s/<NDATE0>/$ndate0/" > ztmpxml2
-#       mv ztmpxml2 file_def.xml
-#    fi
+
 # Check for specific iom_put 
    STERIC=0
    xmldef=file_def_nemo-oce.xml
@@ -633,9 +590,7 @@ eof
   fi
   echo "   *** STERIC = " $STERIC
 
-
-
-fi
+fi   # end XIOS
 #--------------------------------------
 echo '(3) Look for input files (According to flags)'
 echo '---------------------------------------------'
