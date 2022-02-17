@@ -245,6 +245,9 @@ CONTAINS
       !! ** Purpose :   define the stochastic parameterization
       !!----------------------------------------------------------------------
       ! stochastic equation of state only (for now)
+#if defined key_drakkar
+      CHARACTER(lc)  :: cl_no
+#endif
       NAMELIST/namsto/ ln_sto_eos, nn_sto_eos, rn_eos_stdxy, rn_eos_stdz, &
         &              rn_eos_tcor, nn_eos_ord, nn_eos_flt, rn_eos_lim,   &
         &              ln_rststo, ln_rstseed, cn_storst_in, cn_storst_out
@@ -278,8 +281,23 @@ CONTAINS
          ENDIF
          RETURN
       ENDIF
+#if defined key_drakkar
+      WRITE(cl_no,*) nn_no-1   ; cl_no = TRIM(ADJUSTL(cl_no) )
 #if defined key_drakkar_ensemble
-      IF ( ln_ens_rst_in) cn_storst_in=TRIM(cn_storst_in)//TRIM(cn_member)
+      IF ( ln_ens_rst_in)  THEN  ! Each member reas it own restart
+         cn_storst_in=TRIM(cn_storst_in)//'-'//TRIM(cl_no)//TRIM(cn_member)
+      ELSE
+         cn_storst_in=TRIM(cn_storst_in)//'-'//TRIM(cl_no)
+      ENDIF
+#else
+        cn_storst_in=TRIM(cn_storst_in)//'-'//TRIM(cl_no)
+#endif
+      WRITE(cl_no,*) nn_no   ; cl_no = TRIM(ADJUSTL(cl_no) )
+#if defined key_drakkar_ensemble
+         cn_storst_out=TRIM(cn_storst_out)//'-'//TRIM(cl_no)//TRIM(cn_member)
+#else
+        cn_storst_out=TRIM(cn_storst_out)//'-'//TRIM(cl_no)
+#endif
 #endif
       !IF(ln_ens_rst_in) cn_storst_in = cn_mem//cn_storst_in
 
@@ -708,6 +726,9 @@ CONTAINS
             WRITE(numout,*) '~~~~~~~~~~~~'
          ENDIF
 
+#if defined key_drakkar
+         cn_storst_in=TRIM(cn_ocerst_indir)//'/'//TRIM(cn_storst_in)
+#endif
          ! Open the restart file
          CALL iom_open( cn_storst_in, numstor )
 
@@ -754,7 +775,11 @@ CONTAINS
       INTEGER(KIND=8)     ::   ziseed(4)           ! RNG seeds in integer type
       REAL(KIND=8)        ::   zrseed(4)           ! RNG seeds in real type (with same bits to save in restart)
       CHARACTER(LEN=20)   ::   clkt                ! ocean time-step defined as a character
+#if defined key_drakkar
+      CHARACTER(LEN=lc)   ::   clname              ! restart file name
+#else
       CHARACTER(LEN=50)   ::   clname              ! restart file name
+#endif
       CHARACTER(LEN=9)    ::   clsto2d='sto2d_000' ! stochastic parameter variable name
       CHARACTER(LEN=9)    ::   clsto3d='sto3d_000' ! stochastic parameter variable name
       CHARACTER(LEN=10)   ::   clseed='seed0_0000' ! seed variable name
@@ -806,7 +831,11 @@ CONTAINS
             IF( nitrst > 999999999 ) THEN   ;   WRITE(clkt, *       ) nitrst
             ELSE                            ;   WRITE(clkt, '(i8.8)') nitrst
             ENDIF
+#if defined key_drakkar
+            clname=TRIM(cn_ocerst_outdir)//'/'//TRIM(cn_storst_out)
+#else
             clname = TRIM(cexper)//"_"//TRIM(ADJUSTL(clkt))//"_"//TRIM(cn_storst_out)
+#endif
             ! print information
             IF(lwp) THEN
                WRITE(numout,*) '             open stochastic parameters restart file: '//clname
