@@ -553,7 +553,7 @@ if [ $XIOS = 1 ] ; then
       for member in $( seq $ENSEMBLE_START $ENSEMBLE_END) ; do
           mmm=$(getmember_extension $member)  # if no ensemble, this function return empty string
           nnn=$(getmember_extension $member nodot )
-          echo "    <context id=\"nemo$mmm\" src=\"./context_nemo.xml\"/>       <!--  NEMO       -->"  >> ztmp
+          echo "    <context id=\"nemo$mmm\" src=\"./context_nemo_${nnn}.xml\"/>       <!--  NEMO       -->"  >> ztmp
       done
       sed -n -e "/END/,$ "p iodef_MBR.xml >> ztmp
       mv ztmp iodef.xml
