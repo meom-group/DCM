@@ -457,7 +457,7 @@ if [ $tmp = T ] ; then
        done
     else
        echo "   ***  Check/Create directory : ${CN_DIRICB}.$no"
-       mkdir -p $DDIR/${CN_DIRICB}.$no 
+       mkdir -p ${CN_DIRICB}.$no 
     fi
 fi
 echo "   ***  ICB  = $ICB"
