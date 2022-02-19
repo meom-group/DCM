@@ -2324,7 +2324,7 @@ CONTAINS
       ! add @dirout@ in the path of the output file 
             idx = INDEX(clname,'@dirout@') + INDEX(clname,'@DIROUT@')
             DO WHILE ( idx /= 0 ) 
-               clname = clname(1:idx-1)//TRIM(cn_dirout)//clname(idx+9:LEN_TRIM(clname))
+               clname = clname(1:idx-1)//TRIM(cn_dirout)//clname(idx+8:LEN_TRIM(clname))
                idx = INDEX(clname,'@dirout@') + INDEX(clname,'@DIROUT@')
             END DO
 #endif

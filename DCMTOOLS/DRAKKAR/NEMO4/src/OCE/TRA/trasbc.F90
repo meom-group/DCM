@@ -259,7 +259,7 @@ CONTAINS
       ENDIF
 
 #if defined key_drakkar_ensemble
-      IF (ln_ens_forcing ) THEN
+      IF (ln_ensemble .and. ln_ens_forcing ) THEN
          ALLOCATE (ztsatem(jpi,jpj), ztsasal(jpi,jpj), zqsr(jpi,jpj) )
       !  Force model with ensemble mean  
       !  tra_sbc call is the first call of the tracer equation : therefore tsa only hold surface forcing here !

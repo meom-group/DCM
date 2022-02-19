@@ -331,12 +331,8 @@ CONTAINS
 # if defined key_drakkar_ensemble
      ! <CN_DIROUT>=<TMPDIR>/<CONFCASE>-XIOS-<SEG>/<MBR>
       IF (ln_ensemble ) THEN
-         cn_dirout=TRIM(cn_dirout)//'-'//TRIM(cl_no)//'/'//TRIM(cn_member(2:))
-      ELSE
-         cn_dirout=TRIM(cn_dirout)//'-'//TRIM(cl_no)
+         cn_dirout=TRIM(cn_dirout)//'/'//TRIM(cn_member(2:))
       ENDIF
-# else
-      cn_dirout=TRIM(cn_dirout)//'-'//TRIM(cl_no)
 # endif
 !{ DRAKKAR modification : NEMO reads restart files :
 !       <CN_OCERST_INDIR>.<<nn_no-1>>/<CN_OCERST_IN>-<<nn_no -1 >>_<RANK>.nc

@@ -95,9 +95,11 @@ MODULE sbcblk
 #if defined key_drakkar
    LOGICAL             ::   ln_clim_forcing = .false.   ! Logical flag for use of climatological forcing 
                                                   !     ( T= climatological, F=interannual)
+   LOGICAL             ::   ln_wdmp         = .false.   ! Logical flag for use of FW correction corresponding to SSS damping term
    ! note that jp_uw and jp_vw replace jp_wndi and jp_wndj.
    !           jp_wmod use the same value as jp_tdif. They cannot be used together
    INTEGER  ::   jp_wmod =11           ! index of wind module                     (m/s)
+   INTEGER  ::   jp_wdmp =11           ! index of wdmp field                      (kg/m2/sec)
    INTEGER  ::   jp_uw   = 1           ! index of zonal pseudo stress             (m2/s2)
    INTEGER  ::   jp_vw   = 2           ! index of meridional pseudo stress        (m2/s2)
 #endif
@@ -197,7 +199,8 @@ CONTAINS
       INTEGER  ::   jfpr, jfld            ! dummy loop indice and argument
       INTEGER  ::   ios, ierror, ioptio   ! Local integer
 #if defined key_drakkar
-      LOGICAL :: ll_clim
+      LOGICAL :: ll_clim   ! local boolean to hold ln_clim_forcing
+      LOGICAL :: ll_wdmp   ! local boolean to hold ln_wdmp
 #endif
       !!
       CHARACTER(len=100)            ::   cn_dir                ! Root directory for location of atmospheric forcing files
@@ -211,8 +214,8 @@ CONTAINS
          &                 cn_dir , ln_taudif, rn_zqt, rn_zu,                         & 
          &                 rn_pfac, rn_efac, rn_vfac, ln_Cd_L12, ln_Cd_L15
 #if defined key_drakkar
-      TYPE(FLD_N) :: sn_kati, sn_katj, sn_wmod, sn_uw, sn_vw
-      NAMELIST/namsbc_blk_drk/ ln_kata, sn_kati, sn_katj, ln_LR, rn_lra, rn_lrb, ln_clim_forcing,sn_wmod, sn_uw, sn_vw
+      TYPE(FLD_N) :: sn_kati, sn_katj, sn_wmod, sn_uw, sn_vw, sn_wdmp
+      NAMELIST/namsbc_blk_drk/ ln_kata, sn_kati, sn_katj, ln_LR, rn_lra, rn_lrb, ln_clim_forcing,sn_wmod, sn_uw, sn_vw, ln_wdmp, sn_wdmp
 #endif
       !!---------------------------------------------------------------------
       !
@@ -274,6 +277,10 @@ CONTAINS
         ! in this case uw and vw replace wndi and wndj, and wmod replace tdif
         slf_i(jp_wmod)  = sn_wmod  ;   slf_i(jp_uw) = sn_uw ; slf_i(jp_vw) = sn_vw
       ENDIF
+      IF (ln_wdmp ) THEN
+        ! in this case wdmp replace tdif or wmod ...
+        slf_i(jp_wdmp)  = sn_wdmp
+      ENDIF
 #endif
       !
       lhftau = ln_taudif                     !- add an extra field if HF stress is used
@@ -282,6 +289,9 @@ CONTAINS
       ! Hard coded here cannot use both tdif and clim_forcing
       ll_clim = ln_clim_forcing
       jfld = jpfld - COUNT( (/.NOT.ll_clim/) )
+
+      ll_wdmp = ln_wdmp
+      jfld = jpfld - COUNT( (/.NOT.ll_wdmp/) )
 #endif
       !
       !                                      !- allocate the bulk structure
@@ -357,6 +367,7 @@ CONTAINS
 #if defined key_drakkar
          WRITE(numout,*) '      Use Lionel Renault CFB tau parameterization         ln_LR        = ', ln_LR
          WRITE(numout,*) '      Use climatolofical forcing formulation           ln_clim_forcing = ', ln_clim_forcing
+         WRITE(numout,*) '      Use FW correction from previous SSS damping         ln_wdmp      = ', ln_wdmp
 #endif
          WRITE(numout,*) '      add High freq.contribution to the stress module     ln_taudif    = ', ln_taudif
          WRITE(numout,*) '      Air temperature and humidity reference height (m)   rn_zqt       = ', rn_zqt
@@ -696,6 +707,13 @@ CONTAINS
          &     * ( sf(jp_tair)%fnow(:,:,1) - rt0 ) * rcp                          &
          &     + sf(jp_snow)%fnow(:,:,1) * rn_pfac                                &   ! add solid  precip heat content at min(Tair,Tsnow)
          &     * ( MIN( sf(jp_tair)%fnow(:,:,1), rt0 ) - rt0 ) * rcpi
+#if defined key_drakkar
+      IF ( ln_wdmp ) THEN
+         emp (:,:) = emp(:,:) +  sf(jp_wdmp)%fnow(:,:,1)                     ! upward
+         qns (:,:) = qns(:,:) -  sf(jp_wdmp)%fnow(:,:,1) * rcp * sst_m(:,:)  ! downward !!
+         CALL iom_put ("wdmp",  sf(jp_wdmp)%fnow(:,:,1) )
+      ENDIF
+#endif
       qns(:,:) = qns(:,:) * tmask(:,:,1)
       !
 #if defined key_si3
