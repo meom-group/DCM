@@ -32,8 +32,13 @@ MODULE stopar
 
    LOGICAL           :: ln_rststo = .FALSE.  ! restart stochastic parameters from restart file
    LOGICAL           :: ln_rstseed = .FALSE. ! read seed of RNG from restart file
+#if defined key_drakkar
+   CHARACTER(len=lc) :: cn_storst_in = "restart_sto"     ! suffix of sto restart name (input)
+   CHARACTER(len=lc) :: cn_storst_out = "restart_sto"    ! suffix of sto restart name (output)
+#else
    CHARACTER(len=32) :: cn_storst_in = "restart_sto"     ! suffix of sto restart name (input)
    CHARACTER(len=32) :: cn_storst_out = "restart_sto"    ! suffix of sto restart name (output)
+#endif
    INTEGER           :: numstor, numstow     ! logical unit for restart (read and write)
 
    INTEGER           :: jpsto2d = 0          ! number of 2D stochastic parameters

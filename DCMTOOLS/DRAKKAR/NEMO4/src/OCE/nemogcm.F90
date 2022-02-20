@@ -396,7 +396,7 @@ CONTAINS
       ! open ocean.output as soon as possible to get all output prints (including errors messages)
 #if defined key_drakkar_ensemble
       cloutput = 'ocean.output'
-      IF(ln_ensemble) cloutput = cn_member//TRIM(cloutput)
+      IF(ln_ensemble) cloutput = TRIM(cloutput)//TRIM(cn_member)
       IF( lwm )   CALL ctl_opn(     numout,              cloutput, 'REPLACE', 'FORMATTED', 'SEQUENTIAL', -1, -1, .FALSE. )
       ! when key_drakkar_ensemble is defined, namelists are already open at this level.
 #else
