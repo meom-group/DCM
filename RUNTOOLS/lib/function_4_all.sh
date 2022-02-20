@@ -799,7 +799,7 @@ renamerst() {
  # Loop on cores for current member [ renamerst is called in the member loop, mmm is known ]
  set -x   # avoid very long list of statements in the log file
  zrstdir='./'
- if [ $RST_DIRS = 1 ] ; then zrstdir=$DDIR/${CN_DIRRST}.$ext/$nnn/ ; fi
+ if [ $RST_DIRS = 1 ] ; then zrstdir=${CN_DIRRST}.$ext/$nnn/ ; fi
 
 #          clname = TRIM(cexper)//"_"//TRIM(ADJUSTL(clkt))//"_"//TRIM(cn_ocerst_out)
 #          rstout = <CONFIG_CASE><.MBR>_<nitend>_<CN_RST_OUT>_<CORE>.<FILEXT>
@@ -994,7 +994,7 @@ cat << eof >> $1    # Submit script name given as argument
    mmm=\$(getmember_extension \$member)
    nnn=\$(getmember_extension \$member nodot )
    zrstdir='./'
-   if [ \$RST_DIRS = 1 ] ; then zrstdir=$DDIR/${CN_DIRRST}.\$ext/\$nnn ; fi
+   if [ \$RST_DIRS = 1 ] ; then zrstdir=${CN_DIRRST}.\$ext/\$nnn ; fi
    # create secondary scripts to be submitted in // trhough the members
    # $ to be maintained in the final script are replaces by @, then automatic edition
    # replace the @ by $ [ this is necessary because we are at the second level of script
@@ -1062,7 +1062,7 @@ cat << eof >> $1    # Submit script name given as argument
    mmm=\$(getmember_extension \$member)
    nnn=\$(getmember_extension \$member nodot )
    zrstdir='./'
-   if [ \$RST_DIRS = 1 ] ; then zrstdir=$DDIR/${CN_DIRRST}.\$ext/\$nnn ; fi
+   if [ \$RST_DIRS = 1 ] ; then zrstdir=${CN_DIRRST}.\$ext/\$nnn ; fi
    # create secondary scripts to be submitted in // trhough the members
    # $ to be maintained in the final script are replaces by @, then automatic edition
    # replace the @ by $ [ this is necessary because we are at the second level od script

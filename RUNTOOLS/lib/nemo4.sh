@@ -747,7 +747,7 @@ else
        nnn=$(getmember_extension $member  nodot )  # number of the member without .
 
        zrstdir='./'   # set zrstdir to RST directory if used
-       zrstdir=$DDIR/${CN_DIRRST}.$prev_ext/$nnn/ 
+       zrstdir=${CN_DIRRST}.$prev_ext/$nnn/ 
 
        if [  $ln_ens_rst_in = F ] ; then mmm='' ; fi # force mmm to empty string if ln_ens_rst_in = false
 
