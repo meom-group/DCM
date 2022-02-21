@@ -38,6 +38,9 @@ MODULE step
    USE step_oce         ! time stepping definition modules
    !
    USE iom              ! xIOs server
+#if defined key_drakkar
+   USE domhgr           ! horizontal grid -> stochastic grid
+#endif
 
    IMPLICIT NONE
    PRIVATE
@@ -115,9 +118,10 @@ CONTAINS
       !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
       ! Update stochastic parameters and random T/S fluctuations
       !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-#if defined key_drakkar_ensemble
+#if defined key_drakkar
       ! JMM + JMB : call with no conditions. If not relevant ==> empty loop, no additional cost
                        CALL sto_par( kstp )          ! Stochastic parameters
+      IF( ln_sto_hgr ) CALL sto_hgr( )               ! Random grid fluctuations
 #else
       IF( ln_sto_eos ) CALL sto_par( kstp )          ! Stochastic parameters
 #endif

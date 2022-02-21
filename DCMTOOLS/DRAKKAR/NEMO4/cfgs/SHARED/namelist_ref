@@ -335,6 +335,12 @@
    sn_wmod = 'drowned_w10_DFS4.4_CLIM_0001'  , 24.      , 'w10'      ,  .true.     , .true.  , 'yearly'  , 'wght_ERA40_NNATL12_bilin.nc' , '' ,  ''
    sn_uw   = 'drowned_wu10_DFS4.4_CLIM_0001' , 24.      , 'wu10'     ,  .true.     , .true.  , 'yearly'  , 'wght_ERA40_NNATL12_bicub.nc' , 'U2' ,  ''
    sn_vw   = 'drowned_wv10_DFS4.4_CLIM_0001' , 24.      , 'wv10'     ,  .true.     , .true.  , 'yearly'  , 'wght_ERA40_NNATL12_bicub.nc' , 'V2' ,  ''
+!-----------------------------------------------------------------------
+   ln_wdmp  = .false.          ! add FW correction to emp from previous sss damping
+   !_______!________________________!___________________!____________!_____________!_________!___________!__________________!__________!_______________!
+   !       !  file name             ! frequency (hours) ! variable   ! time interp.!  clim   ! 'yearly'/ ! weights filename ! rotation !  lsm          !
+   !       !                        !  (if <0  months)  !   name   . !   (logical) !  (T/F)  ! 'monthly' !                  !  paring  !               !
+   sn_wdmp = 'MED025.L75-IMHOTEP02_WDMP'  , -1.       , 'sowafld'  ,  .true.     , .false. , 'yearly'  , ''               , ''       ,  ''
 
 /
 !-----------------------------------------------------------------------
@@ -1418,6 +1424,17 @@
    ln_dia25h   = .false.   ! Choose 25h mean output or not
 /
 !-----------------------------------------------------------------------
+&nam_diaar5_drk  !     diaar5 drakkar                                   (key_drakkar)
+!-----------------------------------------------------------------------
+   cn_dir      = './'
+   !___________!____________________!___________________!___________!_____________!________!___________!__________________!__________!_______________!
+   !           !  file name         ! frequency (hours) ! variable  ! time interp.!  clim  ! 'yearly'/ ! weights filename ! rotation ! land/sea mask !
+   !           !                    !  (if <0  months)  !   name    !   (logical) !  (T/F) ! 'monthly' !                  ! pairing  !    filename   !
+   sn_sref = 'MED025.L75_SA_ref' , -1.                , 'SA'      , .false.     , .true. , 'yearly' , ''               , ''       , ''
+   sn_tref = 'MED025.L75_CT_ref' , -1.                , 'CT'      , .false.     , .true. , 'yearly' , ''               , ''       , ''
+/
+
+!-----------------------------------------------------------------------
 &namnc4        !   netcdf4 chunking and compression settings            ("key_netcdf4")
 !-----------------------------------------------------------------------
    nn_nchunks_i =   4       !  number of chunks in i-dimension
@@ -1585,4 +1602,13 @@
    ln_rstseed  = .true.    ! read seed of RNG from restart file
    cn_storst_in  = "restart_sto" !  suffix of stochastic parameter restart file (input)
    cn_storst_out = "restart_sto" !  suffix of stochastic parameter restart file (output)
+/
+!-----------------------------------------------------------------------
+&namsto_drk      ! Stochastic parametrization of HGR                      (default: OFF)
+!-----------------------------------------------------------------------
+   ln_sto_hgr  = .false.   ! STOchastic Horizontal GRid
+   rn_hgr_std  = 1         ! Standard deviation (in %)
+   rn_hgr_tcor = 1         ! correlation timescale (in timestep)
+   nn_hgr_flt  = 0         ! Number of passes of laplacian filter
+   nn_hgr_ord  = 1         ! Order of autoregressive processes
 /

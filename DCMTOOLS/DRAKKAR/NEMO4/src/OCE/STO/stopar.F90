@@ -92,6 +92,16 @@ MODULE stopar
    REAL(wp)        :: rn_trd_std              ! trend standard deviation (in percent)
    REAL(wp)        :: rn_trd_tcor             ! trend correlation timescale (in timesteps)
 
+#if defined key_drakkar
+   LOGICAL, PUBLIC :: ln_sto_hgr = .FALSE.    ! stochastic horizontal grid
+   INTEGER, PUBLIC :: jsto_hgr1               ! index of e1t perturbation
+   INTEGER, PUBLIC :: jsto_hgr2               ! index of e2t perturbation
+   REAL(wp), PUBLIC:: rn_hgr_std            ! standard deviation (in percent)
+   REAL(wp)        :: rn_hgr_tcor           ! correlation timescale (in timesteps)
+   INTEGER         :: nn_hgr_flt = 0        ! number of passes of Laplacian filter
+   INTEGER         :: nn_hgr_ord = 1        ! order of autoregressive processes
+#endif
+
    LOGICAL, PUBLIC :: ln_sto_eos = .FALSE.    ! stochastic equation of state
    INTEGER, PUBLIC :: nn_sto_eos = 1          ! number of degrees of freedom in stochastic equation of state
    INTEGER, PUBLIC, DIMENSION(:), ALLOCATABLE :: jsto_eosi ! index of stochastic eos parameter (i direction)
@@ -252,6 +262,7 @@ CONTAINS
       ! stochastic equation of state only (for now)
 #if defined key_drakkar
       CHARACTER(lc)  :: cl_no
+      NAMELIST/namsto_drk/ ln_sto_hgr, rn_hgr_std,rn_hgr_tcor,nn_hgr_flt,nn_hgr_ord
 #endif
       NAMELIST/namsto/ ln_sto_eos, nn_sto_eos, rn_eos_stdxy, rn_eos_stdz, &
         &              rn_eos_tcor, nn_eos_ord, nn_eos_flt, rn_eos_lim,   &
@@ -277,6 +288,17 @@ CONTAINS
       READ  ( numnam_cfg, namsto, IOSTAT = ios, ERR = 902 )
 902   IF( ios >  0 ) CALL ctl_nam ( ios , 'namsto in configuration namelist' )
       IF(lwm) WRITE ( numond, namsto )
+#if defined key_drakkar
+      ! Read namsto namelist : stochastic parameterization
+      REWIND( numnam_ref )              ! Namelist namsto in reference namelist : stochastic parameterization
+      READ  ( numnam_ref, namsto_drk, IOSTAT = ios, ERR = 903)
+903   IF( ios /= 0 ) CALL ctl_nam ( ios , 'namsto_drk in reference namelist' )
+
+      REWIND( numnam_cfg )              ! Namelist namsto in configuration namelist : stochastic parameterization
+      READ  ( numnam_cfg, namsto_drk, IOSTAT = ios, ERR = 904 )
+904   IF( ios >  0 ) CALL ctl_nam ( ios , 'namsto_drk in configuration namelist' )
+      IF(lwm) WRITE ( numond, namsto_drk )
+#endif
 
       IF( .NOT.ln_sto_eos ) THEN   ! no use of stochastic parameterization
          IF(lwp) THEN
@@ -343,7 +365,15 @@ CONTAINS
          WRITE(numout,*) '      order of autoregressive  processes      nn_eos_ord    = ', nn_eos_ord
          WRITE(numout,*) '      passes of Laplacian filter              nn_eos_flt    = ', nn_eos_flt
          WRITE(numout,*) '      limitation factor                       rn_eos_lim    = ', rn_eos_lim
+#if defined key_drakkar
+         WRITE(numout,*) '      stochastic horizontal grid              ln_sto_hgr  = ', ln_sto_hgr
+         WRITE(numout,*) '      std (in percent)                        rn_hgr_std  = ', rn_hgr_std
+         WRITE(numout,*) '      tcor (in timesteps)                     rn_hgr_tcor = ', rn_hgr_tcor
+         WRITE(numout,*) '      order of autoregressive  processes      nn_hgr_ord  = ', nn_hgr_ord
+         WRITE(numout,*) '      passes of Laplacian filter              nn_hgr_flt  = ', nn_hgr_flt
+         WRITE(numout,*) ' '
 
+#endif
          ! WRITE(numout,*) '      stochastic tracers dynamics             ln_sto_trc    = ', ln_sto_trc
          ! WRITE(numout,*) '      number of degrees of freedom            nn_sto_trc    = ', nn_sto_trc
          ! WRITE(numout,*) '      random walk horz. std (in grid points)  rn_trc_stdxy  = ', rn_trc_stdxy
@@ -352,7 +382,6 @@ CONTAINS
          ! WRITE(numout,*) '      order of autoregressive  processes      nn_trc_ord    = ', nn_trc_ord
          ! WRITE(numout,*) '      passes of Laplacian filter              nn_trc_flt    = ', nn_trc_flt
          ! WRITE(numout,*) '      limitation factor                       rn_trc_lim    = ', rn_trc_lim
-
       ENDIF
 
       IF(lwp) WRITE(numout,*)
@@ -370,6 +399,14 @@ CONTAINS
          jpsto2d    = jpsto2d + 1 * nn_pstar_ord
          jsto_pstar = jpsto2d
       ENDIF
+#if defined key_drakkar
+      IF( ln_sto_hgr ) THEN
+         IF(lwp) WRITE(numout,*) '       - stochastic horizontal grid'
+         jpsto2d    = jpsto2d + 2 * nn_hgr_ord
+         jsto_hgr1  = jpsto2d - 1 * nn_hgr_ord
+         jsto_hgr2  = jpsto2d
+      ENDIF
+#endif
       IF( ln_sto_eos ) THEN
          IF ( lk_agrif ) CALL ctl_stop('EOS stochastic parametrization is not compatible with AGRIF')
          IF(lwp) WRITE(numout,*) '       - stochastic equation of state'
@@ -466,6 +503,18 @@ CONTAINS
                sto2d_flt(jsto) = nn_pstar_flt
             ENDIF
          ENDDO
+#if defined key_drakkar
+         DO jord = 0, nn_hgr_ord-1
+            IF ( jsto+jord == jsto_hgr1 ) THEN ! Stochastic horizontal grid (e1t)
+               sto2d_ord(jsto) = nn_hgr_ord - jord
+               sto2d_flt(jsto) = nn_hgr_flt
+            ENDIF
+            IF ( jsto+jord == jsto_hgr2 ) THEN ! Stochastic horizontal grid (e2t)
+               sto2d_ord(jsto) = nn_hgr_ord - jord
+               sto2d_flt(jsto) = nn_hgr_flt
+            ENDIF
+         ENDDO
+#endif
          DO jdof = 1, nn_sto_eos
          DO jord = 0, nn_eos_ord-1
             IF ( jsto+jord == jsto_eosi(jdof) ) THEN ! Stochastic equation of state i (ave=0)
@@ -539,6 +588,19 @@ CONTAINS
                sto2d_tcor(jsto) = rn_pstar_tcor
             ENDIF
          ENDDO
+#if defined key_drakkar
+         DO jord = 0, nn_hgr_ord-1
+            IF ( jsto+jord == jsto_hgr1 ) THEN ! Stochastic horizontal grid
+               sto2d_std(jsto) = rn_hgr_std
+               sto2d_tcor(jsto) = rn_hgr_tcor
+            ENDIF
+            IF ( jsto+jord == jsto_hgr2 ) THEN ! Stochastic horizontal grid
+               sto2d_std(jsto) = rn_hgr_std
+               sto2d_tcor(jsto) = rn_hgr_tcor
+            ENDIF
+         ENDDO
+#endif
+
          DO jdof = 1, nn_sto_eos
          DO jord = 0, nn_eos_ord-1
             IF ( jsto+jord == jsto_eosi(jdof) ) THEN ! Stochastic equation of state i (ave=0)
@@ -618,6 +680,19 @@ CONTAINS
          ELSE
             sto2d_abc(jsto,1) = EXP ( - 1._wp / sto2d_tcor(jsto) )
          ENDIF
+#if defined key_drakkar
+         IF ( sto2d_ord(jsto) == 1 ) THEN      ! Exact formula for 1st order process
+            rinflate = sto2d_std(jsto)
+            sto2d_abc(jsto,2) = rinflate * SQRT ( 1._wp - sto2d_abc(jsto,1) &
+                                                     * sto2d_abc(jsto,1) )
+         ELSE
+            ! Approximate formula, valid for tcor >> 1
+            jordm1 = sto2d_ord(jsto) - 1
+            rinflate = SQRT ( REAL( jordm1 , wp ) / REAL( 2*(2*jordm1-1) , wp ) )
+            sto2d_abc(jsto,2) = rinflate * ( 1._wp - sto2d_abc(jsto,1) &
+                                                     * sto2d_abc(jsto,1) )
+         ENDIF
+#else
          IF ( sto2d_ord(jsto) == 1 ) THEN      ! Exact formula for 1st order process
             rinflate = sto2d_std(jsto)
          ELSE
@@ -627,6 +702,7 @@ CONTAINS
          ENDIF
          sto2d_abc(jsto,2) = rinflate * SQRT ( 1._wp - sto2d_abc(jsto,1) &
                                                      * sto2d_abc(jsto,1) )
+#endif
          sto2d_abc(jsto,3) = sto2d_ave(jsto) * ( 1._wp - sto2d_abc(jsto,1) )
       END DO
       !
@@ -636,6 +712,19 @@ CONTAINS
          ELSE
             sto3d_abc(jsto,1) = EXP ( - 1._wp / sto3d_tcor(jsto) )
          ENDIF
+#if defined key_drakkar
+         IF ( sto3d_ord(jsto) == 1 ) THEN      ! Exact formula for 1st order process
+            rinflate = sto3d_std(jsto)
+            sto3d_abc(jsto,2) = rinflate * SQRT ( 1._wp - sto3d_abc(jsto,1) &
+                                                     * sto3d_abc(jsto,1) )
+         ELSE
+            ! Approximate formula, valid for tcor >> 1
+            jordm1 = sto3d_ord(jsto) - 1
+            rinflate = SQRT ( REAL( jordm1 , wp ) / REAL( 2*(2*jordm1-1) , wp ) )
+            sto3d_abc(jsto,2) = rinflate * ( 1._wp - sto3d_abc(jsto,1) &
+                                                     * sto3d_abc(jsto,1) )
+         ENDIF
+#else
          IF ( sto3d_ord(jsto) == 1 ) THEN      ! Exact formula for 1st order process
             rinflate = sto3d_std(jsto)
          ELSE
@@ -645,6 +734,7 @@ CONTAINS
          ENDIF
          sto3d_abc(jsto,2) = rinflate * SQRT ( 1._wp - sto3d_abc(jsto,1) &
                                                      * sto3d_abc(jsto,1) )
+#endif
          sto3d_abc(jsto,3) = sto3d_ave(jsto) * ( 1._wp - sto3d_abc(jsto,1) )
       END DO
 
