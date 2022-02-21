@@ -1014,7 +1014,7 @@ cat << eof >> $1    # Submit script name given as argument
    mmm=\$mmm
    zrstdir=\$zrstdir
    cd $DDIR
-   tar cf $F_R_DIR/${CONFIG_CASE}\${mmm}-RST.$ext.tar ${CONFIG_CASE}-RST.$ext/\$mmm
+   tar cf $F_R_DIR/${CONFIG_CASE}\${mmm}-RST.$ext.tar ${CONFIG_CASE}-RST.$ext/\$nnn
 eof1
    cat ztmprst | sed -e 's/@/\$/g' > ./$1\${mmm}.sh    # change @ into \$ and create script for current member
    chmod 755 ./$1\${mmm}.sh                         # made it executable
@@ -1419,12 +1419,25 @@ eof
          zXIOS=$DDIR/${CONFIG_CASE}-XIOS.$ext
          mergeprog=$(basename $MERGE_EXEC )
          cd \$zXIOS
+         ln_ensemble=0
+         mbrlist="./"
+         if [ -d 001 ] ; then
+            ln_ensemble=1
+            mbrlist=\$( ls -d ??? ) 
+         fi
+      for mbr in \$mbrlist ; do
+         cd \$zXIOS/\$mbr
+         if [ \$mbr != "./" ] ; then
+            ln -sf ../$CN_DOMCFG ./
+         fi
+     
          # deal with scalar files
          ls *scalar*0000.nc > /dev/null  2>&1
          if [ \$? = 0 ] ; then
             mkdir -p SCALAR
             mv *scalar*.nc SCALAR
             cd SCALAR
+            set +x
               for f in *scalar*_0000.nc ; do
                  CONFCASE=\$( echo \$f | awk -F_ '{print \$1}' )
                  freq=\$( echo \$f | awk -F_ '{print \$2}' )
@@ -1450,12 +1463,14 @@ eof
                  cp \$f \$OUTDIR/\$g
 
               done
-            cd  \$zXIOS
-
          # end scalar file
+            set -x
+            cd  \$zXIOS/\$mbr
+
          fi
          ln -sf $MERGE_EXEC ./
              runcode $NB_NPROC_MER ./\$mergeprog -F -c $CN_DOMCFG -r
+      done
 eof
   copy $1 $P_CTL_DIR
             }
