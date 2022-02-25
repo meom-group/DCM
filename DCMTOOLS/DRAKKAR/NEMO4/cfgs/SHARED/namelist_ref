@@ -795,6 +795,7 @@
    ln_loglayer = .false.   !  logarithmic drag: Cd = vkarmn/log(z/z0) |U|
    !
    ln_drgimp   = .true.    !  implicit top/bottom friction flag
+      ln_drgice_imp = .false. ! implicit ice-ocean drag
 /
 !-----------------------------------------------------------------------
 &namdrg_top    !   TOP friction                                         (ln_drg_OFF =F & ln_isfcav=T)
@@ -1037,6 +1038,10 @@
    rn_lf_cutoff  =  5.0             !  cutoff frequency for low-pass filter  [days]
    rn_zdef_max   =  0.9             !  maximum fractional e3t deformation
    ln_vvl_dbg    = .true.           !  debug prints    (T/F)
+   nn_vvl_interp =  2               !  interpolation method of scale factor anomalies at U/V/F points
+                                    !  =0 linear even at the bottom (old)
+                                    !  =1 linear with bottom correction
+                                    !  =2 proportionnal to scale factors at rest ("qco" like) 
 /
 !-----------------------------------------------------------------------
 &namdyn_adv    !   formulation of the momentum advection                (default: NO selection)

@@ -163,12 +163,9 @@
           <field id="hfxsensib"    long_name="Net sensible heat flux under sea ice (neg = ice cooling)"         standard_name="ice_ocean_heat_flux"                        unit="W/m2" />
           <field id="hfxcndtop"    long_name="Net conductive heat flux at the ice surface (neg = ice cooling)"  standard_name="conductive_heat_flux_at_sea_ice_surface"    unit="W/m2" /> 
           <field id="hfxcndbot"    long_name="Net conductive heat flux at the ice bottom (neg = ice cooling)"   standard_name="conductive_heat_flux_at_sea_ice_bottom"     unit="W/m2" />
-          <!-- clem: uncomment when uncommented in iceupdate.F90 -->
-          <!--
           <field id="hfxmelt"      long_name="Melt heat flux at the ice surface"       unit="W/m2" />
           <field id="hfxldmelt"    long_name="Heat flux in the lead for ice melting"   unit="W/m2" />
           <field id="hfxldgrow"    long_name="Heat flux in the lead for ice growth"    unit="W/m2" />
-          -->
 
           <!-- diags -->
           <field id="hfxdhc"       long_name="Heat content variation in snow and ice (neg = ice cooling)"   unit="W/m2" />
@@ -331,7 +328,8 @@
           <field id="NH_icearea"      long_name="Sea ice area North"                     standard_name="sea_ice_area_n"                     unit="1e6_km2"  />
           <field id="SH_icearea"      long_name="Sea ice area South"                     standard_name="sea_ice_area_s"                     unit="1e6_km2"  />
 
-          <!-- available with ln_icediaout -->
+          <!-- available with ln_icediahsb -->
+	  <!-- global forcings  -->
           <field id="ibgfrcvoltop"    long_name="global mean ice/snow forcing at interface ice/snow-atm (volume equivalent ocean volume)"   unit="km3"      />
           <field id="ibgfrcvolbot"    long_name="global mean ice/snow forcing at interface ice/snow-ocean (volume equivalent ocean volume)" unit="km3"      />
           <field id="ibgfrctemtop"    long_name="global mean heat on top of ice/snw/ocean-atm "                                             unit="1e20J"    />
@@ -340,17 +338,21 @@
           <field id="ibgfrchfxtop"    long_name="global mean heat flux on top of ice/snw/ocean-atm "                                        unit="W/m2"     />
           <field id="ibgfrchfxbot"    long_name="global mean heat flux below ice (on top of ocean) "                                        unit="W/m2"     />
 	  
+	  <!-- global drifts (conservation checks) -->
           <field id="ibgvolume"       long_name="drift in ice/snow volume (equivalent ocean volume)"                                        unit="km3"      />
           <field id="ibgsaltco"       long_name="drift in ice salt content (equivalent ocean volume)"                                       unit="pss*km3"  />
           <field id="ibgheatco"       long_name="drift in ice/snow heat content"                                                            unit="1e20J"    />
           <field id="ibgheatfx"       long_name="drift in ice/snow heat flux"                                                               unit="W/m2"     />
 
+	  <!-- global contents -->
           <field id="ibgvol_tot"      long_name="global mean ice volume"                                                                    unit="km3"      />
           <field id="sbgvol_tot"      long_name="global mean snow volume"                                                                   unit="km3"      />
           <field id="ibgarea_tot"     long_name="global mean ice area"                                                                      unit="km2"      />
-          <field id="ibgsalt_tot"     long_name="global mean ice salt content"                                                              unit="1e-3*km3" />
+          <field id="ibgsalt_tot"     long_name="global mean ice salt content"                                                              unit="pss*km3"  />
           <field id="ibgheat_tot"     long_name="global mean ice heat content"                                                              unit="1e20J"    />
           <field id="sbgheat_tot"     long_name="global mean snow heat content"                                                             unit="1e20J"    />
+          <field id="ipbgvol_tot"     long_name="global mean ice pond volume"                                                               unit="km3"      />
+          <field id="ilbgvol_tot"     long_name="global mean ice pond lid volume"                                                           unit="km3"      />
 
 	</field_group>
   
@@ -483,31 +485,57 @@
 
 	</field_group>    
 
+	<!--============================-->
+	<!--  CONSERVATION diagnostics  -->
+	<!--============================-->
+
 	<field_group id="ICE_globalbudget"  grid_ref="grid_scalar" >
-	  <!-- global contents -->
-    	  <field field_ref="ibgvol_tot"       name="ibgvol_tot"   />
+	  <field field_ref="ibgvol_tot"       name="ibgvol_tot"   />
 	  <field field_ref="sbgvol_tot"       name="sbgvol_tot"   />
-    	  <field field_ref="ibgarea_tot"      name="ibgarea_tot"  />
-    	  <field field_ref="ibgsalt_tot"      name="ibgsalt_tot"  />
-    	  <field field_ref="ibgheat_tot"      name="ibgheat_tot"  />
-    	  <field field_ref="sbgheat_tot"      name="sbgheat_tot"  />
-
-	  <!-- global drifts (conservation checks) -->
-	  <field field_ref="ibgvolume"        name="ibgvolume"    />
-    	  <field field_ref="ibgsaltco"        name="ibgsaltco"    />
-    	  <field field_ref="ibgheatco"        name="ibgheatco"    />
-          <field field_ref="ibgheatfx"        name="ibgheatfx"    />
-
-	  <!-- global forcings  -->
-    	  <field field_ref="ibgfrcvoltop"     name="ibgfrcvoltop" />
-    	  <field field_ref="ibgfrcvolbot"     name="ibgfrcvolbot" />
-    	  <field field_ref="ibgfrctemtop"     name="ibgfrctemtop" />
-    	  <field field_ref="ibgfrctembot"     name="ibgfrctembot" />
-    	  <field field_ref="ibgfrcsal"        name="ibgfrcsal"    />
-          <field field_ref="ibgfrchfxtop"     name="ibgfrchfxtop" />
-          <field field_ref="ibgfrchfxbot"     name="ibgfrchfxbot" />
+	  <field field_ref="ibgarea_tot"      name="ibgarea_tot"  />
+	  <field field_ref="ibgsalt_tot"      name="ibgsalt_tot"  />
+	  <field field_ref="ibgheat_tot"      name="ibgheat_tot"  />
+	  <field field_ref="sbgheat_tot"      name="sbgheat_tot"  />
+	  <field field_ref="ipbgvol_tot"      name="ipbgvol_tot"  />
+	  <field field_ref="ilbgvol_tot"      name="ilbgvol_tot"  />
 	</field_group>
-
+	
+	<field_group id="ICE_budget"        grid_ref="grid_T_2D" >
+	  <!-- general -->
+	  <field field_ref="icemask"          name="simsk"      />
+	  <field field_ref="iceconc"          name="siconc"     />
+          <field field_ref="icetemp"          name="sitemp"     />
+          <field field_ref="snwtemp"          name="sntemp"     />
+          <field field_ref="icettop"          name="sittop"     />
+          <field field_ref="icetbot"          name="sitbot"     />
+	  <!-- heat fluxes -->
+	  <field field_ref="qt_oce_ai"        name="qt_oce_ai"  />
+	  <field field_ref="qt_atm_oi"        name="qt_atm_oi"  />
+	  <field field_ref="qtr_ice_top"      name="qtr_ice_top"/>
+	  <field field_ref="qtr_ice_bot"      name="qtr_ice_bot"/>
+	  <field field_ref="qt_ice"           name="qt_ice"     />
+	  <field field_ref="qsr_ice"          name="qsr_ice"    />
+	  <field field_ref="qns_ice"          name="qns_ice"    />
+	  <field field_ref="qemp_ice"         name="qemp_ice"   />
+	  <field field_ref="hfxsub"           name="hfxsub"     />
+	  <field field_ref="hfxspr"           name="hfxspr"     />
+	  <field field_ref="hfxcndtop"        name="hfxcndtop"  />
+	  <field field_ref="hfxcndbot"        name="hfxcndbot"  />
+	  <field field_ref="hfxsensib"        name="hfxsensib"  />
+	  <field field_ref="hfxmelt"          name="hfxmelt"    />
+	  <field field_ref="hfxldmelt"        name="hfxldmelt"  />
+	  <field field_ref="hfxldgrow"        name="hfxldgrow"  />
+	  <!-- salt fluxes -->
+	  <field field_ref="sfxice"           name="sfxice"     />
+	  <!-- mass fluxes -->
+	  <field field_ref="vfxice"           name="vfxice"     />
+	  <field field_ref="vfxsnw"           name="vfxsnw"     />
+	  <field field_ref="vfxpnd"           name="vfxpnd"     />
+	  <field field_ref="vfxsub"           name="vfxsub"     />
+	  <field field_ref="vfxsub_err"       name="vfxsub_err" />
+	  <field field_ref="vfxsnw_sub"       name="vfxsnw_sub" />
+	  <field field_ref="vfxsnw_pre"       name="vfxsnw_pre" />
+	</field_group>
 
 	<!--============================-->
 	<!-- SIMIP sea ice field groups -->

@@ -274,7 +274,7 @@
           <field id="empbmr"       long_name="Net Upward Water Flux at pre. tstep"  standard_name="water_flux_out_of_sea_ice_and_sea_water"                              unit="kg/m2/s"   />
           <field id="emp_oce"      long_name="Evap minus Precip over ocean"         standard_name="evap_minus_precip_over_sea_water"                                     unit="kg/m2/s"   />
           <field id="emp_ice"      long_name="Evap minus Precip over ice"           standard_name="evap_minus_precip_over_sea_ice"                                       unit="kg/m2/s"   />
-          <field id="saltflx"      long_name="Downward salt flux"                                                                                                        unit="1e-3/m2/s" />
+          <field id="saltflx"      long_name="Downward salt flux"                                                                                                        unit="g/m2/s"    />
           <field id="fmmflx"       long_name="Water flux due to freezing/melting"                                                                                        unit="kg/m2/s"   />
           <field id="snowpre"      long_name="Snow precipitation"                   standard_name="snowfall_flux"                                                        unit="kg/m2/s"   />
           <field id="runoffs"      long_name="River Runoffs"                        standard_name="water_flux_into_sea_water_from_rivers"                                unit="kg/m2/s"   />
@@ -339,12 +339,14 @@
           <field id="fsal_real_cea" long_name="Real salt flux due to ice formation (cell average)"       standard_name="downward_sea_ice_basal_salt_flux"                                              unit="kg/m2/s"  />
           <field id="hflx_rain_cea" long_name="heat flux due to rainfall"                                standard_name="temperature_flux_due_to_rainfall_expressed_as_heat_flux_into_sea_water"        unit="W/m2"     />
           <field id="hflx_evap_cea" long_name="heat flux due to evaporation"                             standard_name="temperature_flux_due_to_evaporation_expressed_as_heat_flux_out_of_sea_water"   unit="W/m2"     />
+          <field id="hflx_subl_cea" long_name="heat flux due to sublimation (from atm. forcings)"        standard_name="temperature_flux_due_to_sublimation_expressed_as_heat_flux_out_of_sea_ice"     unit="W/m2"     />
           <field id="hflx_prec_cea" long_name="heat flux due to all precip"                              standard_name="temperature_flux_due_to_all_precip_expressed_as_heat_flux_into_sea_water"      unit="W/m2"     />
           <field id="hflx_snow_cea" long_name="heat flux due to snow falling"                            standard_name="heat_flux_onto_ocean_and_ice_due_to_snow_thermodynamics"                       unit="W/m2"     />
           <field id="hflx_snow_ai_cea" long_name="heat flux due to snow falling over ice"                standard_name="heat_flux_onto_ice_due_to_snow_thermodynamics"                                 unit="W/m2"     />
           <field id="hflx_snow_ao_cea" long_name="heat flux due to snow falling over ice-free ocean"     standard_name="heat_flux_onto_sea_water_due_to_snow_thermodynamics"                           unit="W/m2"     />
           <field id="hflx_ice_cea"  long_name="heat flux due to ice thermodynamics"                      standard_name="heat_flux_into_sea_water_due_to_sea_ice_thermodynamics"                        unit="W/m2"     />
           <field id="hflx_rnf_cea"  long_name="heat flux due to runoffs"                                 standard_name="temperature_flux_due_to_runoff_expressed_as_heat_flux_into_sea_water"          unit="W/m2"     />
+          <field id="sflx_rnf_cea"  long_name="salt flux due to runoffs"                                 standard_name="salt_flux_due_to_runoffs"                                                      unit="g/m2/s"   />
           <field id="hflx_cal_cea"  long_name="heat flux due to calving"                                 standard_name="heat_flux_into_sea_water_due_to_calving"                                       unit="W/m2"     />
           <field id="hflx_icb_cea"  long_name="heat flux due to iceberg"                                 standard_name="heat_flux_into_sea_water_due_to_icebergs"                                      unit="W/m2"     />
           <field id="hflx_isf_cea"  long_name="heat flux due to iceshelf"                                standard_name="heat_flux_into_sea_water_due_to_iceshelf"                                      unit="W/m2"     />
@@ -353,6 +355,13 @@
           <field id="snowmel_cea"   long_name="Snow Melt Rate (cell average)"                            standard_name="surface_snow_melt_flux"                                                        unit="kg/m2/s"  />
           <field id="sntoice_cea"   long_name="Snow-Ice Formation Rate (cell average)"                   standard_name="tendency_of_sea_ice_amount_due_to_snow_conversion"                             unit="kg/m2/s"  />
           <field id="ticemel_cea"   long_name="Rate of Melt at Upper Surface of Sea Ice (cell average)"  standard_name="tendency_of_sea_ice_amount_due_to_surface_melting"                             unit="kg/m2/s"  />
+
+          <!-- fluxes from relaxation and freshwater budget -->
+          <field id="sflx_ssr_cea"  long_name="salt flux due to restoring"    standard_name="salt_flux_due_to_restoring"    unit="g/m2/s"   />
+	  <field id="hflx_ssr_cea"  long_name="heat flux due to restoring"    standard_name="heat_flux_due_to_restoring"    unit="W/m2"     />
+	  <field id="vflx_ssr_cea"  long_name="volume flux due to restoring"  standard_name="volume_flux_due_to_restoring"  unit="kg/m2/s"  />
+          <field id="hflx_fwb_cea"  long_name="heat flux due to fwb"          standard_name="heat_flux_due_to_fwb"          unit="W/m2"     />
+          <field id="vflx_fwb_cea"  long_name="volume flux due to fwb"        standard_name="volume_flux_due_to_fwb"        unit="kg/m2/s"  />
 
           <!-- ice field (nn_ice=1)  -->
           <field id="ice_cover"    long_name="Ice fraction"                                                 standard_name="sea_ice_area_fraction"                              unit="1"            />
@@ -396,7 +405,6 @@
         <field id="utau"          long_name="Wind Stress along i-axis"                               standard_name="surface_downward_x_stress"   unit="N/m2"                            />
         <field id="uoce"          long_name="ocean current along i-axis"                             standard_name="sea_water_x_velocity"        unit="m/s"        grid_ref="grid_U_3D" />
     	<field id="uoce_e3u"      long_name="ocean current along i-axis  (thickness weighted)"                                                   unit="m/s"        grid_ref="grid_U_3D"  > uoce * e3u </field>
-        <field id="uoce2_e3u"     long_name="ocean current along i-axis squared (thickness weighted)"                                            unit="m3/s2"      grid_ref="grid_U_3D"  > uoce * uoce * e3u </field> 
     	<field id="uoce_e3u_vsum" long_name="ocean current along i-axis * e3u summed on the vertical"  field_ref="uoce_e3u"    unit="m3/s"       grid_ref="grid_U_vsum"/>
         <field id="uocetr_vsum"   long_name="ocean transport along i-axis  summed on the vertical"         field_ref="e2u"       unit="m3/s"> this * uoce_e3u_vsum  </field> 
 
@@ -468,7 +476,6 @@
         <field id="vtau"         long_name="Wind Stress along j-axis"                               standard_name="surface_downward_y_stress"   unit="N/m2"                            />
         <field id="voce"         long_name="ocean current along j-axis"                             standard_name="sea_water_y_velocity"        unit="m/s"        grid_ref="grid_V_3D" />
         <field id="voce_e3v"     long_name="ocean current along j-axis  (thickness weighted)"                                                   unit="m/s"        grid_ref="grid_V_3D"  > voce * e3v </field>
-        <field id="voce2_e3v"    long_name="ocean current along j-axis squared (thickness weighted)"                                            unit="m3/s2"      grid_ref="grid_V_3D"  > voce * voce * e3v </field> 
         <field id="ssv"          long_name="ocean surface current along j-axis"                                                                 unit="m/s"                             />
         <field id="sbv"          long_name="ocean bottom current along j-axis"                                                                  unit="m/s"                             />
         <field id="vbar"         long_name="ocean barotropic current along j-axis"                                                              unit="m/s"                             />
@@ -1082,5 +1089,66 @@
       <field field_ref="e3v"          name="e3v"     long_name="vertical scale factor"            />
       <field field_ref="ssv"          name="vos"     long_name="sea_surface_y_velocity"           />     
     </field_group>    
+
+    <!--============================-->
+    <!--  CONSERVATION diagnostics  -->
+    <!--============================-->
+    <!-- BE CAREFUL: this group (OCE_budget) cannot be called in file_def.xml as such (unless nn_fsbc=1)
+                     If doing so, the last output (in time) of the netcdf file 
+	             would be corrupted (NaN values). However calling each of these
+	             variables directly in the file_def.xml works. It is probably 
+		     because there is a mix up of sbc variables with other variables
+    -->    
+    <field_group id="OCE_budget"        grid_ref="grid_T_2D" >
+      <field field_ref="sst"                 name="tos"          />
+      <field field_ref="sss"                 name="sos"          />
+      <field field_ref="ssh"                 name="zos"          />
+      <!-- mass flux -->
+      <field field_ref="empmr"               name="empmr"        />
+      <field field_ref="runoffs"             name="runoffs"      />
+      <field field_ref="emp_ice"             name="emp_ice"      />
+      <field field_ref="emp_oce"             name="emp_oce"      />
+      <field field_ref="iceshelf_cea"        name="iceshelf"     />
+      <field field_ref="iceberg_cea"         name="iceberg"      />
+      <field field_ref="calving_cea"         name="calving"      />
+      <!-- <field field_ref="berg_floating_melt"  name="calving" /> -->
+      <field field_ref="precip"              name="precip"       />
+      <field field_ref="snowpre"             name="snowpre"      />
+      <field field_ref="rain"                name="rain"         />
+      <field field_ref="evap_ao_cea"         name="evap_ao"      />
+      <field field_ref="subl_ai_cea"         name="subl_ai"      />
+      <field field_ref="snow_ai_cea"         name="snow_ai"      />
+      <field field_ref="snow_ao_cea"         name="snow_ao"      />
+      <!-- heat flux -->
+      <field field_ref="qsr"                 name="qsr"          />
+      <field field_ref="qns"                 name="qns"          />
+      <field field_ref="qt_oce"              name="qt_oce"       />
+      <field field_ref="qemp_oce"            name="qemp_oce"     />
+      <field field_ref="hflx_rain_cea"       name="hflx_rain"    />
+      <field field_ref="hflx_evap_cea"       name="hflx_evap"    />
+      <field field_ref="hflx_snow_cea"       name="hflx_snow"    />
+      <field field_ref="hflx_snow_ao_cea"    name="hflx_snow_ao" />
+      <field field_ref="hflx_snow_ai_cea"    name="hflx_snow_ai" />
+      <field field_ref="hflx_rnf_cea"        name="hflx_rnf"     />
+      <field field_ref="hflx_icb_cea"        name="hflx_icb"     />
+      <field field_ref="hflx_isf_cea"        name="hflx_isf"     />
+      <!-- salt flux (includes ssr) -->
+      <field field_ref="saltflx"             name="saltflx"      />
+      <field field_ref="sflx_rnf_cea"        name="sflx_rnf"     />
+      <!-- relaxation and damping -->
+      <field field_ref="hflx_ssr_cea"        name="hflx_ssr"     />
+      <field field_ref="vflx_ssr_cea"        name="vflx_ssr"     />
+      <field field_ref="sflx_ssr_cea"        name="sflx_ssr"     />
+      <field field_ref="hflx_dmp_cea"        name="hflx_dmp"     />
+      <field field_ref="sflx_dmp_cea"        name="sflx_dmp"     />
+      <field field_ref="hflx_fwb_cea"        name="hflx_fwb"     />
+      <field field_ref="vflx_fwb_cea"        name="vflx_fwb"     />
+    </field_group>
+
+    <field_group id="OCE_globalbudget"  grid_ref="grid_scalar" >
+      <field field_ref="voltot"              name="scvoltot"     />
+      <field field_ref="saltot"              name="scsaltot"     />
+      <field field_ref="temptot"             name="sctemtot"     />
+    </field_group>
 
    </field_definition>
