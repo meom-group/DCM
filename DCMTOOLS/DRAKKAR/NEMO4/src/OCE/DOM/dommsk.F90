@@ -334,10 +334,10 @@ CONTAINS
             ENDIF   ! 2D shlat
 #endif
             IF( .NOT. AGRIF_Root() ) THEN 
-               IF ((nbondi ==  1).OR.(nbondi == 2)) fmask(nlci-1 , :     ,jk) = 0.e0      ! east 
-               IF ((nbondi == -1).OR.(nbondi == 2)) fmask(1      , :     ,jk) = 0.e0      ! west 
-               IF ((nbondj ==  1).OR.(nbondj == 2)) fmask(:      ,nlcj-1 ,jk) = 0.e0      ! north 
-               IF ((nbondj == -1).OR.(nbondj == 2)) fmask(:      ,1      ,jk) = 0.e0      ! south 
+               IF ( l_Eastedge )  fmask(nlci-1 , :     ,jk) = 0.e0      ! east 
+               IF ( l_Westedge )  fmask(1      , :     ,jk) = 0.e0      ! west 
+               IF ( l_Northedge ) fmask(:      ,nlcj-1 ,jk) = 0.e0      ! north 
+               IF ( l_Southedge ) fmask(:      ,1      ,jk) = 0.e0      ! south 
             ENDIF 
          END DO
          !

@@ -398,8 +398,7 @@ CONTAINS
          DO ji = 1, jpi
             DO jj = 1, jpj
                 ik = 2
-!!gm potential bug: use gdepw_0 not _n
-                DO WHILE ( ik <= mbkt(ji,jj) .AND. gdepw_n(ji,jj,ik) < rzisf_tbl(ji,jj) ) ;  ik = ik + 1 ;  END DO
+                DO WHILE ( ik <= mbkt(ji,jj) .AND. gdepw_0(ji,jj,ik) < rzisf_tbl(ji,jj) ) ;  ik = ik + 1 ;  END DO
                 misfkt(ji,jj) = ik-1
             END DO
          END DO

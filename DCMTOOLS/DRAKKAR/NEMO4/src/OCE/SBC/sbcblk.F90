@@ -39,6 +39,7 @@ MODULE sbcblk
    USE phycst         ! physical constants
    USE fldread        ! read input fields
    USE sbc_oce        ! Surface boundary condition: ocean fields
+   USE trc_oce         ! share SMS/Ocean variables
    USE cyclone        ! Cyclone 10m wind form trac of cyclone centres
    USE sbcdcy         ! surface boundary condition: diurnal cycle
    USE sbcwave , ONLY :   cdn_wave ! wave module
@@ -476,6 +477,7 @@ CONTAINS
       REAL(wp), DIMENSION(jpi,jpj) ::   zU_zu             ! bulk wind speed at height zu  [m/s]
       REAL(wp), DIMENSION(jpi,jpj) ::   ztpot             ! potential temperature of air at z=rn_zqt [K]
       REAL(wp), DIMENSION(jpi,jpj) ::   zrhoa             ! density of air   [kg/m^3]
+      REAL(wp), DIMENSION(jpi,jpj) ::   zcptrain, zcptsnw, zcptn ! Heat content per unit mass (J/kg)
 #if defined key_drakkar
       REAL(wp), DIMENSION(jpi,jpj) ::   zssu              ! Ocean surface U velocity
       REAL(wp), DIMENSION(jpi,jpj) ::   zssv              ! Ocean surface V velocity
@@ -483,6 +485,11 @@ CONTAINS
       REAL(wp) ::   zstau                ! local variable
 #endif
       !!---------------------------------------------------------------------
+      !
+      ! Heat content per unit mass (J/kg)
+      zcptrain(:,:) = (      sf(jp_tair)%fnow(:,:,1)        - rt0 ) * rcp  * tmask(:,:,1)
+      zcptsnw (:,:) = ( MIN( sf(jp_tair)%fnow(:,:,1), rt0 ) - rt0 ) * rcpi * tmask(:,:,1)
+      zcptn   (:,:) =        pst(:,:)                               * rcp  * tmask(:,:,1)
       !
       ! local scalars ( place there for vector optimisation purposes)
       zst(:,:) = pst(:,:) + rt0      ! convert SST from Celcius to Kelvin (and set minimum value far above 0 K)
@@ -549,6 +556,13 @@ CONTAINS
       ELSE                  ;   qsr(:,:) = zztmp *          sf(jp_qsr)%fnow(:,:,1)   * tmask(:,:,1)
       ENDIF
 
+#if defined key_top
+      IF( ln_trcdc2dm )  THEN      !  diurnal cycle in TOP
+         IF( ln_dm2dc )  THEN  ;  qsr_mean(:,:) = zztmp * sf(jp_qsr)%fnow(:,:,1)  * tmask(:,:,1)
+         ELSE                  ;  ncpl_qsr_freq = sf(jp_qsr)%freqh * 3600 !   qsr_mean will be computed in TOP
+         ENDIF
+      ENDIF
+#endif
       zqlw(:,:) = (  sf(jp_qlw)%fnow(:,:,1) - Stef * zst(:,:)*zst(:,:)*zst(:,:)*zst(:,:)  ) * tmask(:,:,1)   ! Long  Wave
 
       ! ----------------------------------------------------------------------------- !
@@ -691,11 +705,11 @@ CONTAINS
       !
       qns(:,:) = zqlw(:,:) - zqsb(:,:) - zqla(:,:)                                &   ! Downward Non Solar
          &     - sf(jp_snow)%fnow(:,:,1) * rn_pfac * rLfus                        &   ! remove latent melting heat for solid precip
-         &     - zevap(:,:) * pst(:,:) * rcp                                      &   ! remove evap heat content at SST
+         &     - zevap(:,:) * zcptn(:,:)                                          &   ! remove evap heat content at SST
          &     + ( sf(jp_prec)%fnow(:,:,1) - sf(jp_snow)%fnow(:,:,1) ) * rn_pfac  &   ! add liquid precip heat content at Tair
-         &     * ( sf(jp_tair)%fnow(:,:,1) - rt0 ) * rcp                          &
+         &     * zcptrain(:,:)                                                    &
          &     + sf(jp_snow)%fnow(:,:,1) * rn_pfac                                &   ! add solid  precip heat content at min(Tair,Tsnow)
-         &     * ( MIN( sf(jp_tair)%fnow(:,:,1), rt0 ) - rt0 ) * rcpi
+         &     * zcptsnw(:,:)
       qns(:,:) = qns(:,:) * tmask(:,:,1)
       !
 #if defined key_si3
@@ -722,6 +736,7 @@ CONTAINS
          CALL iom_put( 'precip' , tprecip )                 ! Total precipitation
       ENDIF
 #else
+!
        IF ( nn_ice == 0 ) THEN
          CALL iom_put( "qlw_oce" ,   zqlw )                 ! output downward longwave heat over the ocean
          CALL iom_put( "qsb_oce" , - zqsb )                 ! output downward sensible heat over the ocean
@@ -1005,14 +1020,19 @@ CONTAINS
       REAL(wp), DIMENSION(jpi,jpj,jpl) ::   z_dqsb        ! sensible  heat sensitivity over ice
       REAL(wp), DIMENSION(jpi,jpj)     ::   zevap, zsnw   ! evaporation and snw distribution after wind blowing (SI3)
       REAL(wp), DIMENSION(jpi,jpj)     ::   zrhoa
-      REAL(wp), DIMENSION(jpi,jpj)     ::   ztmp, ztmp2
       REAL(wp), DIMENSION(jpi,jpj)     ::   ztri
+      REAL(wp), DIMENSION(jpi,jpj)     ::   zcptrain, zcptsnw, zcptn ! Heat content per unit mass (J/kg)
       !!---------------------------------------------------------------------
       !
       zcoef_dqlw = 4.0 * 0.95 * Stef             ! local scalars
       zcoef_dqla = -Ls * 11637800. * (-5897.8)
       !
       zrhoa(:,:) = rho_air( sf(jp_tair)%fnow(:,:,1), sf(jp_humi)%fnow(:,:,1), sf(jp_slp)%fnow(:,:,1) )
+      !
+      ! Heat content per unit mass (J/kg)
+      zcptrain(:,:) = (      sf(jp_tair)%fnow(:,:,1)        - rt0 ) * rcp  * tmask(:,:,1)
+      zcptsnw (:,:) = ( MIN( sf(jp_tair)%fnow(:,:,1), rt0 ) - rt0 ) * rcpi * tmask(:,:,1)
+      zcptn   (:,:) =        sst_m(:,:)                             * rcp  * tmask(:,:,1)
       !
       zztmp = 1. / ( 1. - albo )
       WHERE( ptsu(:,:,:) /= 0._wp )   ;   z1_st(:,:,:) = 1._wp / ptsu(:,:,:)
@@ -1087,12 +1107,10 @@ CONTAINS
       emp_tot(:,:) = emp_oce(:,:) + emp_ice(:,:)
 
       ! --- heat flux associated with emp --- !
-      qemp_oce(:,:) = - ( 1._wp - at_i_b(:,:) ) * zevap(:,:) * sst_m(:,:) * rcp                  & ! evap at sst
-         &          + ( tprecip(:,:) - sprecip(:,:) ) * ( sf(jp_tair)%fnow(:,:,1) - rt0 ) * rcp  & ! liquid precip at Tair
-         &          +   sprecip(:,:) * ( 1._wp - zsnw ) *                                        & ! solid precip at min(Tair,Tsnow)
-         &              ( ( MIN( sf(jp_tair)%fnow(:,:,1), rt0 ) - rt0 ) * rcpi * tmask(:,:,1) - rLfus )
-      qemp_ice(:,:) =   sprecip(:,:) * zsnw *                                                    & ! solid precip (only)
-         &              ( ( MIN( sf(jp_tair)%fnow(:,:,1), rt0 ) - rt0 ) * rcpi * tmask(:,:,1) - rLfus )
+      qemp_oce(:,:) = - ( 1._wp - at_i_b(:,:) ) * zevap(:,:) * zcptn(:,:)         & ! evap at sst
+         &          + ( tprecip(:,:) - sprecip(:,:) )   *   zcptrain(:,:)         & ! liquid precip at Tair
+         &          +   sprecip(:,:) * ( 1._wp - zsnw ) * ( zcptsnw (:,:) - rLfus ) ! solid precip at min(Tair,Tsnow)
+      qemp_ice(:,:) =   sprecip(:,:) *           zsnw   * ( zcptsnw (:,:) - rLfus ) ! solid precip (only)
 
       ! --- total solar and non solar fluxes --- !
       qns_tot(:,:) = ( 1._wp - at_i_b(:,:) ) * qns_oce(:,:) + SUM( a_i_b(:,:,:) * qns_ice(:,:,:), dim=3 )  &
@@ -1100,7 +1118,7 @@ CONTAINS
       qsr_tot(:,:) = ( 1._wp - at_i_b(:,:) ) * qsr_oce(:,:) + SUM( a_i_b(:,:,:) * qsr_ice(:,:,:), dim=3 )
 
       ! --- heat content of precip over ice in J/m3 (to be used in 1D-thermo) --- !
-      qprec_ice(:,:) = rhos * ( ( MIN( sf(jp_tair)%fnow(:,:,1), rt0 ) - rt0 ) * rcpi * tmask(:,:,1) - rLfus )
+      qprec_ice(:,:) = rhos * ( zcptsnw(:,:) - rLfus )
 
       ! --- heat content of evap over ice in W/m2 (to be used in 1D-thermo) ---
       DO jl = 1, jpl
@@ -1133,24 +1151,31 @@ CONTAINS
       !
 
       IF( iom_use('evap_ao_cea') .OR. iom_use('hflx_evap_cea') ) THEN
-         ztmp(:,:) = zevap(:,:) * ( 1._wp - at_i_b(:,:) ) 
-         CALL iom_put( 'evap_ao_cea'  , ztmp(:,:) * tmask(:,:,1) )   ! ice-free oce evap (cell average)
-         CALL iom_put( 'hflx_evap_cea', ztmp(:,:) * sst_m(:,:) * rcp * tmask(:,:,1) )   ! heat flux from evap (cell average)
+         CALL iom_put( 'evap_ao_cea'  , zevap(:,:) * ( 1._wp - at_i_b(:,:) ) * tmask(:,:,1)              )   ! ice-free oce evap (cell average)
+         CALL iom_put( 'hflx_evap_cea', zevap(:,:) * ( 1._wp - at_i_b(:,:) ) * tmask(:,:,1) * zcptn(:,:) )   ! heat flux from evap (cell average)
       ENDIF
-      IF( iom_use('hflx_rain_cea') ) THEN
-         ztmp(:,:) = rcp * ( SUM( (ptsu-rt0) * a_i_b, dim=3 ) + sst_m(:,:) * ( 1._wp - at_i_b(:,:) ) )
-         CALL iom_put( 'hflx_rain_cea', ( tprecip(:,:) - sprecip(:,:) ) * ztmp(:,:) )   ! heat flux from rain (cell average)
+      IF( iom_use('rain') .OR. iom_use('rain_ao_cea') .OR. iom_use('hflx_rain_cea') ) THEN
+         CALL iom_put( 'rain'         ,   tprecip(:,:) - sprecip(:,:)                             )          ! liquid precipitation 
+         CALL iom_put( 'rain_ao_cea'  , ( tprecip(:,:) - sprecip(:,:) ) * ( 1._wp - at_i_b(:,:) ) )          ! liquid precipitation over ocean (cell average)
+         CALL iom_put( 'hflx_rain_cea', ( tprecip(:,:) - sprecip(:,:) ) * zcptrain(:,:) )                    ! heat flux from rain (cell average)
       ENDIF
-      IF( iom_use('hflx_snow_cea') .OR. iom_use('hflx_snow_ao_cea') .OR. iom_use('hflx_snow_ai_cea')  )  THEN
-          WHERE( SUM( a_i_b, dim=3 ) > 1.e-10 ) ;   ztmp(:,:) = rcpi * SUM( (ptsu-rt0) * a_i_b, dim=3 ) / SUM( a_i_b, dim=3 )
-          ELSEWHERE                             ;   ztmp(:,:) = rcp * sst_m(:,:)    
-          ENDWHERE
-          ztmp2(:,:) = sprecip(:,:) * ( ztmp(:,:) - rLfus ) 
-          CALL iom_put('hflx_snow_cea'   , ztmp2(:,:) ) ! heat flux from snow (cell average)
-          CALL iom_put('hflx_snow_ao_cea', ztmp2(:,:) * ( 1._wp - zsnw(:,:) ) ) ! heat flux from snow (over ocean)
-          CALL iom_put('hflx_snow_ai_cea', ztmp2(:,:) *           zsnw(:,:)   ) ! heat flux from snow (over ice)
+      IF(  iom_use('snow_ao_cea')   .OR. iom_use('snow_ai_cea')      .OR. &
+         & iom_use('hflx_snow_cea') .OR. iom_use('hflx_snow_ao_cea') .OR. iom_use('hflx_snow_ai_cea')  )  THEN
+         CALL iom_put( 'snow_ao_cea'     , sprecip(:,:)                            * ( 1._wp - zsnw(:,:) ) ) ! Snow over ice-free ocean  (cell average)
+         CALL iom_put( 'snow_ai_cea'     , sprecip(:,:)                            *           zsnw(:,:)   ) ! Snow over sea-ice         (cell average)
+         CALL iom_put( 'hflx_snow_cea'   , sprecip(:,:) * ( zcptsnw(:,:) - rLfus ) )                         ! heat flux from snow (cell average)
+         CALL iom_put( 'hflx_snow_ao_cea', sprecip(:,:) * ( zcptsnw(:,:) - rLfus ) * ( 1._wp - zsnw(:,:) ) ) ! heat flux from snow (over ocean)
+         CALL iom_put( 'hflx_snow_ai_cea', sprecip(:,:) * ( zcptsnw(:,:) - rLfus ) *           zsnw(:,:)   ) ! heat flux from snow (over ice)
+      ENDIF
+      IF( iom_use('hflx_prec_cea') ) THEN                                                                    ! heat flux from precip (cell average)
+         CALL iom_put('hflx_prec_cea' ,    sprecip(:,:)                  * ( zcptsnw (:,:) - rLfus )  &
+            &                          + ( tprecip(:,:) - sprecip(:,:) ) *   zcptrain(:,:) )
       ENDIF
       !
+      IF( iom_use('subl_ai_cea') .OR. iom_use('hflx_subl_cea') ) THEN
+         CALL iom_put( 'subl_ai_cea'  , SUM( a_i_b(:,:,:) *  evap_ice(:,:,:), dim=3 ) * tmask(:,:,1) ) ! Sublimation over sea-ice (cell average)
+         CALL iom_put( 'hflx_subl_cea', SUM( a_i_b(:,:,:) * qevap_ice(:,:,:), dim=3 ) * tmask(:,:,1) ) ! Heat flux from sublimation (cell average)
+      ENDIF
       IF(ln_ctl) THEN
          CALL prt_ctl(tab3d_1=qla_ice , clinfo1=' blk_ice: qla_ice  : ', tab3d_2=z_qsb   , clinfo2=' z_qsb    : ', kdim=jpl)
          CALL prt_ctl(tab3d_1=z_qlw   , clinfo1=' blk_ice: z_qlw    : ', tab3d_2=dqla_ice, clinfo2=' dqla_ice : ', kdim=jpl)

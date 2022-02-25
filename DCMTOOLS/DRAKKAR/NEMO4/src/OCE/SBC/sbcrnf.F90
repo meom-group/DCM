@@ -140,8 +140,12 @@ CONTAINS
 #endif
              IF( ln_rnf_icb ) THEN
                 fwficb(:,:) = rn_rfact * ( sf_i_rnf(1)%fnow(:,:,1) ) * tmask(:,:,1)  ! updated runoff value at time step kt
+                rnf(:,:) = rnf(:,:) + fwficb(:,:)
+                qns(:,:) = qns(:,:) - fwficb(:,:) * rLfus
+                !!qns_tot(:,:) = qns_tot(:,:) - fwficb(:,:) * rLfus                
+                !!qns_oce(:,:) = qns_oce(:,:) - fwficb(:,:) * rLfus                
                 CALL iom_put( 'iceberg_cea'  , fwficb(:,:)  )         ! output iceberg flux
-                CALL iom_put( 'hflx_icb_cea' , fwficb(:,:) * rLfus )   ! output Heat Flux into Sea Water due to Iceberg Thermodynamics -->
+                CALL iom_put( 'hflx_icb_cea' , -fwficb(:,:) * rLfus )   ! output Heat Flux into Sea Water due to Iceberg Thermodynamics -->
              ENDIF
          ENDIF
          !
@@ -161,6 +165,7 @@ CONTAINS
          !                                                           ! else use S=0 for runoffs (done one for all in the init)
                                          CALL iom_put( 'runoffs'     , rnf(:,:)                         )   ! output runoff mass flux
          IF( iom_use('hflx_rnf_cea') )   CALL iom_put( 'hflx_rnf_cea', rnf_tsc(:,:,jp_tem) * rau0 * rcp )   ! output runoff sensible heat (W/m2)
+         IF( iom_use('sflx_rnf_cea') )   CALL iom_put( 'sflx_rnf_cea', rnf_tsc(:,:,jp_sal) * rau0       )   ! output runoff salt flux (g/m2/s)
       ENDIF
       !
       !                                                ! ---------------------------------------- !
