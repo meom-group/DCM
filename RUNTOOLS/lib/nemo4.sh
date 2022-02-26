@@ -15,8 +15,8 @@ mkdir -p $TMPDIR
 # CDIR is always set in DCM setup, DDIR is set to CDIR if not previously set
 
 DDIR=${DDIR:-$CDIR}
-RST_DIR=${RST_DIR:-0}
-RST_READY=${RST_READY:-0}
+#RST_DIR=${RST_DIR:-0}
+#RST_READY=${RST_READY:-0}
 
 mkdir -p  $P_I_DIR
 mkdir -p  $P_R_DIR
@@ -24,9 +24,10 @@ mkdir -p  $P_S_DIR
 mkdir -p  $P_S_DIR/ANNEX
 
 ## Generic name for some directories
-CN_DIAOBS=${CONFIG_CASE}-DIAOBS     # receive files from diaobs functionality, if used
-CN_DIRRST=${CONFIG_CASE}-RST        # receive restart files
-CN_DIRICB=${CONFIG_CASE}-ICB        # receive Iceberg Output files
+CN_DIAOBS=$DDIR/${CONFIG_CASE}-DIAOBS     # receive files from diaobs functionality, if used
+CN_DIRRST=$DDIR/${CONFIG_CASE}-RST        # receive restart files (so far oce, ice, iceberg, stochastic
+CN_DIRICB=$DDIR/${CONFIG_CASE}-ICB        # receive Iceberg Output files (trajectories)
+CN_DIROUT=$DDIR/${CONFIG_CASE}-XIOS       # receive XIOS output files
 
 ## -----------------------------------------------------
 echo '(1) get all the working tools on the TMPDIR directory'
@@ -129,14 +130,7 @@ CFC=0 ; C14=0 ; MYTRC=0
 
 
 # 
-## check if we are using new xml layout (ie with files like 04-files.xml
-NEWXML=0
-if [ $XIOS = 1 ] ; then
-   if [ -f $P_CTL_DIR/04-file.xml ] ; then NEWXML=1 ; fi
-fi
-   
 echo "   *** XIOS   = " $XIOS
-echo "   *** NEWXML = " $NEWXML
 
 ## copy of the control files ( .db and and template namelist )
 rcopy $P_CTL_DIR/namelist.${CONFIG_CASE} namelist
@@ -146,7 +140,6 @@ if [ $AGRIF = 1 ] ; then
     initagrif 
     for idx in ${agrif_pref[@]} ; do
         rcopy $P_CTL_DIR/${idx}_namelist.${CONFIG_CASE} ${idx}_namelist
-        rcopy $P_CTL_DIR/${idx}_namelistio ${idx}_namelistio
     done
 fi
 
@@ -172,12 +165,21 @@ sed -e "s/<NN_NO>/$no/" \
     -e "s/<NIT000>/$nit000/" \
     -e "s/<NITEND>/$nitend/" \
     -e "s/<RESTART>/$restart_flag/" \
-    -e "s@<CN_DIAOBS>@$DDIR/${CN_DIAOBS}.$no@"   \
-    -e "s@<CN_DIRICB>@$DDIR/${CN_DIRICB}.$no@"   \
-    -e "s@<CN_DIRRST>@$DDIR/${CN_DIRRST}@"   namelist > znamelist1
+    -e "s@<CN_DIROUT>@${CN_DIROUT}.$no@"   \
+    -e "s@<CN_DIAOBS>@${CN_DIAOBS}.$no@"   \
+    -e "s@<CN_DIRICB>@${CN_DIRICB}.$no@"   \
+    -e "s@<CN_DIRRST>@${CN_DIRRST}@"   namelist > znamelist1
 \cp znamelist1 namelist
 \cp namelist  namelist_ref
 \cp namelist  namelist_cfg
+
+# Check for ensemble run
+# Ensemble run [ if not an ensemble run it is mandatory to have both ENSEMBLE_START and ENSEMBLE_END set to -1 ]
+ENSEMBLE=0 ; ENSEMBLE_SIZE=1 ; ENSEMBLE_START=-1 ; ENSEMBLE_END=-1 ; ENSEMBLE_RST_IN=0
+ENSDIAGS=0
+tmp=$(LookInNamelist ln_ensemble) ; tmp=$(normalize $tmp)
+if [ $tmp = T ] ; then  ENSEMBLE=1 ; fi
+echo "   ***  ENSEMBLE  = $ENSEMBLE"
 
 # Use of the observation operator.
 DIAOBS=0
@@ -212,7 +214,7 @@ if [ $DIAOBS = 1 ] ; then
     ENACT=0  
     tmp=$(LookInNamelist ln_ena) ; tmp=$(normalize $tmp)
     if [ $tmp = T ] ; then ENACT=1 ; fi
-# NEMO4 uses other flags 
+    # NEMO4 uses other flags 
     tmp=$(LookInNamelist ln_t3d) ; tmp=$(normalize $tmp)
     if [ $tmp = T ] ; then ENACT=1 ; fi
     tmp=$(LookInNamelist ln_s3d) ; tmp=$(normalize $tmp)
@@ -226,7 +228,6 @@ if [ $DIAOBS = 1 ] ; then
 
     getobs
 fi
-
 
 ## Agrif namelist update if any
 if [ $AGRIF = 1 ] ; then
@@ -243,32 +244,62 @@ if [ $AGRIF = 1 ] ; then
         sed -e "s/<NN_NO>/$no/"   \
             -e "s/<NIT000>/${nit0[idx]}/" \
             -e "s/<NITEND>/${nite[idx]}/" \
-            -e "s@<CN_DIRRST>@$DDIR/${CN_DIRRST}@" \
+            -e "s@<CN_DIRRST>@${CN_DIRRST}@" \
             -e "s/<RESTART>/$restart_flag/" ${idx}_namelist > z${idx}_namelist1
 
         \cp z${idx}_namelist1 ${idx}_namelist
         \cp ${idx}_namelist  ${idx}_namelist_ref
         \cp ${idx}_namelist  ${idx}_namelist_cfg
     done
-fi
+fi  # end Agrif
 
-echo "   ***  Check/Create directory : ${CONFIG_CASE}-${DIROUText}.$no"
-mkdir -p  $DDIR/${CONFIG_CASE}-${DIROUText}.$no
+if [ $ENSEMBLE = 1 ] ; then
+      # set ensemble parameters from namelist
+    ENSEMBLE_SIZE=$(LookInNamelist nn_ens_size)   
+    ENSEMBLE_START=$(LookInNamelist nn_ens_start)
+    ENSEMBLE_END=$(( ENSEMBLE_START + ENSEMBLE_SIZE -1 ))
+    echo "   ***  ENSEMBLE_SIZE  = $ENSEMBLE_SIZE"
+    echo "   ***  ENSEMBLE_START = $ENSEMBLE_START"
+    echo "   ***  ENSEMBLE_END   = $ENSEMBLE_END"
 
-echo "   ***  Check/Create directory : ${CONFIG_CASE}-${MOOROUText}.$no"
-MOOROUText=MOORINGS
-#JMM : eliminate creation of this dir ... dirty
-#mkdir -p  $DDIR/${CONFIG_CASE}-${MOOROUText}.$no
+      # check if members require individual restart file.
+      # if not, all members restart from the same file 
+      # ie, link will be made to the proper file
+    tmp=$(LookInNamelist ln_ens_rst_in) ; tmp=$(normalize $tmp)
+    if [ $tmp = T ] ; then 
+    ENSEMBLE_RST_IN=1 
+    fi
+    
+    if [ $(( NB_NPROC %  ENSEMBLE_SIZE )) != 0 ] ; then
+        echo 'ERROR: inconsistent number of processors with regard to the number of members.'
+        exit
+    fi
+    core_per_member=$(( NB_NPROC / ENSEMBLE_SIZE ))
+    echo "   ***  CORE_per_MBR   = $core_per_member "
 
-if [ $DIAOBS = 1 ] ; then 
-    echo "   ***  Check/Create directory : ${CN_DIAOBS}.$no"
-    mkdir -p $DDIR/${CN_DIAOBS}.$no 
-fi
+    for member in $(seq $ENSEMBLE_START $ENSEMBLE_END) ; do
+        nnn=$(getmember_extension $member  nodot )  # number of the member without .
+        echo "   ***  Check/Create directory : ${CN_DIROUT}.${no}/$nnn"
+        mkdir -p  ${CN_DIROUT}.${no}/$nnn
 
+        echo "   ***  Check/Create directory : ${CN_DIRRST}.${no}/$nnn"
+        mkdir -p  ${CN_DIRRST}.${no}/$nnn
+        if [ $DIAOBS = 1 ] ; then 
+           echo "   ***  Check/Create directory : ${CN_DIAOBS}.$no/$nnn"
+           mkdir -p ${CN_DIAOBS}.$no/$nnn
+        fi
+    done
+else
+     echo "   ***  Check/Create directory : ${CN_DIROUT}.$no"
+     mkdir -p  ${CN_DIROUT}.$no
 
-if [ $RST_DIRS = 1 ] ; then 
-    echo "   ***  Check/Create directory : ${CN_DIRRST}.$no"
-    mkdir -p $DDIR/${CN_DIRRST}.$no
+     echo "   ***  Check/Create directory : ${CN_DIRRST}.$no"
+     mkdir -p ${CN_DIRRST}.$no
+
+     if [ $DIAOBS = 1 ] ; then 
+        echo "   ***  Check/Create directory : ${CN_DIAOBS}.$no"
+        mkdir -p ${CN_DIAOBS}.$no 
+     fi
 fi
 
 rdt=$(LookInNamelist rn_rdt)
@@ -300,7 +331,7 @@ if [ $TOP = 1 ] ; then
     echo ' [2.2]  Tracer namelist(s)'
     echo " ========================="
     rcopy $P_CTL_DIR/namelist_top ./
-    sed -e "s@<CN_DIRRST>@$DDIR/${CN_DIRRST}@"   namelist_top > ztmpnmtop
+    sed -e "s@<CN_DIRRST>@${CN_DIRRST}@"   namelist_top > ztmpnmtop
     mv ztmpnmtop namelist_top
     cp namelist_top namelist_top_ref
     cp namelist_top namelist_top_cfg
@@ -316,7 +347,7 @@ if [ $ICE != 0 ] ; then
     echo ' [2.3]  Ice namelist'
     echo " ========================="
     rcopy $P_CTL_DIR/namelist_ice.${CONFIG_CASE} namelist_ice
-    sed -e "s@<CN_DIRRST>@$DDIR/${CN_DIRRST}@"   namelist_ice > ztmpnmice
+    sed -e "s@<CN_DIRRST>@${CN_DIRRST}@"   namelist_ice > ztmpnmice
     mv ztmpnmice namelist_ice
     cp namelist_ice namelist_ice_ref
     cp namelist_ice namelist_ice_cfg
@@ -328,8 +359,6 @@ if [ $ICE != 0 ] ; then
         done
     fi
 fi
-
-# XIOS stuff migrated after ensemble run check !
 
 echo ' [2.5]   Set flags according to namelists'
 echo " ========================================"
@@ -420,8 +449,16 @@ ICB=0
 tmp=$(LookInNamelist ln_icebergs) ; tmp=$(normalize $tmp)
 if [ $tmp = T ] ; then
     ICB=1
-    echo "   ***  Check/Create directory : ${CN_DIRICB}.$no"
-    mkdir -p $DDIR/${CN_DIRICB}.$no 
+    if [ $ENSEMBLE = 1 ] ; then
+       for member in $(seq $ENSEMBLE_START $ENSEMBLE_END) ; do
+           nnn=$(getmember_extension $member  nodot )  # number of the member without .
+           echo "   ***  Check/Create directory : ${CN_DIRICB}.$no/$nnn"
+           mkdir -p  ${CN_DIRICB}.$no/$nnn
+       done
+    else
+       echo "   ***  Check/Create directory : ${CN_DIRICB}.$no"
+       mkdir -p ${CN_DIRICB}.$no 
+    fi
 fi
 echo "   ***  ICB  = $ICB"
 
@@ -463,67 +500,6 @@ DYNCOEF2D=0  ; DYNCOEF3D=0
    fi
 
 
-# Ensemble run [ if not an ensemble run it is mandatory to have both ENSEMBLE_START and ENSEMBLE_END set to -1 ]
-ENSEMBLE=0 ; ENSEMBLE_SIZE=1 ; ENSEMBLE_START=-1 ; ENSEMBLE_END=-1 ; ENSEMBLE_RST_IN=0
-ENSDIAGS=0
-
-tmp=$(LookInNamelist ln_ensemble) ; tmp=$(normalize $tmp)
-if [ $tmp = T ] ; then  ENSEMBLE=1 ; fi
-
-if [ $ENSEMBLE = 1 ] ; then
-      # check if inter members diags are requested
-    tmp=$(LookInNamelist ln_ens_diag) ; tmp=$(normalize $tmp)
-    if [ $tmp = T ] ; then  ENSDIAGS=1 ; fi
-
-      # set ensemble parameters from namelist
-    ENSEMBLE_SIZE=$(LookInNamelist nn_ens_size)   
-    ENSEMBLE_START=$(LookInNamelist nn_ens_start)
-    ENSEMBLE_END=$(( ENSEMBLE_START + ENSEMBLE_SIZE -1 ))
-    # next bloc is when members have different namelists (in test and not fully working )
-    tmp=$(LookInNamelist ln_ens_namlist) ; tmp=$(normalize $tmp)
-    if [ $tmp = T ] ; then  # each member has its own namelist.mmm  ( ocean only so far )
-       for member in $(seq $ENSEMBLE_START $ENSEMBLE_END) ; do
-          nnn=$(getmember_extension $member  nodot )  # number of the member without .
-          rcopy $P_CTL_DIR/namelist.${CONFIG_CASE}.${nnn} namelist.${nnn}
-          sed -e "s/NUMERO_DE_RUN/$no/" \
-              -e "s/NIT000/$nit000/" \
-              -e "s/NITEND/$nitend/" \
-              -e "s/RESTART/$restart_flag/" \
-              -e "s@CN_DIROUT@$DDIR/${CONFIG_CASE}-${DIROUText}.$no@" \
-              -e "s@CN_DIROUT2@$DDIR/${CONFIG_CASE}-${DIROUText}.$no/SSF@" \
-              -e "s@CN_DIROUT3@$DDIR/${CONFIG_CASE}-${DIROUText}.$no/5D@" \
-              -e "s@CN_DIAOBS@$DDIR/${CN_DIAOBS}.$no@"   \
-              -e "s@CN_DIRRST@$DDIR/${CN_DIRRST}@"   namelist.$nnn > znamelist1
-              \cp znamelist1 namelist.$nnn
-       done
-    fi
-
-      # check if members require individual restart file.
-      # if not, all members restart from the same file 
-      # ie, link will be made to the proper file
-    tmp=$(LookInNamelist ln_ens_rst_in) ; tmp=$(normalize $tmp)
-    if [ $tmp = T ] ; then ENSEMBLE_RST_IN=1 ; fi
-    
-      # check the number of available cores vs the required number of cores
-    jpnij=$(LookInNamelist jpnij)  # core per member
-    core_required=$(( jpnij * ENSEMBLE_SIZE ))
-    if [ $core_required != $NB_NPROC ] ; then
-        echo 'ERROR: inconsistent number of processors ...'
-        exit
-    fi
-    for member in $(seq $ENSEMBLE_START $ENSEMBLE_END) ; do
-        nnn=$(getmember_extension $member  nodot )  # number of the member without .
-        mkdir -p  $DDIR/${CONFIG_CASE}-${DIROUText}.${no}/$nnn
-        if [ $RST_DIRS = 1 ] ; then
-            mkdir -p  $DDIR/${CN_DIRRST}.${no}/$nnn
-        fi
-    done
-fi
-echo "   ***  ENSEMBLE  = $ENSEMBLE"
-echo "   ***  ENSEMBLE_SIZE  = $ENSEMBLE_SIZE"
-echo "   ***  ENSEMBLE_START = $ENSEMBLE_START"
-echo "   ***  ENSEMBLE_END   = $ENSEMBLE_END"
-
 # Sochastic parameterization : set STO=1 if at least one of the ln_sto_xxx flag is true
 STO=0 ; RSTO=0
 tmp=$(LookInNamelist ln_sto_ldf) ; tmp=$(normalize $tmp)
@@ -540,98 +516,49 @@ fi
 echo "   ***  STO  = $STO"
 echo "   ***  RSTO = $RSTO"
 
-
-
 if [ $XIOS = 1 ] ; then
     echo ' [2.6]  XML files for XIOS'
     echo " ========================="
-    cp $P_CTL_DIR/*xml ./
-#   rcopy $P_CTL_DIR/field_def.xml field_def.xml
-#   rcopy $P_CTL_DIR/domain_def.xml domain_def.xml
-#   if [ $XIOS2 = 1 ] ; then
-#      rcopy $P_CTL_DIR/file_def.xml file_def.xml
-#      rcopy $P_CTL_DIR/grid_def.xml grid_def.xml
-#   fi
-    rcopy $XIOS_EXEC xios_server.exe
+    cp $P_CTL_DIR/*xml ./              # copy all CTL/*xml in TMPDIR
+    rcopy $XIOS_EXEC xios_server.exe   # copy server to TMPDIR
 
-    if [ $NEWXML = 1 ] ; then
-        if [ $ENSDIAGS = 1 ] ; then
-            rcopy $P_CTL_DIR/01-ifile.xml  .
-            rcopy $P_CTL_DIR/02-iseczo.xml .
-            rcopy $P_CTL_DIR/03-isecme.xml .
-        fi
-        rcopy $P_CTL_DIR/04-file.xml   .
-        rcopy $P_CTL_DIR/05-seczo.xml  .
-        rcopy $P_CTL_DIR/06-secme.xml  .
+    # change <CONFIG> <CASE> and <NDATE0> in xml file
+    ndate0=$(LookInNamelist nn_date0)
+    for cf_xml in *.xml ; do
+      sed -e "s/<CONFIG>/$CONFIG/" \
+          -e "s/<CASE>/$CASE/"     \
+          -e "s/<NDATE0>/$ndate0/"  $cf_xml > ztmp
+      mv ztmp $cf_xml
+    done
 
-       # build a iodef.xml from template according to the members
-        rcopy $P_CTL_DIR/iodef_nemo_context.xml .
-        rcopy $P_CTL_DIR/iodef_xios_context.xml .
-        cat << eof > iodef.xml
-<?xml version="1.0"?>
-<simulation>
-
-eof
-       # first deal with 1rst member ( eventual inter member diags )
-        member=$ENSEMBLE_START
-        mmm=$(getmember_extension $member)  # if no ensemble, this function return empty string
-        nnn=$(getmember_extension $member nodot )
-
-        if [ $ENSDIAGS = 1 ] ; then
-            cat iodef_nemo_context.xml | sed -e "/01-ifile.xml/r  01-ifile.xml"  \
-                -e "/02-iseczo.xml/r 02-iseczo.xml" \
-                -e "/03-isecme.xml/r 03-isecme.xml" \
-                -e "/04-file.xml/r   04-file.xml"   \
-                -e "/05-seczo.xml/r  05-seczo.xml"  \
-                -e "/06-secme.xml/r  06-secme.xml" > ztemp.xml
-        else
-            cat iodef_nemo_context.xml | sed -e "/04-file.xml/r   04-file.xml"   \
-                -e "/05-seczo.xml/r  05-seczo.xml"  \
-                -e "/06-secme.xml/r  06-secme.xml" > ztemp.xml
-        fi
-        
-        cat ztemp.xml | sed -e "s/<NEMO.MEMBER>/nemo$mmm/"  \
-            -e "s@<OUTDIR>@$DDIR/${CONFIG_CASE}-XIOS.$no/$nnn@" \
-            -e "s/<CASE>/$CASE${mmm}/" >>  iodef.xml
-       # Then deal with other members (each identical so far)
-        cat iodef_nemo_context.xml | sed -e "/04-file.xml/r   04-file.xml"   \
-            -e "/05-seczo.xml/r  05-seczo.xml"  \
-            -e "/06-secme.xml/r  06-secme.xml" > ztemp.xml
-
-        memberp1=$(( ENSEMBLE_START + 1 ))
-        for member in $(seq $memberp1 $ENSEMBLE_END) ; do
+    if [ $ENSEMBLE = 1 ] ; then
+      if [ ! -f context_nemo_MBR.xml ] ; then
+         echo "  ERROR : context_nemo_MBR.xml missing"
+         echo "          Unable to build member context file"
+         exit
+      fi
+      # Create as many context files as members from template (context_nemo_MBR.xml)
+        for member in $( seq $ENSEMBLE_START $ENSEMBLE_END) ; do
             mmm=$(getmember_extension $member)  # if no ensemble, this function return empty string
             nnn=$(getmember_extension $member nodot )
-            cat ztemp.xml | sed -e "s/<NEMO.MEMBER>/nemo$mmm/"  \
-                -e "s@<OUTDIR>@$DDIR/${CONFIG_CASE}-XIOS.$no/$nnn@" \
-                -e "s@<MOORDIR>@$DDIR/${CONFIG_CASE}-MOORINGS.$no/$nnn@" \
-                -e "s/<CASE>/$CASE${mmm}/" >>  iodef.xml
+            cat context_nemo_MBR.xml | sed -e "s/nemo.<MBR>/nemo$mmm/" > context_nemo_${nnn}.xml
         done
-
-        cat iodef_xios_context.xml >> iodef.xml
-        cat << eof >> iodef.xml
-
-</simulation>
-eof
-        rcopy $P_CTL_DIR/iodef.xml iodef.xml
+      # Modify iodef.xml to include member contexts, from iodef_MBR.xml
+      if [ ! -f iodef_MBR.xml ] ; then
+         echo "  ERROR : iodef_MBR.xml missing"
+         echo "          Unable to build iodef.xml for ensemble run"
+         exit
+      fi
+      sed -n -e "1,/START/"p iodef_MBR.xml > ztmp
+      for member in $( seq $ENSEMBLE_START $ENSEMBLE_END) ; do
+          mmm=$(getmember_extension $member)  # if no ensemble, this function return empty string
+          nnn=$(getmember_extension $member nodot )
+          echo "    <context id=\"nemo$mmm\" src=\"./context_nemo_${nnn}.xml\"/>       <!--  NEMO       -->"  >> ztmp
+      done
+      sed -n -e "/END/,$ "p iodef_MBR.xml >> ztmp
+      mv ztmp iodef.xml
     fi
-    echo "  ***   Customize iodef.xml from template"
-    # set <OUTDIR> in iodef.xml
-    ndate0=$(LookInNamelist nn_date0)
-   for  xml_fil in *.xml ; do
-    cat $xml_fil | sed -e "s@<OUTDIR>@$DDIR/${CONFIG_CASE}-XIOS.$no@"  \
-        -e "s@<MOORDIR>@$DDIR/${CONFIG_CASE}-MOORINGS.$no@" \
-        -e "s/<CONFIG>/$CONFIG/" -e "s/<CASE>/$CASE/" \
-        -e "s/<NDATE0>/$ndate0/" > ztmpxml
-    mv ztmpxml $xml_fil
-   done
-#    if [ $XIOS2 = 1 ] ; then
-#       cat file_def.xml | sed -e "s@<OUTDIR>@$DDIR/${CONFIG_CASE}-XIOS.$no@"  \
-#        -e "s@<MOORDIR>@$DDIR/${CONFIG_CASE}-MOORINGS.$no@" \
-#        -e "s/<CONFIG>/$CONFIG/" -e "s/<CASE>/$CASE/" \
-#        -e "s/<NDATE0>/$ndate0/" > ztmpxml2
-#       mv ztmpxml2 file_def.xml
-#    fi
+
 # Check for specific iom_put 
    STERIC=0
    xmldef=file_def_nemo-oce.xml
@@ -663,9 +590,7 @@ eof
   fi
   echo "   *** STERIC = " $STERIC
 
-
-
-fi
+fi   # end XIOS
 #--------------------------------------
 echo '(3) Look for input files (According to flags)'
 echo '---------------------------------------------'
@@ -811,263 +736,29 @@ else
     if [ $procn -ge 100000 ] ; then format='%06d'  ; fi  # in order to run nemo on more than 100 k cores
     
     tmp=$(LookInNamelist ln_ens_rst_in namelist ) ; ln_ens_rst_in=$( normalize $tmp )
-        if [ $ln_ens_rst_in = F ] ; then
-            ZENSEMBLE_START=-1 ; ZENSEMBLE_END=-1    # reduce RESTART loop to 1
-        else
-            ZENSEMBLE_START=$ENSEMBLE_START ; ZENSEMBLE_END=$ENSEMBLE_END
-        fi
+    if [ $ln_ens_rst_in = F ] ; then
+       ZENSEMBLE_START=-1 ; ZENSEMBLE_END=-1    # reduce RESTART loop to 1
+    else
+       ZENSEMBLE_START=$ENSEMBLE_START ; ZENSEMBLE_END=$ENSEMBLE_END
+    fi
 
-        for member in $(seq $ZENSEMBLE_START  $ZENSEMBLE_END ) ; do
-            mmm=$(getmember_extension $member)          # if no ensemble, this function return empty string
-            nnn=$(getmember_extension $member  nodot )  # number of the member without .
+    for member in $(seq $ZENSEMBLE_START  $ZENSEMBLE_END ) ; do
+       mmm=$(getmember_extension $member)          # if no ensemble, this function return empty string
+       nnn=$(getmember_extension $member  nodot )  # number of the member without .
 
-            zrstdir='./'   # set zrstdir to RST directory if used
-            if [ $RST_DIRS = 1 ] ; then zrstdir=$DDIR/${CN_DIRRST}.$prev_ext/$nnn/ ; fi
+       zrstdir='./'   # set zrstdir to RST directory if used
+       zrstdir=${CN_DIRRST}.$prev_ext/$nnn/ 
 
-            if [  $ln_ens_rst_in = F ] ; then mmm='' ; fi # force mmm to empty string if ln_ens_rst_in = false
+       if [  $ln_ens_rst_in = F ] ; then mmm='' ; fi # force mmm to empty string if ln_ens_rst_in = false
 
-            if [ $RST_READY = 1 ] ; then
-                OCE_RST_IN=$(LookInNamelist cn_ocerst_in )-${prev_ext}$mmm
-                ICE_RST_IN=$(LookInNamelist cn_icerst_in namelist_ice)-${prev_ext}$mmm
-                TRC_RST_IN=$(LookInNamelist cn_trcrst_in namelist_top)-${prev_ext}$mmm
-                TRD_RST_IN=$(LookInNamelist cn_trdrst_in )-${prev_ext}$mmm
-                STO_RST_IN=$(LookInNamelist cn_storst_in )-${prev_ext}$mmm
-                ICB_RST_IN=$(LookInNamelist cn_icbrst_in )-${prev_ext}$mmm
-            else
-##### O C E A N
-###############
-                OCE_RST_IN=$(LookInNamelist cn_ocerst_in )$mmm
-                OCE_RST_OUT=$(LookInNamelist cn_ocerst_out )$mmm
-                ok=1
+       OCE_RST_IN=$(LookInNamelist cn_ocerst_in )-${prev_ext}$mmm
+       ICE_RST_IN=$(LookInNamelist cn_icerst_in namelist_ice)-${prev_ext}$mmm
+       TRC_RST_IN=$(LookInNamelist cn_trcrst_in namelist_top)-${prev_ext}$mmm
+       TRD_RST_IN=$(LookInNamelist cn_trdrst_in )-${prev_ext}$mmm
+       STO_RST_IN=$(LookInNamelist cn_storst_in )-${prev_ext}$mmm
+       ICB_RST_IN=$(LookInNamelist cn_icbrst_in )-${prev_ext}$mmm
 
-                if [ ! $RST_SKIP  ] ; then 
-         # ** check if the nc  restart file are in the current dir 
-         #   Look for restart_xxxx.nc.$prev_ext  xxx=1,$procn
-                    for (( proc=$proc0 ; proc <= $procn ; proc++ )) ; do
-                        rest=$(printf "${OCE_RST_IN}_${format}.${filext}.$prev_ext\n" $proc)
-                        if [ ! -f ${zrstdir}$rest ] ; then ok=0 ; fi
-                    done
-                fi
-                
-                if [ $ok -eq 1 ] ; then
-                    echo "   ***  All ocean restart files are here for member  $mmm " 
-                else
-      # look for tar restart files
-                    mkdir -p $zrstdir   # just in case zrstdir can be ./ : no harm !
-
-                    for rest in $( lsrestart ${OCE_RST_OUT}_oce_v2.$prev_ext.tar. ) ; do
-                        rapatrie $rest   $P_R_DIR  $F_R_DIR  ${zrstdir}$rest
-                        cd ${zrstdir} ; tar xf $rest ; cd -   #  also work with zrstdir = ./
-                    done
-                fi
-
-      # link  the xxx.${filext}.$prev_ext files to xxx.${filext}  (no extension).
-                cd $zrstdir
-                for rest in ${OCE_RST_IN}_[[:digit:]]*[[:digit:]].${filext}.$prev_ext ; do
-                    ln -sf $rest  ${rest%.$prev_ext} 
-                done
-
-                if [ $AGRIF = 1 ] ; then
-                    for idx in ${agrif_pref[@]} ; do
-                        for rest in ${idx}_${OCE_RST_IN}_[[:digit:]]*[[:digit:]].${filext}.$prev_ext ; do
-                            ln -sf $rest  ${rest%.$prev_ext} 
-                        done
-                    done
-                fi
-                cd -
-            
-##### I C E
-###########
-            if [ $ICE = 1 ] ; then
-        # ** check if the ${filext} restart file are in the current dir 
-                ICE_RST_IN=$(LookInNamelist cn_icerst_in namelist_ice)$mmm
-                ICE_RST_OUT=$(LookInNamelist cn_icerst_out namelist_ice )$mmm
-                ok=1
-                if [ ! $RST_SKIP  ] ; then 
-          #   Look for restart_ice_inxxxx.${filext}.$prev_ext  xxx=1,$procn
-                     for (( proc=$proc0 ; proc <= $procn ; proc++ )) ; do
-                         rest=$(printf "${ICE_RST_IN}_${format}.${filext}.$prev_ext\n" $proc)
-                         if [ ! -f ${zrstdir}$rest ] ; then ok=0 ; fi
-                     done
-                 fi
-
-                 if [ $ok -eq 1 ] ; then
-                     echo "   ***  All ice restart files are here for member  $mmm " 
-                 else
-          # look for tar restart files
-                     mkdir -p $zrstdir   # just in case zrstdir can be ./ : no harm !
-
-                     for rest in $( lsrestart ${ICE_RST_OUT}_v2.$prev_ext.tar. ) ; do
-                         rapatrie $rest   $P_R_DIR  $F_R_DIR  ${zrstdir}$rest
-                         cd ${zrstdir} ; tar xf $rest ; cd -   #  also work with zrstdir = ./
-                     done
-                 fi
-
-      # link  the xxx.${filext}.$prev_ext files to xxx.${filext}  (no extension).
-                 cd $zrstdir
-                 for rest in ${ICE_RST_IN}_[[:digit:]]*[[:digit:]].${filext}.$prev_ext ; do
-                     ln -sf $rest  ${rest%.$prev_ext} 
-                 done
-
-                 if [ $AGRIF = 1 ] ; then
-                     for idx in ${agrif_pref[@]} ; do
-                         for rest in ${idx}_${ICE_RST_IN}_[[:digit:]]*[[:digit:]].${filext}.$prev_ext ; do
-                             ln -sf $rest  ${rest%.$prev_ext} 
-                         done
-                     done
-                 fi
-                 cd -
-            fi   # ICE = 1
-            
-##### T R A C E R S 
-################### 
-# Missing option RST_DIRS for TRACERS in case of global restart ...
-            if [ $TOP = 1 ] ; then
-                rsttrc=$(LookInNamelist lrsttr namelist_top) 
-
-       # test if lrsttr is true or false. If true, then next line return a 1 status ($? )
-                echo $rsttrc | grep -q false
-                if [ $? = 1 ] ; then
-                    TRC_RST_IN=$(LookInNamelist cn_trcrst_in namelist_top)$mmm
-                    TRC_RST_OUT=$(LookInNamelist cn_trcrst_out namelist_top)$mmm
-          # 1) look for restart.nc in P_R_DIR ( case of restart from nc file -- change number of proc, for example-- )
-                    if [ -f $P_R_DIR/${TRC_RST_IN}.nc.$prev_ext ] ; then
-                        ln -s $P_R_DIR/${TRC_RST_IN}.nc.$prev_ext $TRC_RST_IN.nc
-                    else
-                        ok=1
-                        if [ ! $RST_SKIP  ] ; then 
-                            for (( proc=$proc0 ; proc <= $procn ; proc++ )) ; do
-                                rest=$(printf "${TRC_RST_IN}_${format}.${filext}.$prev_ext\n" $proc)
-                                if [ ! -f ${zrstdir}$rest ] ; then ok=0 ; fi
-                            done
-                        fi
-
-                        if [ $ok -eq 1 ] ; then
-                            echo "   ***  All top restart files are here for member  $mmm " 
-                        else
-
-           # 2) standard procedure: look for tar files
-                            for rest in $(lsrestart  ${TRC_RST_OUT}_v2.$prev_ext.tar. )  ; do
-                                rapatrie_res $rest   $P_R_DIR  $F_R_DIR  ${zrstdir}restart.tar
-                                cd $zrstdir ; tar xf restart.tar ; cd -
-                            done
-                        fi
-
-           # restart files are archived with the correct TRC_RST_IN prefix !
-                        cd $zrstdir
-                        for rest in ${TRC_RST_IN}_[[:digit:]]*[[:digit:]].${filext}.$prev_ext ; do
-                            ln -sf $rest  ${rest%.$prev_ext} 
-                        done
-                        cd -
-                    fi
-                fi
-            fi
-            
-##### T R D  M L D
-##################
-            if [ $TRDMLD = 1  ] ; then
-                trdmldrst=$(LookInNamelist ln_trdmld_restart )
-
-         # test if trdmldrst  is true or false. If true, then next line return a 1 status ($? )
-                echo $trdmldrst | grep -q false
-                if [ $? = 1 ] ; then
-                    TRD_RST_IN=$(LookInNamelist cn_trdrst_in )$mmm
-                    TRD_RST_OUT=$(LookInNamelist cn_trdrst_out )$mmm
-         # ** check if the ${filext} restart file are in the current dir
-                    ok=1
-                    if [ ! $RST_SKIP  ] ; then 
-         #   Look for restart_mld_xxxx.${filext}.$prev_ext  xxx=1,$procn
-                        for (( proc=$proc0 ; proc <= $procn ; proc++ )) ; do
-                            rest=$(printf "${TRD_RST_IN}_${format}.${filext}.$prev_ext\n" $proc)
-                            if [ ! -f ${zrstdir}$rest ] ; then ok=0 ; fi
-                        done
-                    fi
-
-                    if [ $ok -eq 1 ] ; then
-                        echo "   ***  All trdmld restart files are here for member  $mmm " 
-                    else
-                        for rest in $( lsrestart ${TRD_RST_OUT}_v2.$prev_ext.tar.) ; do
-                            rapatrie $rest   $P_R_DIR  $F_R_DIR  ${zrstdir}$rest
-                            cd $zrstdir ; tar xf $rest ; cd -
-                        done
-                    fi
-         # remove the prev_ext from the name file
-                    cd $zrstdir
-                    for rest in ${TRD_RST_IN}_[[:digit:]]*[[:digit:]].${filext}.$prev_ext ; do
-                        ln -sf $rest ${rest%.$prev_ext}
-                    done
-                    cd -
-                fi
-            fi
-
-##### S T O 
-###########
-            if [ $RSTO = 1 ] ; then
-                STO_RST_IN=$(LookInNamelist cn_storst_in)$mmm 
-                STO_RST_OUT=$(LookInNamelist cn_storst_out)$mmm 
-
-        # ** check if the ${filext} restart file are in the current dir
-                ok=1
-                if [ ! $RST_SKIP  ] ; then 
-           #   Look for restart_mld_xxxx.${filext}.$prev_ext  xxx=1,$procn
-                    for (( proc=$proc0 ; proc <= $procn ; proc++ )) ; do
-                        rest=$(printf "${STO_RST_IN}_${format}.${filext}.$prev_ext\n" $proc)
-                        if [ ! -f ${zrstdir}$rest ] ; then ok=0 ; fi
-                    done
-                fi
-
-                if [ $ok -eq 1 ] ; then
-                    echo "   ***  All sto restart files are here for member  $mmm " 
-                else
-                    for rest in $( lsrestart ${STO_RST_OUT}_v2.$prev_ext.tar.) ; do
-                        rapatrie $rest   $P_R_DIR  $F_R_DIR  ${zrstdir}$rest
-                        cd $zrstdir ; tar xf $rest ; cd -
-                    done
-                fi
-        # remove the prev_ext from the name file
-                cd $zrstdir
-                for rest in ${STO_RST_IN}_[[:digit:]]*[[:digit:]].${filext}.$prev_ext ; do
-                    ln -sf $rest ${rest%.$prev_ext}
-                done
-                cd -
-            fi
-
-##### I C B
-###########
-            if [ $ICB = 1 ] ; then  # need iceberg restart
-                ICB_RST_IN=$(LookInNamelist cn_iscbrst_in  )$mmm
-                ICB_RST_OUT=$(LookInNamelist cn_icbrst_out )$mmm
-
-
-        # ** check if the ${filext} restart file are in the current dir
-                ok=1
-                if [ ! $RST_SKIP  ] ; then 
-          #   Look for restart_icebergs_xxxx.${filext}.$prev_ext  xxx=1,$procn
-                    for (( proc=$proc0 ; proc <= $procn ; proc++ )) ; do
-                        rest=$(printf "${ICB_RST_IN}_${format}.${filext}.$prev_ext\n" $proc)
-                        if [ ! -f ${zrstdir}$rest ] ; then ok=0 ; fi
-                    done
-                fi
-
-                if [ $ok -eq 1 ] ; then
-                    echo "   ***  All icb restart files are here for member  $mmm " 
-                else
-                    for rest in $( lsrestart ${ICB_RST_OUT}_v2.$prev_ext.tar.) ; do
-                        rapatrie $rest   $P_R_DIR  $F_R_DIR  ${zrstdir}$rest
-                        cd $zrstdir ; tar xf $rest ; cd -
-                    done
-                fi
-        # remove the prev_ext from the name file
-                cd $zrstdir
-                for rest in ${ICB_RST_IN}_[[:digit:]]*[[:digit:]].${filext}.$prev_ext ; do
-                    ln -sf $rest ${rest%.$prev_ext}
-                done
-                cd -
-            fi
-
-            fi  # RST_READY
-
-        done   # loop on member
+    done   # loop on member
 fi       # test on restart
 
 ## Float initial position and restart float
@@ -1143,75 +834,7 @@ case $STOP_FLAG in
     echo "   ***  Run OK"
     echo ' [5.2] rename  the restart files'
     echo ' ==============================='
-    if [ $RST_READY = 1 ] ; then
-       echo "   *** Restart files are ready from NEMO ..."
-    else
-    for member in  $(seq $ENSEMBLE_START $ENSEMBLE_END) ; do
-        mmm=$(getmember_extension $member)
-        nnn=$(getmember_extension $member nodot)
-       # clean previous restart file from the DDIR/xxx-R directory
-        clean_res $prev_ext
-
-       # O C E A N 
-       # *********
-        OCE_RST_IN=$(LookInNamelist cn_ocerst_in )
-        OCE_RST_OUT=$(LookInNamelist cn_ocerst_out )
-
-        renamerst  $OCE_RST_IN $OCE_RST_OUT 
-
-       # I C E 
-       # *****
-        if [ $ICE = 1 ] ; then
-            ICE_RST_IN=$(LookInNamelist cn_icerst_in namelist_ice)
-            ICE_RST_OUT=$(LookInNamelist cn_icerst_out namelist_ice )
-
-          renamerst  $ICE_RST_IN $ICE_RST_OUT 
-        fi
-
-       # P A S S I V E   T R A C E R S
-       # *****************************
-        if [ $TOP = 1 ] ; then
-            TRC_RST_IN=$(LookInNamelist cn_trcrst_in namelist_top)
-            TRC_RST_OUT=$(LookInNamelist cn_trcrst_out namelist_top)
-
-          renamerst  $TRC_RST_IN $TRC_RST_OUT 
-        fi
-
-       # T R D  M L D 
-       # ************
-        if [ $TRDMLD = 1 ] ; then
-            TRD_RST_IN=$(LookInNamelist cn_trdrst_in )
-            TRD_RST_OUT=$(LookInNamelist cn_trdrst_out )
-
-            renamerst  $TRD_RST_IN $TRD_RST_OUT 
-        fi
-        
-       # S T O 
-       # *****
-        if [ $STO = 1 ] ; then
-            STO_RST_IN=$(LookInNamelist cn_storst_in)
-            STO_RST_OUT=$(LookInNamelist cn_storst_out)
-
-            renamerst  $STO_RST_IN $STO_RST_OUT 
-        fi
-
-       # I C B
-       # *****
-        if [ $ICB = 1 ] ; then
-            ICB_RST_IN=restart_icebergs
-            ICB_RST_OUT=icebergs_restart
-
-#       ICB restart file are not named as other restart files ( with nitend in the name). Som renamerst does not work
-#       till some update in the icb code.  
-#        renamerst  $ICB_RST_IN $ICB_RST_OUT
-            for f in ${ICB_RST_OUT}* ; do 
-                g=$( echo $f | sed -e "s/$ICB_RST_OUT/$ICB_RST_IN/").$ext
-                mv $f $g
-            done
-        fi
-
-    done      # loop on members
-    fi   # RST_READY
+    echo "   *** Restart files are ready from NEMO ..."
 
     date
     echo ' [5.3] Update the CONFIG_CASE.db file'

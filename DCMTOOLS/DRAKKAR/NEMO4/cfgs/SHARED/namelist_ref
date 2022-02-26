@@ -68,6 +68,13 @@
    nn_wxios = 0      !  use XIOS to write restart file 0 - no, 1 - single file output, 2 - multiple file output
 /
 !-----------------------------------------------------------------------
+&namrun_drk     !   extra parameters of the run (drakkar)
+!-----------------------------------------------------------------------
+    cn_dirout  = "<CN_DIROUT>"     ! XIOS output directory rootname
+                                               ! data will be in <cn_dirout>-<SEG>/<MBR>
+                                               ! <SEG> and <MBR> (if any) added by NEMO
+/
+!-----------------------------------------------------------------------
 &namdom        !   time and space domain
 !-----------------------------------------------------------------------
    ln_linssh   = .false.   !  =T  linear free surface  ==>>  model level are fixed in time
@@ -1533,6 +1540,17 @@
    jpnj        =   0       !  number of processors following j (set automatically if < 1), see also ln_listonly = T
 /
 !-----------------------------------------------------------------------
+&nammpp_drk        !   Massively Parallel Processing  drakkar           ("key_mpp_mpi")
+!-----------------------------------------------------------------------
+   ln_ensemble   = .true. ! T for ensemble run
+   ln_ens_rst_in = .true. ! T when members use their own restart
+   nn_ens_size   =  2      ! number of members in the ensemble
+   nn_ens_start  =  1      ! number of the first member in this simulation
+   ln_ens_diag   = .true.  ! T : Prepare intermember communicator
+   ln_ens_forcing = .true.  ! T : each member is using the ensemble mean forcing
+/
+
+!-----------------------------------------------------------------------
 &namctl        !   Control prints                                       (default: OFF)
 !-----------------------------------------------------------------------
    ln_ctl = .FALSE.                 ! Toggle all report printing on/off (T/F); Ignored if sn_cfctl%l_config is T
@@ -1572,4 +1590,13 @@
    ln_rstseed  = .true.    ! read seed of RNG from restart file
    cn_storst_in  = "restart_sto" !  suffix of stochastic parameter restart file (input)
    cn_storst_out = "restart_sto" !  suffix of stochastic parameter restart file (output)
+/
+!-----------------------------------------------------------------------
+&namsto_drk      ! Stochastic parametrization of HGR                      (default: OFF)
+!-----------------------------------------------------------------------
+   ln_sto_hgr  = .false.   ! STOchastic Horizontal GRid
+   rn_hgr_std  = 1         ! Standard deviation (in %)
+   rn_hgr_tcor = 1         ! correlation timescale (in timestep)
+   nn_hgr_flt  = 0         ! Number of passes of laplacian filter
+   nn_hgr_ord  = 1         ! Order of autoregressive processes
 /
