@@ -38,6 +38,9 @@ MODULE step
    USE step_oce         ! time stepping definition modules
    !
    USE iom              ! xIOs server
+#if defined key_drakkar
+   USE domhgr           ! horizontal grid -> stochastic grid
+#endif
 
    IMPLICIT NONE
    PRIVATE
@@ -115,7 +118,13 @@ CONTAINS
       !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
       ! Update stochastic parameters and random T/S fluctuations
       !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+#if defined key_drakkar
+      ! JMM + JMB : call with no conditions. If not relevant ==> empty loop, no additional cost
+                       CALL sto_par( kstp )          ! Stochastic parameters
+      IF( ln_sto_hgr ) CALL sto_hgr( )               ! Random grid fluctuations
+#else
       IF( ln_sto_eos ) CALL sto_par( kstp )          ! Stochastic parameters
+#endif
       IF( ln_sto_eos ) CALL sto_pts( tsn  )          ! Random T/S fluctuations
 
       !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -277,7 +286,12 @@ CONTAINS
 !!jc: That would be better, but see comment above
 !!
       IF( lrst_oce   )   CALL rst_write    ( kstp )   ! write output ocean restart file
+#if defined key_drakkar_ensemble
+      ! JMM always call sto_rst_write.
+                         CALL sto_rst_write( kstp )
+#else
       IF( ln_sto_eos )   CALL sto_rst_write( kstp )   ! write restart file for stochastic parameters
+#endif
 
 #if defined key_agrif
       !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
