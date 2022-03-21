@@ -1,0 +1,48 @@
+export DDIR=$SCRATCH
+export SCRATCHDIR=$SCRATCH
+export WORKDIR=$WORK
+
+export DEVGIT=$WORKDIR/DEVGIT
+export DEVDIR=$WORKDIR/DEV
+
+
+export MODULEPATH=${MODULEPATH}:$HOME/modules
+
+module unload DCM
+module load DCM/4.0.7
+
+export MACHINE=jean-zay
+
+
+# UDIR is the user directory (usually home)
+#  where the CONFIG_xxx directories and source files reside.
+export UDIR=$HOME/CONFIGS
+
+# CDIR is the directory for compilation.
+export CDIR=$WORKDIR
+
+# PDIR is the HOME directory of the Production Machine.
+export PDIR=$WORK/RUNS
+
+# SDIR is the HOME directory of the Storage machine.
+export SDIR=$STORE       # S ARCHIVE DIRECTORY
+export SWDIR=$DDIR       # S WORKING DIRECTORY
+
+show_header()  {
+cat  << eof
+#!/bin/bash
+#SBATCH --nodes=1
+#SBATCH --ntasks=40
+#SBATCH --ntasks-per-node=40
+#SBATCH --threads-per-core=1
+#SBATCH -A $IDRPROJ@cpu
+#SBATCH --hint=nomultithread
+#SBATCH -J JOB_
+#SBATCH -e zjob.e%j
+#SBATCH -o zjob.o%j
+#SBATCH --time=2:30:00
+#SBATCH --exclusive
+
+eof
+                }
+
