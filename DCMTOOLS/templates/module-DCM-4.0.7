@@ -1,0 +1,70 @@
+#%Module1.0#####################################################################
+##
+## modules modulefile
+##
+## DCM_4.0.7
+##
+## This is an example to be copied and edited in a $HOME/modules directory
+## in the subdir DCM/ with the name  4.0
+## Hence, a module load DCM/4.0  will load the environment for using
+## DCM_4.0
+## If another DCM module is already loaded, use module unload before
+## or module switch.
+## $Id: module_example 425 2011-01-19 19:01:03Z forge $
+################################################################################
+
+proc ModulesHelp { } {
+        global base_version
+
+        puts stderr "\t------------------------------------------------"
+        puts stderr "\tLoading the DCM $base_version environment "
+        puts stderr "\t------------------------------------------------\n"
+}
+
+################################################################################
+conflict DCM
+conflict NEMODRAK
+
+# for Tcl script use only
+set             base_version    4.0.7
+set             base_path       $::env(DEVGIT)/DCM_${base_version}/DCMTOOLS
+setenv          HOMEDCM         $base_path
+# REFDIR is the reference NEMO  directory
+setenv          REFDIR          ${base_path}/NEMOREF/NEMO4
+# CUSDIR is the DRAKKAR customized directory
+setenv          CUSDIR          ${base_path}/DRAKKAR/NEMO4
+
+
+
+#### define the equivalent variables HOMEDCM2, REFDIR2, CUSDIR2 for an alternative version ( alter_version)
+####  This is used in advanced comparison tools
+set             alter_version   4.0.6
+set             alter_path      $::env(DEVGIT)/DCM_$alter_version/DCMTOOLS
+setenv          HOMEDCM2        $alter_path
+# REFDIR is the reference NEMO  directory
+setenv          REFDIR2         ${alter_path}/NEMOREF/NEMO4
+# CUSDIR is the DRAKKAR customized directory
+setenv          CUSDIR2         ${alter_path}/DRAKKAR/NEMO4
+
+
+
+
+# RUNTOOLS is the associated RUNTOOL for this DCM version
+set             runtool_path    $::env(DEVGIT)/DCM_${base_version}/RUNTOOLS
+setenv          RUNTOOLS        ${runtool_path}
+
+prepend-path    PATH            ${base_path}/bin
+prepend-path    PATH            ${runtool_path}/toolkit
+prepend-path    PATH            ${runtool_path}/bin
+
+
+set             runtool_path2    $::env(DEVGIT)/DCM_${alter_version}/RUNTOOLS
+setenv          RUNTOOLS2        ${runtool_path2}
+
+#
+if {[module-info mode load]==1} {
+    ##########################
+    # MESSAGE INFORMATION
+    ##########################
+      ModulesHelp
+}
