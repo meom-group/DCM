@@ -35,6 +35,13 @@
 #            xxx/xxx-yyy-S      : Stockage of results
 #            xxx/xxx-yyy-R      : Restart files
 #            xxx/xxx-yyy-MEAN   : Mean fields 
+#
+# ${WORKDIR} : WORKDIR
+#           Has to be defined in environment.
+#            xxx/xxx-I          : common to all cases, initial condition etc ...
+#            xxx/xxx-yyy-S      : Stockage of results
+#            xxx/xxx-yyy-R      : Restart files
+#            xxx/xxx-yyy-MEAN   : Mean fields 
 #------------------------------------------------------
 usage()  {   
   echo 'USAGE : mkconfdir [-h] [-v]  CONFIG CASE '
@@ -86,6 +93,13 @@ usage()  {
   echo '            xxx/xxx-yyy-S      : Stockage of results'
   echo '            xxx/xxx-yyy-R      : Restart files'
   echo '            xxx/xxx-yyy-MEAN   : Mean fields'
+  echo ''
+  echo ' ${WORKDIR} : Working directoryWorking directory  '
+  echo '           Has to be defined in environment.'
+  echo '            xxx/xxx-I          : common to all cases, initial condition etc ...'
+  echo '            xxx/xxx-yyy-S      : Stockage of results'
+  echo '            xxx/xxx-yyy-R      : Restart files'
+  echo '            xxx/xxx-yyy-MEAN   : Mean fields '
 
  exit 0
           }
@@ -210,6 +224,10 @@ echo CREATING on $CDIR
 cd $CDIR
 
   chkdir W${CONFIG}-${CASE}
+# Create directory on $WORKDIR
+################################
+
+cd $WORKDIR
   chkdir $CONFIG
   chkdir $CONFIG/${CONFIG}-I
   chkdir $CONFIG/${CONFIG}-${CASE}-S
