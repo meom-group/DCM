@@ -69,6 +69,29 @@ echo "========================================================="
 echo
 printf "Actual $bld${r}NEMOREF$k revision is : \n" 
 
+cd $REFDIR
+printf "$g"
+  echo " origin git repository : "
+ git remote -v | grep fetch | awk '{print $2}'
+printf "$k"
+echo
+printf "$m"
+  echo -n " current tag : "
+git tag
+  echo -n " current branch: "
+git branch |  grep \* 
+echo 
+
+printf "$b" 
+  echo " current commit:  "
+git log | head -4 | grep commit
+git log | head -4 | grep Date
+cd - > /dev/null 2>&1
+printf "$k"
+
+
+exit
+
 svn info $REFDIR| grep -e URL -e Revision -e 'Last Changed Rev' -e 'Last Changed Date'
 echo "========================================================="
 
