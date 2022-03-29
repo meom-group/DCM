@@ -212,9 +212,12 @@ getforcing()        {
          # note than ln_clim_forcing and ln_wdmp cannot be T at the same time !!!
          if [ $ln_clim_forcing = T -o $ln_wdmp = T ] ; then
            if [ $ln_clim_forcing = T ] ; then
-             filter="$filter | grep -v sn_kati | grep -v sn_katj | grep -v sn_wdmp "
-           elif [ $ln_wdmp = T ] ; then
-             filter="$filter | grep -v sn_kati | grep -v sn_katj | grep -v sn_wmod | grep -v sn_uw | grep -v sn_vw "
+             filter="$filter | grep -v sn_kati | grep -v sn_katj  "
+           else
+             filter="$filter | grep -v sn_kati | grep -v sn_katj | grep v sn_wmod | grep -v sn_uw | grep -v sn_vw  "
+           fi
+           if [ $ln_wdmp = F ] ; then
+             filter="$filter  grep -v sn_wdmp"
            fi
            blk_drk=namsbc_blk_drk
            getweight $blk_drk $P_WEI_DIR $F_WEI_DIR
