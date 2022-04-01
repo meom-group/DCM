@@ -27,5 +27,11 @@
 #svn co -r 14325  https://forge.ipsl.jussieu.fr/nemo/svn/NEMO/releases/r4.0/r4.0.5 NEMO4
 # as of March,15 2021
 #svn co -r 14608  https://forge.ipsl.jussieu.fr/nemo/svn/NEMO/releases/r4.0/r4.0.6 NEMO4
-# for 4.2
-svn co -r 15299 https://forge.ipsl.jussieu.fr/nemo/svn/NEMO/trunk NEMO4
+# for 4.2RC
+#svn co -r 15299 https://forge.ipsl.jussieu.fr/nemo/svn/NEMO/trunk NEMO4
+#for 4.2.0  
+# commit 405c5d69a8bef76ab74875da27400c145285b5dc (HEAD -> main, origin/main, origin/HEAD)
+# Merge: 1462171 be7cc70
+# Author: Sebastien Masson <sebastien.masson@locean.ipsl.fr>
+# Date:   Wed Mar 30 10:01:14 2022 +0000
+git clone https://forge.nemo-ocean.eu/nemo/nemo.git NEMO4
