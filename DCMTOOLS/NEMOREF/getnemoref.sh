@@ -34,4 +34,4 @@
 # Merge: 1462171 be7cc70
 # Author: Sebastien Masson <sebastien.masson@locean.ipsl.fr>
 # Date:   Wed Mar 30 10:01:14 2022 +0000
-git clone https://forge.nemo-ocean.eu/nemo/nemo.git NEMO4
+git clone -b 4.2.0 git@forge.nemo-ocean.eu:nemo/nemo.git NEMO4
