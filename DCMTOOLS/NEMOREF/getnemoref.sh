@@ -29,9 +29,8 @@
 #svn co -r 14608  https://forge.ipsl.jussieu.fr/nemo/svn/NEMO/releases/r4.0/r4.0.6 NEMO4
 # for 4.2RC
 #svn co -r 15299 https://forge.ipsl.jussieu.fr/nemo/svn/NEMO/trunk NEMO4
-#for 4.2.0  
-# commit 405c5d69a8bef76ab74875da27400c145285b5dc (HEAD -> main, origin/main, origin/HEAD)
-# Merge: 1462171 be7cc70
-# Author: Sebastien Masson <sebastien.masson@locean.ipsl.fr>
-# Date:   Wed Mar 30 10:01:14 2022 +0000
-git clone -b 4.2.0 git@forge.nemo-ocean.eu:nemo/nemo.git NEMO4
+######  4.2.x (gitlab) starts here ###############
+# as of April,7 2022
+commit=26911cc471c9316f7a67495d4fd544dce35b758d
+git clone git@forge.nemo-ocean.eu:nemo/nemo.git NEMO4
+cd NEMO4 ; git checkout $commit

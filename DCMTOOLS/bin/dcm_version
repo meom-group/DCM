@@ -77,7 +77,9 @@ printf "$k"
 echo
 printf "$m"
   echo -n " current tag : "
-git tag
+git describe --exact-match --tags $(git log -n1 --pretty='%h') 2> /dev/null
+echo
+#git tag
   echo -n " current branch: "
 git branch |  grep \* 
 echo 
@@ -89,28 +91,17 @@ git log | head -4 | grep Date
 cd - > /dev/null 2>&1
 printf "$k"
 
+# check that current commit of NEMO4 is in phase with DCM
+# Since NEMO is distributed on gitlab (starting 4.2.0), we have to give the specific commit (hash) in getnemoref
+# in order to fix the state of NEMOREF, in phase with DCM at a given time.
+# We use this information, written in getnemoref to check if the NEMO4 repository is the good one.
+requested_commit=$( cat $HOMEDCM/NEMOREF/getnemoref.sh  | grep 'commit=' | tail -1 | awk -F= '{print $2}' )
+actual_commit=$( cd $HOMEDCM/NEMOREF/NEMO4 ; git log | grep commit | head -1 | awk '{print $2}' )
 
-exit
-
-svn info $REFDIR| grep -e URL -e Revision -e 'Last Changed Rev' -e 'Last Changed Date'
-echo "========================================================="
-
-actual_url=$(svn info $REFDIR| grep -e URL | awk '{print $2}' | head -1 )
-actual_rev=$(svn info $REFDIR| grep -e Revision | awk '{print $2}' )
-
-supported_url=$( cat $HOMEDCM/NEMOREF/getnemoref.sh | grep svn | grep -v '#' | awk '{print $5}')
-supported_rev=$( cat $HOMEDCM/NEMOREF/getnemoref.sh | grep svn | grep -v '#' | awk '{print $4}')
-
-
-if [ $actual_url != $supported_url ] ; then
-   printf "$bld$r WARNING: Actual NEMO4 URL is not in phase with DCM $k \n"
-   printf "$bld$b    Consider to checkout nemo from $supported_url $k \n"
-   printf "$b        (using getnetmoref.sh does the job) $k \n"
-   echo
+if [ $requested_commit != $actual_commit ] ; then
+  printf "$bld$r WARNING: Actual NEMO4 commit is not in phase with DCM $k \n"
+  printf "$bld$r          Actual NEMO4 commit should be ${requested_commit:0:7} $k \n"
+  printf "$b        (using getnetmoref.sh does the job) $k \n"
+else 
+  printf "$g   ** GOOD!: You are using the right NEMO4 commit ( ${requested_commit:0:7} ) **   $k \n"
 fi
-
-if [ $actual_rev != $supported_rev ] ; then
-   printf "$bld$r WARNING: Actual NEMO4 Revision is not in phase with DCM $k\n"
-   printf "$bld$b   You likely need to upgrade to rev $supported_rev $k\n"
-fi
-
