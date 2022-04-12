@@ -1894,6 +1894,7 @@ update_db_file()  {
 
    # add tricks for monthly segments (true month for XIOS)
    # monthly is either 1 or other number, defined in includefile.sh
+   nn_leapy=$( LookInNamelist nn_leapy namelist )
    if [ $ndays -le 31 -a $monthly  -eq  1 ] ; then
       # get end-date of last segment # note 10# trick to force numbers such as 01 02 ...07 to be decimal (and not Octal ! )
       ybase=$((10#${aammdd:0:4} ))
@@ -1912,15 +1913,19 @@ update_db_file()  {
         (4|6|9|11 )
           dnew=30 ;;
         (2 )
-          if [ $(( $ynew % 4 )) = 0 ] ; then  # leap year
-             if [ $(( $ynew % 100 )) -eq  0  -a  $(( $ynew % 400 )) -ne  0  ] ; then
+          if [ $nn_leapy = 0 ] ; then
                dnew=28
-             else
-               dnew=29
-             fi
           else
-             dnew=28
-          fi ;;
+            if [ $(( $ynew % 4 )) = 0 ] ; then  # leap year
+               if [ $(( $ynew % 100 )) -eq  0  -a  $(( $ynew % 400 )) -ne  0  ] ; then
+                 dnew=28
+               else
+                 dnew=29
+               fi
+            else
+               dnew=28
+            fi 
+           fi ;;
          esac
        fi
        dif=$(( $dnew * $nstep_per_day ))
