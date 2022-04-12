@@ -950,7 +950,7 @@ CONTAINS
             vtau_ice(ji,jj) = zztmp2 * ( sf(jp_vw)%fnow(ji,jj,1) )  ! a noter que jp_vw =jp_wndi (remplace v10)
          END DO
       END DO
-             ELSE  !! code normal sans forcage climato...
+      ELSE  !! no climato
 #endif
       zztmp1 = rn_vfac * 0.5_wp
       DO jj = 2, jpj    ! at T point
