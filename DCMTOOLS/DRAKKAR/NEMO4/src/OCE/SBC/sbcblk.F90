@@ -973,6 +973,17 @@ CONTAINS
       ! ------------------------------------------------------------ !
       !    Wind stress relative to the moving ice ( U10m - U_ice )   !
       ! ------------------------------------------------------------ !
+#if defined key_drakkar
+      IF (ln_clim_forcing ) THEN
+      DO jj = 2, jpj    ! at T point
+         DO ji = 2, jpi
+            zztmp2 = zrhoa(ji,jj) * Cd_atm(ji,jj)
+            utau_ice(ji,jj) = zztmp2 * ( sf(jp_uw)%fnow(ji,jj,1) )  ! a noter que jp_uw =jp_wndi (remplace u10)
+            vtau_ice(ji,jj) = zztmp2 * ( sf(jp_vw)%fnow(ji,jj,1) )  ! a noter que jp_vw =jp_wndi (remplace v10)
+         END DO
+      END DO
+      ELSE  !! code normal sans forcage climato...
+#endif
       zztmp1 = rn_vfac * 0.5_wp
       DO jj = 2, jpj    ! at T point
          DO ji = 2, jpi
@@ -981,6 +992,9 @@ CONTAINS
             vtau_ice(ji,jj) = zztmp2 * ( sf(jp_wndj)%fnow(ji,jj,1) - zztmp1 * ( v_ice(ji  ,jj-1) + v_ice(ji,jj) ) )
          END DO
       END DO
+#if defined key_drakkar
+       ENDIF ! clim forcing
+#endif
       !
       DO jj = 2, jpjm1  ! U & V-points (same as ocean).
          DO ji = fs_2, fs_jpim1   ! vect. opt.
