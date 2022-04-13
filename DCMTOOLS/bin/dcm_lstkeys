@@ -2,7 +2,8 @@
 
 # set up a list of CPP keys used in a bunch for f90 files.
 
- grep key_ [a-z]*90 | grep defined | \
+# grep key_ [a-z]*90 | grep defined | \
+ grep key_ [a-z]*90 | awk -F: '{print $2}' | grep '^#' | grep defined | \
 awk ' { if (match($0,"defined")) { \
             before = substr($0,1,RSTART-1); \
             pattern = substr($0,RSTART,RLENGTH); \
