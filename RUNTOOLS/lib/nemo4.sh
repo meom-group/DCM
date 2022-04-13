@@ -271,7 +271,7 @@ if [ $RST_DIRS = 1 ] ; then
     mkdir -p $DDIR/${CN_DIRRST}.$no
 fi
 
-rdt=$(LookInNamelist rn_rdt)
+rdt=$(LookInNamelist rn_Dt)
 
 ## place holder for time manager (eventually)
 if [ $no != 1 ] ; then

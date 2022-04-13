@@ -150,7 +150,7 @@ SetYears()          {
      # determine the number of years to get according to the lenght of the run
      zn1=$(LookInNamelist nn_it000 namelist )
      zn2=$(LookInNamelist nn_itend namelist )
-     zrdt=$(LookInNamelist rn_rdt  namelist )
+     zrdt=$(LookInNamelist rn_Dt  namelist )
      zstpday=$( echo $zrdt | awk '{print 86400./$1 }' )
      znyear=$( echo $zn1 $zn2 $zstpday | awk '{ print int(( $2 - $1 +1)/$3/365+0.5 )}')
      if [ $znyear = 0 ] ; then znyear=1 ; fi   # force znyear to be at least 1
@@ -544,7 +544,7 @@ getobs () {
   root_sla=fdbk_j2_
   slaRefLevel='slaReferenceLevel.nc'
 
-  rdt=$(LookInNamelist rn_rdt)
+  rdt=$(LookInNamelist rn_Dt)
   rdt=$(echo 1 | awk "{ rdt=int($rdt); print rdt}" )
 
   ndays=$( echo 1 | awk "{ a=int( ($nitend - $nit000 +1)*$rdt /86400.) ; print a }" )
