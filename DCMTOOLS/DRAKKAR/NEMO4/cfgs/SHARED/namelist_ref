@@ -333,13 +333,6 @@
 !-----------------------------------------------------------------------
 &namsbc_blk_drk  !   namsbc_blk  generic Bulk formula                     (ln_blk =T)
 !-----------------------------------------------------------------------
-   ln_kata     = .false.    ! katabatic wind enhancement
-   !_______!________________________!___________________!____________!_____________!_________!___________!__________________!__________!_______________!
-   !       !  file name             ! frequency (hours) ! variable   ! time interp.!  clim   ! 'yearly'/ ! weights filename ! rotation !  lsm          !
-   !       !                        !  (if <0  months)  !   name   . !   (logical) !  (T/F)  ! 'monthly' !                  !  paring  !               !
-   sn_kati     =     'katamask'     ,      -1.          , 'katamaskx',    .false.  , .true.  , 'yearly'  , ''               , ''       ,  ''
-   sn_katj     =     'katamask'     ,      -1.          , 'katamasky',    .false.  , .true.  , 'yearly'  , ''               , ''       ,  ''
-!-----------------------------------------------------------------------
    ln_clim_forcing  = .false.  ! Climatological forcing : T else interannual forcing
                                ! If T need to provide the following dataset : wmod = wind module climatology (clim of w10=sqrt(u10^2+v10^2) )
                                !                                              uw   = pseudo-stress_u climatology ( climatology of u10*w10
