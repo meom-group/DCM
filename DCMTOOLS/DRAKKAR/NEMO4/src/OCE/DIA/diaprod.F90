@@ -2,7 +2,7 @@ MODULE diaprod
 ! Requires key_drakkar
 # if defined key_drakkar
 ! Requires key_iom_put
-# if defined key_iomput
+# if defined key_xios
    !!----------------------------------------------------------------------
    !!   Default option :                                         NO
    !diaprod
@@ -11,8 +11,8 @@ MODULE diaprod
    PUBLIC   dia_prod                 ! routines called by step.F90
 
 CONTAINS
-   SUBROUTINE dia_prod( kt )   ! Empty routine
-      INTEGER ::   kt
+   SUBROUTINE dia_prod( kt , Kmm )   ! Empty routine
+      INTEGER ::   kt, Kmm
       !  Diaprod not yet implemented in 4.2RC
       ! this empty routine is there to solve  compilation issues.
    END SUBROUTINE dia_prod
@@ -23,8 +23,8 @@ CONTAINS
    !!----------------------------------------------------------------------
    LOGICAL, PUBLIC, PARAMETER :: lk_diaprod = .FALSE.   ! coupled flag
 CONTAINS
-   SUBROUTINE dia_prod( kt )   ! Empty routine
-      INTEGER ::   kt
+   SUBROUTINE dia_prod( kt ,Kmm)   ! Empty routine
+      INTEGER ::   kt, Kmm
       WRITE(*,*) 'dia_prod: You should not have seen this print! error?', kt
    END SUBROUTINE dia_prod
 #endif
@@ -35,8 +35,8 @@ CONTAINS
    !!----------------------------------------------------------------------
    LOGICAL, PUBLIC, PARAMETER :: lk_diaprod = .FALSE.   ! coupled flag
 CONTAINS
-   SUBROUTINE dia_prod( kt )   ! Empty routine
-      INTEGER ::   kt
+   SUBROUTINE dia_prod( kt , Kmm)   ! Empty routine
+      INTEGER ::   kt, Kmm
       WRITE(*,*) 'dia_prod: You should not have seen this print! error?', kt
    END SUBROUTINE dia_prod
 #endif
