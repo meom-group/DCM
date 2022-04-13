@@ -1,0 +1,89 @@
+#!/bin/bash
+# This script aims at tranforming NEMO (global) input files from NEMO revision <= 4.0.X
+#  to nemo version >= 4.2.x
+# The main points to catch are :
+#    - no more halos in global input files ( impact on E-W peridicity, and NP folding)
+#    - Regional configuration are not changed. There should always be a rim of masked points
+#      around the regional domain.
+# class = @File management tools@
+
+
+usage() {
+    echo
+    echo "USAGE: $(basename $0) [-h] -f FILE-in  -o FILE-out"
+    echo
+    echo "  PURPOSE:"
+    echo "      Eliminate halos from global FILE-in (nemo <=4.0.x) in order"
+    echo "      to produce FILE-out, suitable for nemo >=4.2.x "
+    echo "   "
+    echo "  ARGUMENTS:"
+    echo "     -f FILE-in : input file. It is relevant for global files, used with"
+    echo "                  NEMO  version <=4.0.x"
+    echo "     -o FILE-out : output file, suitable for nemo >=4.2.x "
+    echo "   "
+    echo "  OPTIONS:"
+    echo "     -h : print this message "
+    echo
+    exit 0
+        }
+
+if [ $# = 0 ] ; then
+   usage
+fi
+cf_in='none'
+cf_out='none'
+# horizontal dim name
+xdim='x'
+ydim='y'
+
+while getopts :hf:o:  opt
+  do
+    case $opt in
+       (h)  usage ;;
+       (f)  cf_in=$OPTARG  ;;
+       (o)  cf_out=$OPTARG  ;;
+       (*)  ;;
+    esac
+  done
+
+if [ $cf_in = 'none' -o  $cf_out = 'none' ] ; then
+   echo "  E R R O R : You MUST specify INPUT and OUTPUT files !"
+   usage
+fi
+
+echo " FILE-in  : " $cf_in
+echo " FILE-out : " $cf_out
+
+if  [ ! -f $cf_in ] ; then
+   echo " E R R O R : Missing $cf_in file "
+   exit 1
+fi
+
+nemov=$( ncdump -h $cf_in | grep -q 'NEMO4.2 = "YES"' ; if [ $? = 0 ] ; then echo 4.2 ; else echo OTHER ; fi )
+if [ $nemov = 4.2 ] ; then
+     echo "  PLEASE CHECK : file $cf_in is already 4.2 compliant !"
+     exit
+fi
+
+x=$(ncdump -h $cf_in | sed -n /dimensions/,/variables/p | grep -w $xdim | awk -F= '{print $2}' | awk -F\; '{print $1}' )
+y=$(ncdump -h $cf_in | sed -n /dimensions/,/variables/p | grep -w $ydim | awk -F= '{print $2}' | awk -F\; '{print $1}' )
+
+echo " Horizontal dimension in $cf_in :"
+echo "     $xdim : $x"
+echo "     $ydim : $y"
+# one way to eliminate heading blank char
+x=$(( x + 0 ))
+y=$(( y + 0 ))
+
+x1=2
+x2=$(( x - 1 ))
+y1=1
+y2=$(( y - 1 ))
+
+xchk=$(( x2 - x1 + 1 ))
+
+echo ncks -F -4 -L 1 --cnk_dmn $xdim,$xchk --cnk_dmn $ydim,100 -d $xdim,$x1,$x2  -d $ydim,$y1,$y2 $cf_in  $cf_out
+ncks -F -4 -L 1 --cnk_dmn $xdim,$xchk --cnk_dmn $ydim,100 -d $xdim,$x1,$x2  -d $ydim,$y1,$y2 $cf_in  $cf_out
+
+ncatted -a NEMO4.2,global,c,c,YES $cf_out
+
