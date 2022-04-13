@@ -25,11 +25,9 @@ MODULE usrdef_fmask
 
    PUBLIC   usr_def_fmask    ! routine called by dommsk.F90
 
-   !! * Substitutions
-#  include "vectopt_loop_substitute.h90"
    !!----------------------------------------------------------------------
    !! NEMO/OCE 4.0 , NEMO Consortium (2018)
-   !! $Id: usrdef_fmask.F90 13436 2020-08-25 15:11:29Z acc $ 
+   !! $Id: usrdef_fmask.F90 13435 2020-08-25 14:48:42Z acc $ 
    !! Software governed by the CeCILL license (see ./LICENSE)
    !!----------------------------------------------------------------------
 CONTAINS
@@ -69,16 +67,20 @@ CONTAINS
             IF(lwp) WRITE(numout,*) '~~~~~~~~~~~~~'
             !
             IF(lwp) WRITE(numout,*) '      Gibraltar '
-            ij0 = 101   ;   ij1 = 101           ! Gibraltar strait  : partial slip (pfmsk=0.5)
-            ii0 = 139   ;   ii1 = 140   ;   pfmsk( mi0(ii0):mi1(ii1) , mj0(ij0):mj1(ij1) , 1:jpk ) =  0.5_wp
-            ij0 = 102   ;   ij1 = 102
-            ii0 = 139   ;   ii1 = 140   ;   pfmsk( mi0(ii0):mi1(ii1) , mj0(ij0):mj1(ij1) , 1:jpk ) =  0.5_wp
+            ij0 = 101 + nn_hls       ;   ij1 = 101 + nn_hls           ! Gibraltar strait  : partial slip (pfmsk=0.5)
+            ii0 = 139 + nn_hls - 1   ;   ii1 = 140 + nn_hls - 1
+            pfmsk( mi0(ii0):mi1(ii1) , mj0(ij0):mj1(ij1) , 1:jpk ) =  0.5_wp
+            ij0 = 102 + nn_hls       ;   ij1 = 102 + nn_hls
+            ii0 = 139 + nn_hls - 1   ;   ii1 = 140 + nn_hls - 1
+            pfmsk( mi0(ii0):mi1(ii1) , mj0(ij0):mj1(ij1) , 1:jpk ) =  0.5_wp
             !
             IF(lwp) WRITE(numout,*) '      Bab el Mandeb '
-            ij0 =  87   ;   ij1 =  88           ! Bab el Mandeb : partial slip (pfmsk=1)
-            ii0 = 160   ;   ii1 = 160   ;   pfmsk( mi0(ii0):mi1(ii1) , mj0(ij0):mj1(ij1) , 1:jpk ) =  1._wp
-            ij0 =  88   ;   ij1 =  88
-            ii0 = 159   ;   ii1 = 159   ;   pfmsk( mi0(ii0):mi1(ii1) , mj0(ij0):mj1(ij1) , 1:jpk ) =  1._wp
+            ij0 =  87 + nn_hls       ;   ij1 = 88  + nn_hls          ! Bab el Mandeb : partial slip (pfmsk=1)
+            ii0 = 160 + nn_hls - 1   ;   ii1 = 160 + nn_hls - 1
+            pfmsk( mi0(ii0):mi1(ii1) , mj0(ij0):mj1(ij1) , 1:jpk ) =  1._wp
+            ij0 =  88 + nn_hls       ;   ij1 =  88 + nn_hls
+            ii0 = 159 + nn_hls - 1   ;   ii1 = 159 + nn_hls - 1
+            pfmsk( mi0(ii0):mi1(ii1) , mj0(ij0):mj1(ij1) , 1:jpk ) =  1._wp
             !
             ! We keep this as an example but it is instable in this case 
             !IF(lwp) WRITE(numout,*) '      Danish straits '
@@ -95,66 +97,85 @@ CONTAINS
 !!gm    ! all this will come back in input files
 !!gm    ! Currently these hard-wired indices relate to configuration with extend grid (jpjglo=332)
             !
-            isrow = 332 - jpjglo
+            isrow = 332 - (Nj0glo + 1)   ! was 332 - jpjglo -> jpjglo_old_version = Nj0glo + 1
             !
             IF(lwp) WRITE(numout,*)
             IF(lwp) WRITE(numout,*) '   orca_r1: increase friction near the following straits : '
             IF(lwp) WRITE(numout,*) '      Gibraltar '
-            ii0 = 282           ;   ii1 = 283        ! Gibraltar Strait 
-            ij0 = 241 - isrow   ;   ij1 = 241 - isrow   ;   pfmsk( mi0(ii0):mi1(ii1),mj0(ij0):mj1(ij1),1:jpk ) = 2._wp  
+            ii0 = 282 + nn_hls - 1       ;   ii1 = 283 + nn_hls - 1        ! Gibraltar Strait 
+            ij0 = 241 + nn_hls - isrow   ;   ij1 = 241 + nn_hls - isrow
+            pfmsk( mi0(ii0):mi1(ii1),mj0(ij0):mj1(ij1),1:jpk ) = 2._wp  
             !
             IF(lwp) WRITE(numout,*) '      Bhosporus '
-            ii0 = 314           ;   ii1 = 315        ! Bhosporus Strait 
-            ij0 = 248 - isrow   ;   ij1 = 248 - isrow   ;   pfmsk( mi0(ii0):mi1(ii1),mj0(ij0):mj1(ij1),1:jpk ) = 2._wp  
+            ii0 = 314 + nn_hls - 1       ;   ii1 = 315 + nn_hls - 1        ! Bhosporus Strait 
+            ij0 = 248 + nn_hls - isrow   ;   ij1 = 248 + nn_hls - isrow
+            pfmsk( mi0(ii0):mi1(ii1),mj0(ij0):mj1(ij1),1:jpk ) = 2._wp  
             !
             IF(lwp) WRITE(numout,*) '      Makassar (Top) '
-            ii0 =  48           ;   ii1 =  48        ! Makassar Strait (Top) 
-            ij0 = 189 - isrow   ;   ij1 = 190 - isrow   ;   pfmsk( mi0(ii0):mi1(ii1),mj0(ij0):mj1(ij1),1:jpk ) = 3._wp  
+            ii0 =  48 + nn_hls - 1       ;   ii1 =  48 + nn_hls - 1        ! Makassar Strait (Top) 
+            ij0 = 189 + nn_hls - isrow   ;   ij1 = 190 + nn_hls - isrow
+            pfmsk( mi0(ii0):mi1(ii1),mj0(ij0):mj1(ij1),1:jpk ) = 3._wp  
             !
             IF(lwp) WRITE(numout,*) '      Lombok '
-            ii0 =  44           ;   ii1 =  44        ! Lombok Strait 
-            ij0 = 164 - isrow   ;   ij1 = 165 - isrow   ;   pfmsk( mi0(ii0):mi1(ii1),mj0(ij0):mj1(ij1),1:jpk ) = 2._wp  
+            ii0 =  44 + nn_hls - 1       ;   ii1 =  44 + nn_hls - 1        ! Lombok Strait 
+            ij0 = 164 + nn_hls - isrow   ;   ij1 = 165 + nn_hls - isrow
+            pfmsk( mi0(ii0):mi1(ii1),mj0(ij0):mj1(ij1),1:jpk ) = 2._wp  
             !
             IF(lwp) WRITE(numout,*) '      Ombai '
-            ii0 =  53           ;   ii1 =  53        ! Ombai Strait 
-            ij0 = 164 - isrow   ;   ij1 = 165 - isrow   ;   pfmsk( mi0(ii0):mi1(ii1),mj0(ij0):mj1(ij1),1:jpk ) = 2._wp  
+            ii0 =  53 + nn_hls - 1       ;   ii1 =  53 + nn_hls - 1        ! Ombai Strait 
+            ij0 = 164 + nn_hls - isrow   ;   ij1 = 165 + nn_hls - isrow
+            pfmsk( mi0(ii0):mi1(ii1),mj0(ij0):mj1(ij1),1:jpk ) = 2._wp  
             !
             IF(lwp) WRITE(numout,*) '      Timor Passage '
-            ii0 =  56           ;   ii1 =  56        ! Timor Passage 
-            ij0 = 164 - isrow   ;   ij1 = 165 - isrow   ;   pfmsk( mi0(ii0):mi1(ii1),mj0(ij0):mj1(ij1),1:jpk ) = 2._wp  
+            ii0 =  56 + nn_hls - 1       ;   ii1 =  56 + nn_hls - 1        ! Timor Passage 
+            ij0 = 164 + nn_hls - isrow   ;   ij1 = 165 + nn_hls - isrow
+            pfmsk( mi0(ii0):mi1(ii1),mj0(ij0):mj1(ij1),1:jpk ) = 2._wp  
             !
             IF(lwp) WRITE(numout,*) '      West Halmahera '
-            ii0 =  58           ;   ii1 =  58        ! West Halmahera Strait 
-            ij0 = 181 - isrow   ;   ij1 = 182 - isrow   ;   pfmsk( mi0(ii0):mi1(ii1),mj0(ij0):mj1(ij1),1:jpk ) = 3._wp  
+            ii0 =  58 + nn_hls - 1       ;   ii1 =  58 + nn_hls - 1        ! West Halmahera Strait 
+            ij0 = 181 + nn_hls - isrow   ;   ij1 = 182 + nn_hls - isrow
+            pfmsk( mi0(ii0):mi1(ii1),mj0(ij0):mj1(ij1),1:jpk ) = 3._wp  
             !
             IF(lwp) WRITE(numout,*) '      East Halmahera '
-            ii0 =  55           ;   ii1 =  55        ! East Halmahera Strait 
-            ij0 = 181 - isrow   ;   ij1 = 182 - isrow   ;   pfmsk( mi0(ii0):mi1(ii1),mj0(ij0):mj1(ij1),1:jpk ) = 3._wp  
+            ii0 =  55 + nn_hls - 1       ;   ii1 =  55 + nn_hls - 1        ! East Halmahera Strait 
+            ij0 = 181 + nn_hls - isrow   ;   ij1 = 182 + nn_hls - isrow
+            pfmsk( mi0(ii0):mi1(ii1),mj0(ij0):mj1(ij1),1:jpk ) = 3._wp  
             !
 #if defined key_drakkar
-         CASE ( 25 )  ! ORCA025 DRAKKAR configuration
+         CASE ( 25 )  ! ORCA025 DRAKKAR configuration  !!! CAUTION NOT eORCA025 !!!
             IF(lwp) WRITE(numout,*)
             IF(lwp) WRITE(numout,*) 'usr_def_fmask : ORCA025: increase lateral friction near the following straits:'
             IF(lwp) WRITE(numout,*) '~~~~~~~~~~~~~'   
             IF(lwp) WRITE(numout,*) '       Gibraltar Strait : 3'
-            ii0 =1125           ;   ii1 =1127        ! Gibraltar
-            ij0 = 652           ;   ij1 = 654           ;   pfmsk(mi0(ii0):mi1(ii1),mj0(ij0):mj1(ij1),1:jpk) =  3._wp
+            ii0 =1125 + nn_hls - 1         ;   ii1 =1127 + nn_hls - 1       ! Gibraltar
+            ij0 = 652 + nn_hls             ;   ij1 = 654 + nn_hls           
+            pfmsk(mi0(ii0):mi1(ii1),mj0(ij0):mj1(ij1),1:jpk) =  3._wp
+            !
             IF(lwp) WRITE(numout,*) '       East Ombai Strait : 2 '
-            ii0 = 212           ;   ii1 = 212        ! East of Ombai strait
-            ij0 = 464           ;   ij1 = 465           ;   pfmsk(mi0(ii0):mi1(ii1),mj0(ij0):mj1(ij1),1:jpk) =  2._wp
+            ii0 = 212 + nn_hls - 1         ;   ii1 = 212 + nn_hls - 1        ! East of Ombai strait
+            ij0 = 464 + nn_hls             ;   ij1 = 465 + nn_hls
+            pfmsk(mi0(ii0):mi1(ii1),mj0(ij0):mj1(ij1),1:jpk) =  2._wp
+            !
             IF(lwp) WRITE(numout,*) '       West Ombai Strait : 2 '
-            ii0 = 210           ;   ii1 = 211        ! West of Ombai strait
-            ij0 = 466           ;   ij1 = 466           ;   pfmsk(mi0(ii0):mi1(ii1),mj0(ij0):mj1(ij1),1:jpk) =  2._wp
+            ii0 = 210 + nn_hls - 1         ;   ii1 = 211 + nn_hls - 1        ! West of Ombai strait
+            ij0 = 466 + nn_hls             ;   ij1 = 466 + nn_hls
+            pfmsk(mi0(ii0):mi1(ii1),mj0(ij0):mj1(ij1),1:jpk) =  2._wp
+            !
             IF(lwp) WRITE(numout,*) '       Exit of Ombai Strait : 2'
-            ii0 = 210           ;   ii1 = 210        ! Exit of Ombai strait
-            ij0 = 464           ;   ij1 = 465           ;   pfmsk(mi0(ii0):mi1(ii1),mj0(ij0):mj1(ij1),1:jpk) =  2._wp
+            ii0 = 210 + nn_hls - 1         ;   ii1 = 210 + nn_hls - 1        ! Exit of Ombai strait
+            ij0 = 464 + nn_hls             ;   ij1 = 465 + nn_hls
+            pfmsk(mi0(ii0):mi1(ii1),mj0(ij0):mj1(ij1),1:jpk) =  2._wp
+            !
             IF(lwp) WRITE(numout,*) '       Lombok Strait : 2'
-            ii0 = 172           ;   ii1 = 175        ! Lombok strait
-            ij0 = 463           ;   ij1 = 463           ;   pfmsk(mi0(ii0):mi1(ii1),mj0(ij0):mj1(ij1),1:jpk) =  2._wp
+            ii0 = 172 + nn_hls - 1         ;   ii1 = 175 + nn_hls - 1        ! Lombok strait
+            ij0 = 463 + nn_hls             ;   ij1 = 463 + nn_hls
+            pfmsk(mi0(ii0):mi1(ii1),mj0(ij0):mj1(ij1),1:jpk) =  2._wp
+            !
             IF(lwp) WRITE(numout,*) '       Torres Strait : 4'
-            ii0 = 278           ;   ii1 = 279        ! Torres Strait
-            ij0 = 456           ;   ij1 = 461           ;   pfmsk(mi0(ii0):mi1(ii1),mj0(ij0):mj1(ij1),1:jpk) =  4._wp
- 
+            ii0 = 278 + nn_hls - 1         ;   ii1 = 279 + nn_hls - 1        ! Torres Strait
+            ij0 = 456 + nn_hls             ;   ij1 = 461 + nn_hls
+            pfmsk(mi0(ii0):mi1(ii1),mj0(ij0):mj1(ij1),1:jpk) =  4._wp
+            !
 #endif
          CASE DEFAULT
             IF(lwp) WRITE(numout,*)

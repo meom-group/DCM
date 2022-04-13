@@ -34,12 +34,12 @@ MODULE icbtrj
    PUBLIC   icb_trj_sync    ! routine called in icbstp.F90 module
    PUBLIC   icb_trj_end     ! routine called in icbstp.F90 module
 
-   INTEGER ::   num_traj
+   INTEGER ::   num_traj = 0
    INTEGER ::   n_dim, m_dim
    INTEGER ::   ntrajid
    INTEGER ::   numberid, nstepid, nscaling_id
    INTEGER ::   nlonid, nlatid, nxid, nyid, nuvelid, nvvelid, nmassid
-   INTEGER ::   nuoid, nvoid, nuaid, nvaid, nuiid, nviid
+   INTEGER ::   nssuid, nssvid, nuaid, nvaid, nuiid, nviid
    INTEGER ::   nsshxid, nsshyid, nsstid, ncntid, nthkid
    INTEGER ::   nthicknessid, nwidthid, nlengthid
    INTEGER ::   nyearid, ndayid
@@ -47,7 +47,7 @@ MODULE icbtrj
 
    !!----------------------------------------------------------------------
    !! NEMO/OCE 4.0 , NEMO Consortium (2018)
-   !! $Id: icbtrj.F90 13061 2020-06-08 13:20:11Z smasson $
+   !! $Id: icbtrj.F90 14030 2020-12-03 09:26:33Z mathiot $
    !! Software governed by the CeCILL license (see ./LICENSE)
    !!----------------------------------------------------------------------
 CONTAINS
@@ -64,8 +64,8 @@ CONTAINS
       INTEGER                ::   idg  ! number of digits
       REAL(wp)               ::   zfjulday, zsec
       CHARACTER(len=80)      ::   cl_filename
-      CHARACTER(LEN=8 )      ::   cldate_ini, cldate_end
       CHARACTER(LEN=12)      ::   clfmt            ! writing format
+      CHARACTER(LEN=8 )      ::   cldate_ini, cldate_end
       TYPE(iceberg), POINTER ::   this
       TYPE(point)  , POINTER ::   pt
       !!----------------------------------------------------------------------
@@ -75,7 +75,7 @@ CONTAINS
       WRITE(cldate_ini, '(i4.4,2i2.2)') iyear, imonth, iday
 
       ! compute end time step date
-      zfjulday = fjulday + rdt / rday * REAL( nitend - nit000 + 1 , wp)
+      zfjulday = fjulday + rn_Dt / rday * REAL( nitend - nit000 + 1 , wp)
       IF( ABS(zfjulday - REAL(NINT(zfjulday),wp)) < 0.1 / rday )   zfjulday = REAL(NINT(zfjulday),wp)   ! avoid truncation error
       CALL ju2ymds( zfjulday, iyear, imonth, iday, zsec )
       WRITE(cldate_end, '(i4.4,2i2.2)') iyear, imonth, iday
@@ -114,8 +114,8 @@ CONTAINS
       iret = NF90_DEF_VAR( ntrajid, 'yj'            , NF90_DOUBLE, n_dim          , nyid             )
       iret = NF90_DEF_VAR( ntrajid, 'uvel'          , NF90_DOUBLE, n_dim          , nuvelid          )
       iret = NF90_DEF_VAR( ntrajid, 'vvel'          , NF90_DOUBLE, n_dim          , nvvelid          )
-      iret = NF90_DEF_VAR( ntrajid, 'uto'           , NF90_DOUBLE, n_dim          , nuoid            )
-      iret = NF90_DEF_VAR( ntrajid, 'vto'           , NF90_DOUBLE, n_dim          , nvoid            )
+      iret = NF90_DEF_VAR( ntrajid, 'ssu'           , NF90_DOUBLE, n_dim          , nssuid           )
+      iret = NF90_DEF_VAR( ntrajid, 'ssv'           , NF90_DOUBLE, n_dim          , nssvid           )
       iret = NF90_DEF_VAR( ntrajid, 'uta'           , NF90_DOUBLE, n_dim          , nuaid            )
       iret = NF90_DEF_VAR( ntrajid, 'vta'           , NF90_DOUBLE, n_dim          , nvaid            )
       iret = NF90_DEF_VAR( ntrajid, 'uti'           , NF90_DOUBLE, n_dim          , nuiid            )
@@ -151,10 +151,10 @@ CONTAINS
       iret = NF90_PUT_ATT( ntrajid, nuvelid         , 'units'    , 'm/s' )
       iret = NF90_PUT_ATT( ntrajid, nvvelid         , 'long_name', 'meridional velocity' )
       iret = NF90_PUT_ATT( ntrajid, nvvelid         , 'units'    , 'm/s' )
-      iret = NF90_PUT_ATT( ntrajid, nuoid           , 'long_name', 'ocean u component' )
-      iret = NF90_PUT_ATT( ntrajid, nuoid           , 'units'    , 'm/s' )
-      iret = NF90_PUT_ATT( ntrajid, nvoid           , 'long_name', 'ocean v component' )
-      iret = NF90_PUT_ATT( ntrajid, nvoid           , 'units'    , 'm/s' )
+      iret = NF90_PUT_ATT( ntrajid, nssuid          , 'long_name', 'ocean u component' )
+      iret = NF90_PUT_ATT( ntrajid, nssuid          , 'units'    , 'm/s' )
+      iret = NF90_PUT_ATT( ntrajid, nssvid          , 'long_name', 'ocean v component' )
+      iret = NF90_PUT_ATT( ntrajid, nssvid          , 'units'    , 'm/s' )
       iret = NF90_PUT_ATT( ntrajid, nuaid           , 'long_name', 'atmosphere u component' )
       iret = NF90_PUT_ATT( ntrajid, nuaid           , 'units'    , 'm/s' )
       iret = NF90_PUT_ATT( ntrajid, nvaid           , 'long_name', 'atmosphere v component' )
@@ -234,8 +234,8 @@ CONTAINS
          iret = NF90_PUT_VAR( ntrajid, nyid            , pt%yj            , (/ jn /) )
          iret = NF90_PUT_VAR( ntrajid, nuvelid         , pt%uvel          , (/ jn /) )
          iret = NF90_PUT_VAR( ntrajid, nvvelid         , pt%vvel          , (/ jn /) )
-         iret = NF90_PUT_VAR( ntrajid, nuoid           , pt%uo            , (/ jn /) )
-         iret = NF90_PUT_VAR( ntrajid, nvoid           , pt%vo            , (/ jn /) )
+         iret = NF90_PUT_VAR( ntrajid, nssuid          , pt%ssu           , (/ jn /) )
+         iret = NF90_PUT_VAR( ntrajid, nssvid          , pt%ssv           , (/ jn /) )
          iret = NF90_PUT_VAR( ntrajid, nuaid           , pt%ua            , (/ jn /) )
          iret = NF90_PUT_VAR( ntrajid, nvaid           , pt%va            , (/ jn /) )
          iret = NF90_PUT_VAR( ntrajid, nuiid           , pt%ui            , (/ jn /) )

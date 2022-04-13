@@ -40,6 +40,7 @@ MODULE shapiro
 
       ! * Local variable
       INTEGER                               :: ji, jj, jn ! dummy loop index
+      INTEGER                               :: jpim1, jpjm1  ! for compatibility ...
       REAL(wp), DIMENSION(:,:), ALLOCATABLE :: zvarout    ! working array
       REAL(wp), PARAMETER                   :: rp_aniso_diff_XY=2.25 !  anisotrope case (???)
                                                           ! Empirical value for 140 iterations
@@ -71,6 +72,9 @@ MODULE shapiro
 
        IF ( rp_aniso_diff_XY >=  1. ) zalphay=zalphay/rp_aniso_diff_XY
        IF ( rp_aniso_diff_XY <   1. ) zalphax=zalphax*rp_aniso_diff_XY
+
+       jpim1=jpi - 1
+       jpjm1=jpj - 1
 
         DO jn = 1,kiter
             DO jj = 2,jpjm1

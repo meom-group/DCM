@@ -56,28 +56,31 @@ MODULE diaobs
    PUBLIC dia_obs_dealloc  ! Deallocate dia_obs data
    PUBLIC calc_date        ! Compute the date of a timestep
 
-   LOGICAL, PUBLIC :: ln_diaobs          !: Logical switch for the obs operator
-   LOGICAL         :: ln_sstnight        !  Logical switch for night mean SST obs
-   LOGICAL         :: ln_sla_fp_indegs   !  T=> SLA obs footprint size specified in degrees, F=> in metres
-   LOGICAL         :: ln_sst_fp_indegs   !  T=> SST obs footprint size specified in degrees, F=> in metres
-   LOGICAL         :: ln_sss_fp_indegs   !  T=> SSS obs footprint size specified in degrees, F=> in metres
-   LOGICAL         :: ln_sic_fp_indegs   !  T=> sea-ice obs footprint size specified in degrees, F=> in metres
+   LOGICAL, PUBLIC :: ln_diaobs            !: Logical switch for the obs operator
+   LOGICAL         :: ln_sstnight          !  Logical switch for night mean SST obs
+   LOGICAL         :: ln_default_fp_indegs !  T=> Default obs footprint size specified in degrees, F=> in metres
+   LOGICAL         :: ln_sla_fp_indegs     !  T=> SLA obs footprint size specified in degrees, F=> in metres
+   LOGICAL         :: ln_sst_fp_indegs     !  T=> SST obs footprint size specified in degrees, F=> in metres
+   LOGICAL         :: ln_sss_fp_indegs     !  T=> SSS obs footprint size specified in degrees, F=> in metres
+   LOGICAL         :: ln_sic_fp_indegs     !  T=> sea-ice obs footprint size specified in degrees, F=> in metres
 
-   REAL(wp) ::   rn_sla_avglamscl   ! E/W diameter of SLA observation footprint (metres)
-   REAL(wp) ::   rn_sla_avgphiscl   ! N/S diameter of SLA observation footprint (metres)
-   REAL(wp) ::   rn_sst_avglamscl   ! E/W diameter of SST observation footprint (metres)
-   REAL(wp) ::   rn_sst_avgphiscl   ! N/S diameter of SST observation footprint (metres)
-   REAL(wp) ::   rn_sss_avglamscl   ! E/W diameter of SSS observation footprint (metres)
-   REAL(wp) ::   rn_sss_avgphiscl   ! N/S diameter of SSS observation footprint (metres)
-   REAL(wp) ::   rn_sic_avglamscl   ! E/W diameter of sea-ice observation footprint (metres)
-   REAL(wp) ::   rn_sic_avgphiscl   ! N/S diameter of sea-ice observation footprint (metres)
+   REAL(wp) ::   rn_default_avglamscl      ! E/W diameter of SLA observation footprint (metres)
+   REAL(wp) ::   rn_default_avgphiscl      ! N/S diameter of SLA observation footprint (metre
+   REAL(wp) ::   rn_sla_avglamscl          ! E/W diameter of SLA observation footprint (metres)
+   REAL(wp) ::   rn_sla_avgphiscl          ! N/S diameter of SLA observation footprint (metres)
+   REAL(wp) ::   rn_sst_avglamscl          ! E/W diameter of SST observation footprint (metres)
+   REAL(wp) ::   rn_sst_avgphiscl          ! N/S diameter of SST observation footprint (metres)
+   REAL(wp) ::   rn_sss_avglamscl          ! E/W diameter of SSS observation footprint (metres)
+   REAL(wp) ::   rn_sss_avgphiscl          ! N/S diameter of SSS observation footprint (metres)
+   REAL(wp) ::   rn_sic_avglamscl          ! E/W diameter of sea-ice observation footprint (metres)
+   REAL(wp) ::   rn_sic_avgphiscl          ! N/S diameter of sea-ice observation footprint (metres)
 
-   INTEGER :: nn_1dint       ! Vertical interpolation method
-   INTEGER :: nn_2dint       ! Default horizontal interpolation method
-   INTEGER :: nn_2dint_sla   ! SLA horizontal interpolation method 
-   INTEGER :: nn_2dint_sst   ! SST horizontal interpolation method 
-   INTEGER :: nn_2dint_sss   ! SSS horizontal interpolation method 
-   INTEGER :: nn_2dint_sic   ! Seaice horizontal interpolation method 
+   INTEGER :: nn_1dint                     ! Vertical interpolation method
+   INTEGER :: nn_2dint_default             ! Default horizontal interpolation method
+   INTEGER :: nn_2dint_sla                 ! SLA horizontal interpolation method 
+   INTEGER :: nn_2dint_sst                 ! SST horizontal interpolation method 
+   INTEGER :: nn_2dint_sss                 ! SSS horizontal interpolation method 
+   INTEGER :: nn_2dint_sic                 ! Seaice horizontal interpolation method 
    INTEGER, DIMENSION(imaxavtypes) ::   nn_profdavtypes   ! Profile data types representing a daily average
    INTEGER :: nproftypes     ! Number of profile obs types
    INTEGER :: nsurftypes     ! Number of surface obs types
@@ -93,16 +96,17 @@ MODULE diaobs
    TYPE(obs_prof), PUBLIC, POINTER, DIMENSION(:) ::   profdata     !: Initial profile data
    TYPE(obs_prof), PUBLIC, POINTER, DIMENSION(:) ::   profdataqc   !: Profile data after quality control
 
-   CHARACTER(len=6), PUBLIC, DIMENSION(:), ALLOCATABLE ::   cobstypesprof, cobstypessurf   !: Profile & surface obs types
+   CHARACTER(len=lca), PUBLIC, DIMENSION(:), ALLOCATABLE ::   cobstypesprof, cobstypessurf   !: Profile & surface obs types
 
+#  include "domzgr_substitute.h90"
    !!----------------------------------------------------------------------
    !! NEMO/OCE 4.0 , NEMO Consortium (2018)
-   !! $Id: diaobs.F90 11536 2019-09-11 13:54:18Z smasson $
+   !! $Id: diaobs.F90 15077 2021-07-03 10:16:35Z jchanut $
    !! Software governed by the CeCILL license (see ./LICENSE)
    !!----------------------------------------------------------------------
 CONTAINS
 
-   SUBROUTINE dia_obs_init
+   SUBROUTINE dia_obs_init( Kmm )
       !!----------------------------------------------------------------------
       !!                    ***  ROUTINE dia_obs_init  ***
       !!          
@@ -113,13 +117,15 @@ CONTAINS
       !! ** Action  : Read the namelist and call reading routines
       !!
       !!----------------------------------------------------------------------
-      INTEGER, PARAMETER ::   jpmaxnfiles = 1000    ! Maximum number of files for each obs type
+      INTEGER, INTENT(in)                ::   Kmm                      ! ocean time level indices
+      INTEGER, PARAMETER                 ::   jpmaxnfiles = 1000       ! Maximum number of files for each obs type
       INTEGER, DIMENSION(:), ALLOCATABLE ::   ifilesprof, ifilessurf   ! Number of profile & surface files
       INTEGER :: ios             ! Local integer output status for namelist read
       INTEGER :: jtype           ! Counter for obs types
       INTEGER :: jvar            ! Counter for variables
       INTEGER :: jfile           ! Counter for files
-      INTEGER :: jnumsstbias
+      INTEGER :: jnumsstbias     ! Number of SST bias files to read and apply
+      INTEGER :: n2dint_type     ! Local version of nn_2dint*
       !
       CHARACTER(len=128), DIMENSION(jpmaxnfiles) :: &
          & cn_profbfiles, &      ! T/S profile input filenames
@@ -128,12 +134,14 @@ CONTAINS
          & cn_slafbfiles, &      ! Sea level anomaly input filenames
          & cn_sicfbfiles, &      ! Seaice concentration input filenames
          & cn_velfbfiles, &      ! Velocity profile input filenames
-         & cn_sstbiasfiles      ! SST bias input filenames
+         & cn_sstbiasfiles       ! SST bias input filenames
       CHARACTER(LEN=128) :: &
          & cn_altbiasfile        ! Altimeter bias input filename
       CHARACTER(len=128), DIMENSION(:,:), ALLOCATABLE :: &
          & clproffiles, &        ! Profile filenames
          & clsurffiles           ! Surface filenames
+      CHARACTER(len=8), DIMENSION(:), ALLOCATABLE :: &
+         & clvars                ! Expected variable names
          !
       LOGICAL :: ln_t3d          ! Logical switch for temperature profiles
       LOGICAL :: ln_s3d          ! Logical switch for salinity profiles
@@ -148,22 +156,25 @@ CONTAINS
       LOGICAL :: ln_ignmis       ! Logical switch for ignoring missing files
       LOGICAL :: ln_s_at_t       ! Logical switch to compute model S at T obs
       LOGICAL :: ln_bound_reject ! Logical to remove obs near boundaries in LAMs.
-      LOGICAL :: llvar1          ! Logical for profile variable 1
-      LOGICAL :: llvar2          ! Logical for profile variable 1
+      LOGICAL :: ltype_fp_indegs ! Local version of ln_*_fp_indegs
+      LOGICAL :: ltype_night     ! Local version of ln_sstnight (false for other variables)
+      LOGICAL, DIMENSION(:), ALLOCATABLE :: llvar   ! Logical for profile variable read
       LOGICAL, DIMENSION(jpmaxnfiles) :: lmask ! Used for finding number of sstbias files
       !
-      REAL(dp) :: rn_dobsini     ! Obs window start date YYYYMMDD.HHMMSS
-      REAL(dp) :: rn_dobsend     ! Obs window end date   YYYYMMDD.HHMMSS
-      REAL(wp), DIMENSION(jpi,jpj)     ::   zglam1, zglam2   ! Model longitudes for profile variable 1 & 2
-      REAL(wp), DIMENSION(jpi,jpj)     ::   zgphi1, zgphi2   ! Model latitudes  for profile variable 1 & 2
-      REAL(wp), DIMENSION(jpi,jpj,jpk) ::   zmask1, zmask2   ! Model land/sea mask associated with variable 1 & 2
+      REAL(dp) :: rn_dobsini      ! Obs window start date YYYYMMDD.HHMMSS
+      REAL(dp) :: rn_dobsend      ! Obs window end date   YYYYMMDD.HHMMSS
+      REAL(wp) :: ztype_avglamscl ! Local version of rn_*_avglamscl
+      REAL(wp) :: ztype_avgphiscl ! Local version of rn_*_avgphiscl
+      REAL(wp), DIMENSION(:,:,:),   ALLOCATABLE :: zglam   ! Model longitudes for profile variables
+      REAL(wp), DIMENSION(:,:,:),   ALLOCATABLE :: zgphi   ! Model latitudes  for profile variables
+      REAL(wp), DIMENSION(:,:,:,:), ALLOCATABLE :: zmask   ! Model land/sea mask associated with variables
       !!
       NAMELIST/namobs/ln_diaobs, ln_t3d, ln_s3d, ln_sla,              &
          &            ln_sst, ln_sic, ln_sss, ln_vel3d,               &
          &            ln_altbias, ln_sstbias, ln_nea,                 &
          &            ln_grid_global, ln_grid_search_lookup,          &
          &            ln_ignmis, ln_s_at_t, ln_bound_reject,          &
-         &            ln_sstnight,                                    &
+         &            ln_sstnight, ln_default_fp_indegs,              &
          &            ln_sla_fp_indegs, ln_sst_fp_indegs,             &
          &            ln_sss_fp_indegs, ln_sic_fp_indegs,             &
          &            cn_profbfiles, cn_slafbfiles,                   &
@@ -172,11 +183,12 @@ CONTAINS
          &            cn_sstbiasfiles, cn_altbiasfile,                &
          &            cn_gridsearchfile, rn_gridsearchres,            &
          &            rn_dobsini, rn_dobsend,                         &
+         &            rn_default_avglamscl, rn_default_avgphiscl,     &
          &            rn_sla_avglamscl, rn_sla_avgphiscl,             &
          &            rn_sst_avglamscl, rn_sst_avgphiscl,             &
          &            rn_sss_avglamscl, rn_sss_avgphiscl,             &
          &            rn_sic_avglamscl, rn_sic_avgphiscl,             &
-         &            nn_1dint, nn_2dint,                             &
+         &            nn_1dint, nn_2dint_default,                     &
          &            nn_2dint_sla, nn_2dint_sst,                     &
          &            nn_2dint_sss, nn_2dint_sic,                     &
          &            nn_msshc, rn_mdtcorr, rn_mdtcutoff,             &
@@ -206,19 +218,15 @@ CONTAINS
 #endif
 
       ! Read namelist namobs : control observation diagnostics
-      REWIND( numnam_ref )   ! Namelist namobs in reference namelist
       READ  ( numnam_ref, namobs, IOSTAT = ios, ERR = 901)
 901   IF( ios /= 0 )   CALL ctl_nam ( ios , 'namobs in reference namelist' )
-      REWIND( numnam_cfg )   ! Namelist namobs in configuration namelist
       READ  ( numnam_cfg, namobs, IOSTAT = ios, ERR = 902 )
 902   IF( ios >  0 )   CALL ctl_nam ( ios , 'namobs in configuration namelist' )
       IF(lwm) WRITE ( numond, namobs )
 #if defined key_drakkar 
       ! Read namelist namobs_drk : control observation diagnostics
-      REWIND( numnam_ref )   ! Namelist namobs_drk in reference namelist
       READ  ( numnam_ref, namobs_drk, IOSTAT = ios, ERR = 903)
 903   IF( ios /= 0 )   CALL ctl_nam ( ios , 'namobs_drk in reference namelist' )
-      REWIND( numnam_cfg )   ! Namelist namobs in configuration namelist
       READ  ( numnam_cfg, namobs_drk, IOSTAT = ios, ERR = 904 )
 904   IF( ios >  0 )   CALL ctl_nam ( ios , 'namobs_drk in configuration namelist' )
       IF(lwm) WRITE ( numond, namobs_drk )
@@ -255,7 +263,23 @@ CONTAINS
          WRITE(numout,*) '      Initial date in window YYYYMMDD.HHMMSS               rn_dobsini = ', rn_dobsini
          WRITE(numout,*) '      Final date in window YYYYMMDD.HHMMSS                 rn_dobsend = ', rn_dobsend
          WRITE(numout,*) '      Type of vertical interpolation method                  nn_1dint = ', nn_1dint
-         WRITE(numout,*) '      Type of horizontal interpolation method                nn_2dint = ', nn_2dint
+         WRITE(numout,*) '      Default horizontal interpolation method        nn_2dint_default = ', nn_2dint_default
+         WRITE(numout,*) '      Type of horizontal interpolation method for SLA    nn_2dint_sla = ', nn_2dint_sla
+         WRITE(numout,*) '      Type of horizontal interpolation method for SST    nn_2dint_sst = ', nn_2dint_sst
+         WRITE(numout,*) '      Type of horizontal interpolation method for SSS    nn_2dint_sss = ', nn_2dint_sss        
+         WRITE(numout,*) '      Type of horizontal interpolation method for SIC    nn_2dint_sic = ', nn_2dint_sic
+         WRITE(numout,*) '      Default E/W diameter of obs footprint      rn_default_avglamscl = ', rn_default_avglamscl
+         WRITE(numout,*) '      Default N/S diameter of obs footprint      rn_default_avgphiscl = ', rn_default_avgphiscl
+         WRITE(numout,*) '      Default obs footprint in deg [T] or m [F]  ln_default_fp_indegs = ', ln_default_fp_indegs
+         WRITE(numout,*) '      SLA E/W diameter of obs footprint              rn_sla_avglamscl = ', rn_sla_avglamscl
+         WRITE(numout,*) '      SLA N/S diameter of obs footprint              rn_sla_avgphiscl = ', rn_sla_avgphiscl
+         WRITE(numout,*) '      SLA obs footprint in deg [T] or m [F]          ln_sla_fp_indegs = ', ln_sla_fp_indegs
+         WRITE(numout,*) '      SST E/W diameter of obs footprint              rn_sst_avglamscl = ', rn_sst_avglamscl
+         WRITE(numout,*) '      SST N/S diameter of obs footprint              rn_sst_avgphiscl = ', rn_sst_avgphiscl
+         WRITE(numout,*) '      SST obs footprint in deg [T] or m [F]          ln_sst_fp_indegs = ', ln_sst_fp_indegs
+         WRITE(numout,*) '      SIC E/W diameter of obs footprint              rn_sic_avglamscl = ', rn_sic_avglamscl
+         WRITE(numout,*) '      SIC N/S diameter of obs footprint              rn_sic_avgphiscl = ', rn_sic_avgphiscl
+         WRITE(numout,*) '      SIC obs footprint in deg [T] or m [F]          ln_sic_fp_indegs = ', ln_sic_fp_indegs
          WRITE(numout,*) '      Rejection of observations near land switch               ln_nea = ', ln_nea
          WRITE(numout,*) '      Rejection of obs near open bdys                 ln_bound_reject = ', ln_bound_reject
          WRITE(numout,*) '      MSSH correction scheme                                 nn_msshc = ', nn_msshc
@@ -299,14 +323,16 @@ CONTAINS
          jtype = 0
          IF( ln_t3d .OR. ln_s3d ) THEN
             jtype = jtype + 1
-            CALL obs_settypefiles( nproftypes, jpmaxnfiles, jtype, 'prof  ', &
-               &                   cn_profbfiles, ifilesprof, cobstypesprof, clproffiles )
+            cobstypesprof(jtype) = 'prof'
+            clproffiles(jtype,:) = cn_profbfiles
          ENDIF
          IF( ln_vel3d ) THEN
             jtype = jtype + 1
-            CALL obs_settypefiles( nproftypes, jpmaxnfiles, jtype, 'vel   ', &
-               &                   cn_velfbfiles, ifilesprof, cobstypesprof, clproffiles )
+            cobstypesprof(jtype) = 'vel'
+            clproffiles(jtype,:) = cn_velfbfiles
          ENDIF
+         !
+         CALL obs_settypefiles( nproftypes, jpmaxnfiles, ifilesprof, cobstypesprof, clproffiles )
          !
       ENDIF
 
@@ -324,50 +350,87 @@ CONTAINS
          jtype = 0
          IF( ln_sla ) THEN
             jtype = jtype + 1
-            CALL obs_settypefiles( nsurftypes, jpmaxnfiles, jtype, 'sla   ', &
-               &                   cn_slafbfiles, ifilessurf, cobstypessurf, clsurffiles )
-            CALL obs_setinterpopts( nsurftypes, jtype, 'sla   ',      &
-               &                  nn_2dint, nn_2dint_sla,             &
-               &                  rn_sla_avglamscl, rn_sla_avgphiscl, &
-               &                  ln_sla_fp_indegs, .FALSE.,          &
-               &                  n2dintsurf, zavglamscl, zavgphiscl, &
-               &                  lfpindegs, llnightav )
+            cobstypessurf(jtype) = 'sla'
+            clsurffiles(jtype,:) = cn_slafbfiles
          ENDIF
          IF( ln_sst ) THEN
             jtype = jtype + 1
-            CALL obs_settypefiles( nsurftypes, jpmaxnfiles, jtype, 'sst   ', &
-               &                   cn_sstfbfiles, ifilessurf, cobstypessurf, clsurffiles )
-            CALL obs_setinterpopts( nsurftypes, jtype, 'sst   ',      &
-               &                  nn_2dint, nn_2dint_sst,             &
-               &                  rn_sst_avglamscl, rn_sst_avgphiscl, &
-               &                  ln_sst_fp_indegs, ln_sstnight,      &
-               &                  n2dintsurf, zavglamscl, zavgphiscl, &
-               &                  lfpindegs, llnightav )
+            cobstypessurf(jtype) = 'sst'
+            clsurffiles(jtype,:) = cn_sstfbfiles
          ENDIF
 #if defined key_si3 || defined key_cice
          IF( ln_sic ) THEN
             jtype = jtype + 1
-            CALL obs_settypefiles( nsurftypes, jpmaxnfiles, jtype, 'sic   ', &
-               &                   cn_sicfbfiles, ifilessurf, cobstypessurf, clsurffiles )
-            CALL obs_setinterpopts( nsurftypes, jtype, 'sic   ',      &
-               &                  nn_2dint, nn_2dint_sic,             &
-               &                  rn_sic_avglamscl, rn_sic_avgphiscl, &
-               &                  ln_sic_fp_indegs, .FALSE.,          &
-               &                  n2dintsurf, zavglamscl, zavgphiscl, &
-               &                  lfpindegs, llnightav )
+            cobstypessurf(jtype) = 'sic'
+            clsurffiles(jtype,:) = cn_sicfbfiles
          ENDIF
 #endif
          IF( ln_sss ) THEN
             jtype = jtype + 1
-            CALL obs_settypefiles( nsurftypes, jpmaxnfiles, jtype, 'sss   ', &
-               &                   cn_sssfbfiles, ifilessurf, cobstypessurf, clsurffiles )
-            CALL obs_setinterpopts( nsurftypes, jtype, 'sss   ',      &
-               &                  nn_2dint, nn_2dint_sss,             &
-               &                  rn_sss_avglamscl, rn_sss_avgphiscl, &
-               &                  ln_sss_fp_indegs, .FALSE.,          &
-               &                  n2dintsurf, zavglamscl, zavgphiscl, &
-               &                  lfpindegs, llnightav )
+            cobstypessurf(jtype) = 'sss'
+            clsurffiles(jtype,:) = cn_sssfbfiles
          ENDIF
+         !
+         CALL obs_settypefiles( nsurftypes, jpmaxnfiles, ifilessurf, cobstypessurf, clsurffiles )
+
+         DO jtype = 1, nsurftypes
+
+            IF ( TRIM(cobstypessurf(jtype)) == 'sla' ) THEN
+               IF ( nn_2dint_sla == -1 ) THEN
+                  n2dint_type  = nn_2dint_default
+               ELSE
+                  n2dint_type  = nn_2dint_sla
+               ENDIF
+               ztype_avglamscl = rn_sla_avglamscl
+               ztype_avgphiscl = rn_sla_avgphiscl
+               ltype_fp_indegs = ln_sla_fp_indegs
+               ltype_night     = .FALSE.
+            ELSE IF ( TRIM(cobstypessurf(jtype)) == 'sst' ) THEN
+               IF ( nn_2dint_sst == -1 ) THEN
+                  n2dint_type  = nn_2dint_default
+               ELSE
+                  n2dint_type  = nn_2dint_sst
+               ENDIF
+               ztype_avglamscl = rn_sst_avglamscl
+               ztype_avgphiscl = rn_sst_avgphiscl
+               ltype_fp_indegs = ln_sst_fp_indegs
+               ltype_night     = ln_sstnight
+            ELSE IF ( TRIM(cobstypessurf(jtype)) == 'sic' ) THEN
+               IF ( nn_2dint_sic == -1 ) THEN
+                  n2dint_type  = nn_2dint_default
+               ELSE
+                  n2dint_type  = nn_2dint_sic
+               ENDIF
+               ztype_avglamscl = rn_sic_avglamscl
+               ztype_avgphiscl = rn_sic_avgphiscl
+               ltype_fp_indegs = ln_sic_fp_indegs
+               ltype_night     = .FALSE.
+            ELSE IF ( TRIM(cobstypessurf(jtype)) == 'sss' ) THEN
+               IF ( nn_2dint_sss == -1 ) THEN
+                  n2dint_type  = nn_2dint_default
+               ELSE
+                  n2dint_type  = nn_2dint_sss
+               ENDIF
+               ztype_avglamscl = rn_sss_avglamscl
+               ztype_avgphiscl = rn_sss_avgphiscl
+               ltype_fp_indegs = ln_sss_fp_indegs
+               ltype_night     = .FALSE.
+            ELSE
+               n2dint_type     = nn_2dint_default
+               ztype_avglamscl = rn_default_avglamscl
+               ztype_avgphiscl = rn_default_avgphiscl
+               ltype_fp_indegs = ln_default_fp_indegs
+               ltype_night     = .FALSE.
+            ENDIF
+            
+            CALL obs_setinterpopts( nsurftypes, jtype, TRIM(cobstypessurf(jtype)), &
+               &                    nn_2dint_default, n2dint_type,                 &
+               &                    ztype_avglamscl, ztype_avgphiscl,              &
+               &                    ltype_fp_indegs, ltype_night,                  &
+               &                    n2dintsurf, zavglamscl, zavgphiscl,            &
+               &                    lfpindegs, llnightav )
+
+         END DO
          !
       ENDIF
 
@@ -389,8 +452,8 @@ CONTAINS
          CALL ctl_stop('dia_obs_init: Choice of vertical (1D) interpolation method is not available')
       ENDIF
       !
-      IF( nn_2dint < 0  .OR.  nn_2dint > 6  ) THEN
-         CALL ctl_stop('dia_obs_init: Choice of horizontal (2D) interpolation method is not available')
+      IF( nn_2dint_default < 0  .OR.  nn_2dint_default > 6  ) THEN
+         CALL ctl_stop('dia_obs_init: Choice of default horizontal (2D) interpolation method is not available')
       ENDIF
       !
       CALL obs_typ_init
@@ -413,36 +476,62 @@ CONTAINS
             profdata  (jtype)%cdir = cn_dir
             profdataqc(jtype)%cdir = cn_dir
 #endif
-            nvarsprof(jtype) = 2
             IF ( TRIM(cobstypesprof(jtype)) == 'prof' ) THEN
-               nextrprof(jtype) = 1
-               llvar1 = ln_t3d
-               llvar2 = ln_s3d
-               zglam1 = glamt
-               zgphi1 = gphit
-               zmask1 = tmask
-               zglam2 = glamt
-               zgphi2 = gphit
-               zmask2 = tmask
-            ENDIF
-            IF ( TRIM(cobstypesprof(jtype)) == 'vel' )  THEN
+               nvarsprof(jtype) = 2
+               nextrprof(jtype) = 1             
+               ALLOCATE( llvar (nvarsprof(jtype)) )
+               ALLOCATE( clvars(nvarsprof(jtype)) )
+               ALLOCATE( zglam(jpi, jpj,      nvarsprof(jtype)) )
+               ALLOCATE( zgphi(jpi, jpj,      nvarsprof(jtype)) )
+               ALLOCATE( zmask(jpi, jpj, jpk, nvarsprof(jtype)) )
+               llvar(1)       = ln_t3d
+               llvar(2)       = ln_s3d
+               clvars(1)      = 'POTM'
+               clvars(2)      = 'PSAL'
+               zglam(:,:,1)   = glamt(:,:)
+               zglam(:,:,2)   = glamt(:,:)
+               zgphi(:,:,1)   = gphit(:,:)
+               zgphi(:,:,2)   = gphit(:,:)
+               zmask(:,:,:,1) = tmask(:,:,:)
+               zmask(:,:,:,2) = tmask(:,:,:)
+            ELSE IF ( TRIM(cobstypesprof(jtype)) == 'vel' )  THEN
+               nvarsprof(jtype) = 2
                nextrprof(jtype) = 2
-               llvar1 = ln_vel3d
-               llvar2 = ln_vel3d
-               zglam1 = glamu
-               zgphi1 = gphiu
-               zmask1 = umask
-               zglam2 = glamv
-               zgphi2 = gphiv
-               zmask2 = vmask
+               ALLOCATE( llvar (nvarsprof(jtype)) )
+               ALLOCATE( clvars(nvarsprof(jtype)) )
+               ALLOCATE( zglam(jpi, jpj,      nvarsprof(jtype)) )
+               ALLOCATE( zgphi(jpi, jpj,      nvarsprof(jtype)) )
+               ALLOCATE( zmask(jpi, jpj, jpk, nvarsprof(jtype)) )
+               llvar(1)       = ln_vel3d
+               llvar(2)       = ln_vel3d
+               clvars(1)      = 'UVEL'
+               clvars(2)      = 'VVEL'
+               zglam(:,:,1)   = glamu(:,:)
+               zglam(:,:,2)   = glamv(:,:)
+               zgphi(:,:,1)   = gphiu(:,:)
+               zgphi(:,:,2)   = gphiv(:,:)
+               zmask(:,:,:,1) = umask(:,:,:)
+               zmask(:,:,:,2) = vmask(:,:,:)
+            ELSE
+               nvarsprof(jtype) = 1
+               nextrprof(jtype) = 0
+               ALLOCATE( llvar (nvarsprof(jtype)) )
+               ALLOCATE( clvars(nvarsprof(jtype)) )
+               ALLOCATE( zglam(jpi, jpj,      nvarsprof(jtype)) )
+               ALLOCATE( zgphi(jpi, jpj,      nvarsprof(jtype)) )
+               ALLOCATE( zmask(jpi, jpj, jpk, nvarsprof(jtype)) )
+               llvar(1)       = .TRUE.
+               zglam(:,:,1)   = glamt(:,:)
+               zgphi(:,:,1)   = gphit(:,:)
+               zmask(:,:,:,1) = tmask(:,:,:)
             ENDIF
             !
             ! Read in profile or profile obs types
             CALL obs_rea_prof( profdata(jtype), ifilesprof(jtype),       &
                &               clproffiles(jtype,1:ifilesprof(jtype)), &
                &               nvarsprof(jtype), nextrprof(jtype), nitend-nit000+2, &
-               &               rn_dobsini, rn_dobsend, llvar1, llvar2, &
-               &               ln_ignmis, ln_s_at_t, .FALSE., &
+               &               rn_dobsini, rn_dobsend, llvar, &
+               &               ln_ignmis, ln_s_at_t, .FALSE., clvars, &
                &               kdailyavtypes = nn_profdavtypes )
                !
             DO jvar = 1, nvarsprof(jtype)
@@ -450,11 +539,14 @@ CONTAINS
             END DO
             !
             CALL obs_pre_prof( profdata(jtype), profdataqc(jtype), &
-               &               llvar1, llvar2, &
+               &               llvar, &
                &               jpi, jpj, jpk, &
-               &               zmask1, zglam1, zgphi1, zmask2, zglam2, zgphi2,  &
-               &               ln_nea, ln_bound_reject, &
+               &               zmask, zglam, zgphi, &
+               &               ln_nea, ln_bound_reject, Kmm, &
                &               kdailyavtypes = nn_profdavtypes )
+            !
+            DEALLOCATE( llvar, clvars, zglam, zgphi, zmask )
+            !
          END DO
          !
          DEALLOCATE( ifilesprof, clproffiles )
@@ -478,16 +570,28 @@ CONTAINS
             IF( TRIM(cobstypessurf(jtype)) == 'sla' )   nextrsurf(jtype) = 2
             IF( TRIM(cobstypessurf(jtype)) == 'sst' )   llnightav(jtype) = ln_sstnight
             !
+            ALLOCATE( clvars( nvarssurf(jtype) ) )
+            IF ( TRIM(cobstypessurf(jtype)) == 'sla' ) THEN
+               clvars(1) = 'SLA'
+            ELSE IF ( TRIM(cobstypessurf(jtype)) == 'sst' ) THEN
+               clvars(1) = 'SST'
+            ELSE IF ( TRIM(cobstypessurf(jtype)) == 'sic' ) THEN
+               clvars(1) = 'ICECONC'
+            ELSE IF ( TRIM(cobstypessurf(jtype)) == 'sss' ) THEN
+               clvars(1) = 'SSS'
+            ENDIF
+            !
             ! Read in surface obs types
             CALL obs_rea_surf( surfdata(jtype), ifilessurf(jtype), &
                &               clsurffiles(jtype,1:ifilessurf(jtype)), &
                &               nvarssurf(jtype), nextrsurf(jtype), nitend-nit000+2, &
-               &               rn_dobsini, rn_dobsend, ln_ignmis, .FALSE., llnightav(jtype) )
+               &               rn_dobsini, rn_dobsend, ln_ignmis, .FALSE., llnightav(jtype), &
+               &               clvars )
                !
             CALL obs_pre_surf( surfdata(jtype), surfdataqc(jtype), ln_nea, ln_bound_reject )
             !
             IF( TRIM(cobstypessurf(jtype)) == 'sla' ) THEN
-               CALL obs_rea_mdt( surfdataqc(jtype), n2dintsurf(jtype) )
+               CALL obs_rea_mdt( surfdataqc(jtype), n2dintsurf(jtype), Kmm )
                IF( ln_altbias )   &
                   & CALL obs_rea_altbias ( surfdataqc(jtype), n2dintsurf(jtype), cn_altbiasfile )
             ENDIF
@@ -502,6 +606,8 @@ CONTAINS
                CALL obs_app_sstbias( surfdataqc(jtype), n2dintsurf(jtype)             ,   & 
                   &                  jnumsstbias      , cn_sstbiasfiles(1:jnumsstbias) ) 
             ENDIF
+            !
+            DEALLOCATE( clvars )
          END DO
          !
          DEALLOCATE( ifilessurf, clsurffiles )
@@ -511,7 +617,7 @@ CONTAINS
    END SUBROUTINE dia_obs_init
 
 
-   SUBROUTINE dia_obs( kstp )
+   SUBROUTINE dia_obs( kstp, Kmm )
       !!----------------------------------------------------------------------
       !!                    ***  ROUTINE dia_obs  ***
       !!          
@@ -524,9 +630,8 @@ CONTAINS
       !!
       !! ** Action  :
       !!----------------------------------------------------------------------
-      USE dom_oce, ONLY : gdept_n, gdept_1d   ! Ocean space and time domain variables
       USE phycst , ONLY : rday                ! Physical constants
-      USE oce    , ONLY : tsn, un, vn, sshn   ! Ocean dynamics and tracers variables
+      USE oce    , ONLY : ts, uu, vv, ssh     ! Ocean dynamics and tracers variables (Kmm time-level only)
       USE phycst , ONLY : rday                ! Physical constants
 #if defined  key_si3
       USE ice    , ONLY : at_i                ! SI3 Ice model variables
@@ -539,25 +644,23 @@ CONTAINS
 
       !! * Arguments
       INTEGER, INTENT(IN) :: kstp  ! Current timestep
+      INTEGER, INTENT(in) :: Kmm   ! ocean time level indices
       !! * Local declarations
       INTEGER :: idaystp           ! Number of timesteps per day
       INTEGER :: jtype             ! Data loop variable
       INTEGER :: jvar              ! Variable number
-      INTEGER :: ji, jj            ! Loop counters
-      REAL(wp), DIMENSION(jpi,jpj,jpk) :: &
-         & zprofvar1, &            ! Model values for 1st variable in a prof ob
-         & zprofvar2               ! Model values for 2nd variable in a prof ob
-      REAL(wp), DIMENSION(jpi,jpj,jpk) :: &
-         & zprofmask1, &           ! Mask associated with zprofvar1
-         & zprofmask2              ! Mask associated with zprofvar2
+      INTEGER :: ji, jj, jk        ! Loop counters
+      REAL(wp), DIMENSION(:,:,:,:), ALLOCATABLE :: &
+         & zprofvar                ! Model values for variables in a prof ob
+      REAL(wp), DIMENSION(:,:,:,:), ALLOCATABLE :: &
+         & zprofmask               ! Mask associated with zprofvar
       REAL(wp), DIMENSION(jpi,jpj) :: &
          & zsurfvar, &             ! Model values equivalent to surface ob.
          & zsurfmask               ! Mask associated with surface variable
-      REAL(wp), DIMENSION(jpi,jpj) :: &
-         & zglam1,    &            ! Model longitudes for prof variable 1
-         & zglam2,    &            ! Model longitudes for prof variable 2
-         & zgphi1,    &            ! Model latitudes for prof variable 1
-         & zgphi2                  ! Model latitudes for prof variable 2
+      REAL(wp), DIMENSION(:,:,:), ALLOCATABLE :: &
+         & zglam,    &             ! Model longitudes for prof variables
+         & zgphi                   ! Model latitudes for prof variables
+      REAL(wp), DIMENSION(:,:,:), ALLOCATABLE :: zdept, zdepw
 
       !-----------------------------------------------------------------------
 
@@ -569,7 +672,7 @@ CONTAINS
       ENDIF
 #endif
 
-      idaystp = NINT( rday / rdt )
+      idaystp = NINT( rday / rn_Dt )
 
       !-----------------------------------------------------------------------
       ! Call the profile and surface observation operators
@@ -577,41 +680,60 @@ CONTAINS
 
       IF ( nproftypes > 0 ) THEN
 
+         ALLOCATE( zdept(jpi,jpj,jpk), zdepw(jpi,jpj,jpk) )
+         DO jk = 1, jpk
+            zdept(:,:,jk) = gdept(:,:,jk,Kmm)
+            zdepw(:,:,jk) = gdepw(:,:,jk,Kmm)
+         END DO
+
          DO jtype = 1, nproftypes
+
+            ! Allocate local work arrays
+            ALLOCATE( zprofvar (jpi, jpj, jpk, profdataqc(jtype)%nvar) )
+            ALLOCATE( zprofmask(jpi, jpj, jpk, profdataqc(jtype)%nvar) )
+            ALLOCATE( zglam    (jpi, jpj,      profdataqc(jtype)%nvar) )
+            ALLOCATE( zgphi    (jpi, jpj,      profdataqc(jtype)%nvar) )  
+                              
+            ! Defaults which might change
+            DO jvar = 1, profdataqc(jtype)%nvar
+               zprofmask(:,:,:,jvar) = tmask(:,:,:)
+               zglam(:,:,jvar)       = glamt(:,:)
+               zgphi(:,:,jvar)       = gphit(:,:)
+            END DO
 
             SELECT CASE ( TRIM(cobstypesprof(jtype)) )
             CASE('prof')
-               zprofvar1(:,:,:) = tsn(:,:,:,jp_tem)
-               zprofvar2(:,:,:) = tsn(:,:,:,jp_sal)
-               zprofmask1(:,:,:) = tmask(:,:,:)
-               zprofmask2(:,:,:) = tmask(:,:,:)
-               zglam1(:,:) = glamt(:,:)
-               zglam2(:,:) = glamt(:,:)
-               zgphi1(:,:) = gphit(:,:)
-               zgphi2(:,:) = gphit(:,:)
+               zprofvar(:,:,:,1) = ts(:,:,:,jp_tem,Kmm)
+               zprofvar(:,:,:,2) = ts(:,:,:,jp_sal,Kmm)
             CASE('vel')
-               zprofvar1(:,:,:) = un(:,:,:)
-               zprofvar2(:,:,:) = vn(:,:,:)
-               zprofmask1(:,:,:) = umask(:,:,:)
-               zprofmask2(:,:,:) = vmask(:,:,:)
-               zglam1(:,:) = glamu(:,:)
-               zglam2(:,:) = glamv(:,:)
-               zgphi1(:,:) = gphiu(:,:)
-               zgphi2(:,:) = gphiv(:,:)
+               zprofvar(:,:,:,1) = uu(:,:,:,Kmm)
+               zprofvar(:,:,:,2) = vv(:,:,:,Kmm)
+               zprofmask(:,:,:,1) = umask(:,:,:)
+               zprofmask(:,:,:,2) = vmask(:,:,:)
+               zglam(:,:,1) = glamu(:,:)
+               zglam(:,:,2) = glamv(:,:)
+               zgphi(:,:,1) = gphiu(:,:)
+               zgphi(:,:,2) = gphiv(:,:)
             CASE DEFAULT
                CALL ctl_stop( 'Unknown profile observation type '//TRIM(cobstypesprof(jtype))//' in dia_obs' )
             END SELECT
 
-            CALL obs_prof_opt( profdataqc(jtype), kstp, jpi, jpj, jpk,  &
-               &               nit000, idaystp,                         &
-               &               zprofvar1, zprofvar2,                    &
-               &               gdept_n(:,:,:), gdepw_n(:,:,:),            & 
-               &               zprofmask1, zprofmask2,                  &
-               &               zglam1, zglam2, zgphi1, zgphi2,          &
-               &               nn_1dint, nn_2dint,                      &
-               &               kdailyavtypes = nn_profdavtypes )
+            DO jvar = 1, profdataqc(jtype)%nvar
+               CALL obs_prof_opt( profdataqc(jtype), kstp, jpi, jpj, jpk,  &
+                  &               nit000, idaystp, jvar,                   &
+                  &               zprofvar(:,:,:,jvar),                    &
+                  &               zdept(:,:,:), zdepw(:,:,:),      &
+                  &               zprofmask(:,:,:,jvar),                   &
+                  &               zglam(:,:,jvar), zgphi(:,:,jvar),        &
+                  &               nn_1dint, nn_2dint_default,              &
+                  &               kdailyavtypes = nn_profdavtypes )
+            END DO
+            
+            DEALLOCATE( zprofvar, zprofmask, zglam, zgphi )
 
          END DO
+
+         DEALLOCATE( zdept, zdepw )
 
       ENDIF
 
@@ -624,11 +746,11 @@ CONTAINS
 
             SELECT CASE ( TRIM(cobstypessurf(jtype)) )
             CASE('sst')
-               zsurfvar(:,:) = tsn(:,:,1,jp_tem)
+               zsurfvar(:,:) = ts(:,:,1,jp_tem,Kmm)
             CASE('sla')
-               zsurfvar(:,:) = sshn(:,:)
+               zsurfvar(:,:) = ssh(:,:,Kmm)
             CASE('sss')
-               zsurfvar(:,:) = tsn(:,:,1,jp_sal)
+               zsurfvar(:,:) = ts(:,:,1,jp_sal,Kmm)
             CASE('sic')
                IF ( kstp == 0 ) THEN
                   IF ( lwp .AND. surfdataqc(jtype)%nsstpmpp(1) > 0 ) THEN
@@ -710,7 +832,7 @@ CONTAINS
                   & zv(profdataqc(jtype)%nvprot(2))  &
                   & )
 
-               CALL obs_rotvel( profdataqc(jtype), nn_2dint, zu, zv )
+               CALL obs_rotvel( profdataqc(jtype), nn_2dint_default, zu, zv )
 
                DO jo = 1, profdataqc(jtype)%nprof
                   DO jvar = 1, 2
@@ -804,7 +926,7 @@ CONTAINS
       USE phycst, ONLY : &            ! Physical constants
          & rday
       USE dom_oce, ONLY : &           ! Ocean space and time domain variables
-         & rdt
+         & rn_Dt
 
       IMPLICIT NONE
 
@@ -835,7 +957,7 @@ CONTAINS
       !!----------------------------------------------------------------------
       !! Compute number of days + number of hours + min since initial time
       !!----------------------------------------------------------------------
-      zdayfrc = kstp * rdt / rday
+      zdayfrc = kstp * rn_Dt / rday
       zdayfrc = zdayfrc - aint(zdayfrc)
       imin = imin + int( zdayfrc * 24 * 60 ) 
       DO WHILE (imin >= 60) 
@@ -846,7 +968,7 @@ CONTAINS
         ihou=ihou-24
         iday=iday+1
       END DO 
-      iday = iday + kstp * rdt / rday 
+      iday = iday + kstp * rn_Dt / rday 
 
       !-----------------------------------------------------------------------
       ! Convert number of days (iday) into a real date
@@ -926,119 +1048,119 @@ CONTAINS
 
    END SUBROUTINE fin_date
    
-    SUBROUTINE obs_settypefiles( ntypes, jpmaxnfiles, jtype, ctypein, &
-       &                         cfilestype, ifiles, cobstypes, cfiles )
+   SUBROUTINE obs_settypefiles( ntypes, jpmaxnfiles, ifiles, cobstypes, cfiles )
 
-    INTEGER, INTENT(IN) :: ntypes      ! Total number of obs types
-    INTEGER, INTENT(IN) :: jpmaxnfiles ! Maximum number of files allowed for each type
-    INTEGER, INTENT(IN) :: jtype       ! Index of the current type of obs
-    INTEGER, DIMENSION(ntypes), INTENT(INOUT) :: &
-       &                   ifiles      ! Out appended number of files for this type
+      INTEGER, INTENT(IN) :: ntypes      ! Total number of obs types
+      INTEGER, INTENT(IN) :: jpmaxnfiles ! Maximum number of files allowed for each type
+      INTEGER, DIMENSION(ntypes), INTENT(OUT) :: &
+         &                   ifiles      ! Out number of files for each type
+      CHARACTER(len=lca), DIMENSION(ntypes), INTENT(IN) :: &
+         &                   cobstypes   ! List of obs types
+      CHARACTER(len=128), DIMENSION(ntypes, jpmaxnfiles), INTENT(IN) :: &
+         &                   cfiles      ! List of files for all types
 
-    CHARACTER(len=6), INTENT(IN) :: ctypein 
-    CHARACTER(len=128), DIMENSION(jpmaxnfiles), INTENT(IN) :: &
-       &                   cfilestype  ! In list of files for this obs type
-    CHARACTER(len=6), DIMENSION(ntypes), INTENT(INOUT) :: &
-       &                   cobstypes   ! Out appended list of obs types
-    CHARACTER(len=128), DIMENSION(ntypes, jpmaxnfiles), INTENT(INOUT) :: &
-       &                   cfiles      ! Out appended list of files for all types
+      !Local variables
+      INTEGER :: jfile
+      INTEGER :: jtype
 
-    !Local variables
-    INTEGER :: jfile
+      DO jtype = 1, ntypes
 
-    cfiles(jtype,:) = cfilestype(:)
-    cobstypes(jtype) = ctypein
-    ifiles(jtype) = 0
-    DO jfile = 1, jpmaxnfiles
-       IF ( trim(cfiles(jtype,jfile)) /= '' ) &
-                 ifiles(jtype) = ifiles(jtype) + 1
-    END DO
+         ifiles(jtype) = 0
+         DO jfile = 1, jpmaxnfiles
+            IF ( trim(cfiles(jtype,jfile)) /= '' ) &
+                      ifiles(jtype) = ifiles(jtype) + 1
+         END DO
 
-    IF ( ifiles(jtype) == 0 ) THEN
-         CALL ctl_stop( 'Logical for observation type '//TRIM(ctypein)//   &
-            &           ' set to true but no files available to read' )
-    ENDIF
+         IF ( ifiles(jtype) == 0 ) THEN
+              CALL ctl_stop( 'Logical for observation type '//TRIM(cobstypes(jtype))//   &
+                 &           ' set to true but no files available to read' )
+         ENDIF
 
-    IF(lwp) THEN    
-       WRITE(numout,*) '             '//cobstypes(jtype)//' input observation file names:'
-       DO jfile = 1, ifiles(jtype)
-          WRITE(numout,*) '                '//TRIM(cfiles(jtype,jfile))
-       END DO
-    ENDIF
+         IF(lwp) THEN    
+            WRITE(numout,*) '             '//cobstypes(jtype)//' input observation file names:'
+            DO jfile = 1, ifiles(jtype)
+               WRITE(numout,*) '                '//TRIM(cfiles(jtype,jfile))
+            END DO
+         ENDIF
 
-    END SUBROUTINE obs_settypefiles
+      END DO
 
-    SUBROUTINE obs_setinterpopts( ntypes, jtype, ctypein,             &
-               &                  n2dint_default, n2dint_type,        &
-               &                  zavglamscl_type, zavgphiscl_type,   &
-               &                  lfp_indegs_type, lavnight_type,     &
-               &                  n2dint, zavglamscl, zavgphiscl,     &
-               &                  lfpindegs, lavnight )
+   END SUBROUTINE obs_settypefiles
 
-    INTEGER, INTENT(IN)  :: ntypes             ! Total number of obs types
-    INTEGER, INTENT(IN)  :: jtype              ! Index of the current type of obs
-    INTEGER, INTENT(IN)  :: n2dint_default     ! Default option for interpolation type
-    INTEGER, INTENT(IN)  :: n2dint_type        ! Option for interpolation type
-    REAL(wp), INTENT(IN) :: &
-       &                    zavglamscl_type, & !E/W diameter of obs footprint for this type
-       &                    zavgphiscl_type    !N/S diameter of obs footprint for this type
-    LOGICAL, INTENT(IN)  :: lfp_indegs_type    !T=> footprint in degrees, F=> in metres
-    LOGICAL, INTENT(IN)  :: lavnight_type      !T=> obs represent night time average
-    CHARACTER(len=6), INTENT(IN) :: ctypein 
+   SUBROUTINE obs_setinterpopts( ntypes, jtype, ctypein,             &
+              &                  n2dint_default, n2dint_type,        &
+              &                  ravglamscl_type, ravgphiscl_type,   &
+              &                  lfp_indegs_type, lavnight_type,     &
+              &                  n2dint, ravglamscl, ravgphiscl,     &
+              &                  lfpindegs, lavnight )
 
-    INTEGER, DIMENSION(ntypes), INTENT(INOUT) :: &
-       &                    n2dint 
-    REAL(wp), DIMENSION(ntypes), INTENT(INOUT) :: &
-       &                    zavglamscl, zavgphiscl
-    LOGICAL, DIMENSION(ntypes), INTENT(INOUT) :: &
-       &                    lfpindegs, lavnight
+      INTEGER, INTENT(IN)  :: ntypes             ! Total number of obs types
+      INTEGER, INTENT(IN)  :: jtype              ! Index of the current type of obs
+      INTEGER, INTENT(IN)  :: n2dint_default     ! Default option for interpolation type
+      INTEGER, INTENT(IN)  :: n2dint_type        ! Option for interpolation type
+      REAL(wp), INTENT(IN) :: &
+         &                    ravglamscl_type, & !E/W diameter of obs footprint for this type
+         &                    ravgphiscl_type    !N/S diameter of obs footprint for this type
+      LOGICAL, INTENT(IN)  :: lfp_indegs_type    !T=> footprint in degrees, F=> in metres
+      LOGICAL, INTENT(IN)  :: lavnight_type      !T=> obs represent night time average
+      CHARACTER(len=8), INTENT(IN) :: ctypein 
 
-    lavnight(jtype) = lavnight_type
+      INTEGER, DIMENSION(ntypes), INTENT(INOUT) :: &
+         &                    n2dint 
+      REAL(wp), DIMENSION(ntypes), INTENT(INOUT) :: &
+         &                    ravglamscl, ravgphiscl
+      LOGICAL, DIMENSION(ntypes), INTENT(INOUT) :: &
+         &                    lfpindegs, lavnight
 
-    IF ( (n2dint_type >= 1) .AND. (n2dint_type <= 6) ) THEN
-       n2dint(jtype) = n2dint_type
-    ELSE
-       n2dint(jtype) = n2dint_default
-    ENDIF
+      lavnight(jtype) = lavnight_type
 
-    ! For averaging observation footprints set options for size of footprint 
-    IF ( (n2dint(jtype) > 4) .AND. (n2dint(jtype) <= 6) ) THEN
-       IF ( zavglamscl_type > 0._wp ) THEN
-          zavglamscl(jtype) = zavglamscl_type
-       ELSE
-          CALL ctl_stop( 'Incorrect value set for averaging footprint '// &
-                         'scale (zavglamscl) for observation type '//TRIM(ctypein) )      
-       ENDIF
+      IF ( (n2dint_type >= 0) .AND. (n2dint_type <= 6) ) THEN
+         n2dint(jtype) = n2dint_type
+      ELSE IF ( n2dint_type == -1 ) THEN
+         n2dint(jtype) = n2dint_default
+      ELSE
+         CALL ctl_stop(' Choice of '//TRIM(ctypein)//' horizontal (2D) interpolation method', &
+           &                    ' is not available')
+      ENDIF
 
-       IF ( zavgphiscl_type > 0._wp ) THEN
-          zavgphiscl(jtype) = zavgphiscl_type
-       ELSE
-          CALL ctl_stop( 'Incorrect value set for averaging footprint '// &
-                         'scale (zavgphiscl) for observation type '//TRIM(ctypein) )      
-       ENDIF
+      ! For averaging observation footprints set options for size of footprint 
+      IF ( (n2dint(jtype) > 4) .AND. (n2dint(jtype) <= 6) ) THEN
+         IF ( ravglamscl_type > 0._wp ) THEN
+            ravglamscl(jtype) = ravglamscl_type
+         ELSE
+            CALL ctl_stop( 'Incorrect value set for averaging footprint '// &
+                           'scale (ravglamscl) for observation type '//TRIM(ctypein) )      
+         ENDIF
 
-       lfpindegs(jtype) = lfp_indegs_type 
+         IF ( ravgphiscl_type > 0._wp ) THEN
+            ravgphiscl(jtype) = ravgphiscl_type
+         ELSE
+            CALL ctl_stop( 'Incorrect value set for averaging footprint '// &
+                           'scale (ravgphiscl) for observation type '//TRIM(ctypein) )      
+         ENDIF
 
-    ENDIF
+         lfpindegs(jtype) = lfp_indegs_type 
 
-    ! Write out info 
-    IF(lwp) THEN
-       IF ( n2dint(jtype) <= 4 ) THEN
-          WRITE(numout,*) '             '//TRIM(ctypein)// &
-             &            ' model counterparts will be interpolated horizontally'
-       ELSE IF ( n2dint(jtype) <= 6 ) THEN
-          WRITE(numout,*) '             '//TRIM(ctypein)// &
-             &            ' model counterparts will be averaged horizontally'
-          WRITE(numout,*) '             '//'    with E/W scale: ',zavglamscl(jtype)
-          WRITE(numout,*) '             '//'    with N/S scale: ',zavgphiscl(jtype)
-          IF ( lfpindegs(jtype) ) THEN
-              WRITE(numout,*) '             '//'    (in degrees)'
-          ELSE
-              WRITE(numout,*) '             '//'    (in metres)'
-          ENDIF
-       ENDIF
-    ENDIF
+      ENDIF
 
-    END SUBROUTINE obs_setinterpopts
+      ! Write out info 
+      IF(lwp) THEN
+         IF ( n2dint(jtype) <= 4 ) THEN
+            WRITE(numout,*) '             '//TRIM(ctypein)// &
+               &            ' model counterparts will be interpolated horizontally'
+         ELSE IF ( n2dint(jtype) <= 6 ) THEN
+            WRITE(numout,*) '             '//TRIM(ctypein)// &
+               &            ' model counterparts will be averaged horizontally'
+            WRITE(numout,*) '             '//'    with E/W scale: ',ravglamscl(jtype)
+            WRITE(numout,*) '             '//'    with N/S scale: ',ravgphiscl(jtype)
+            IF ( lfpindegs(jtype) ) THEN
+                WRITE(numout,*) '             '//'    (in degrees)'
+            ELSE
+                WRITE(numout,*) '             '//'    (in metres)'
+            ENDIF
+         ENDIF
+      ENDIF
+
+   END SUBROUTINE obs_setinterpopts
 
 END MODULE diaobs

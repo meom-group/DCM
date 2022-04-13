@@ -44,9 +44,11 @@ MODULE icbini
 #endif
    TYPE(FLD), PUBLIC, ALLOCATABLE     , DIMENSION(:)  ::   sf_icb          !: structure: file information, fields read
                                                                            !: used in icbini and icbstp
+   !! * Substitutions
+#  include "do_loop_substitute.h90"
    !!----------------------------------------------------------------------
    !! NEMO/OCE 4.0 , NEMO Consortium (2018)
-   !! $Id: icbini.F90 13350 2020-07-28 12:28:29Z smueller $
+   !! $Id: icbini.F90 15372 2021-10-14 15:47:24Z davestorkey $
    !! Software governed by the CeCILL license (see ./LICENSE)
    !!----------------------------------------------------------------------
 CONTAINS
@@ -63,7 +65,7 @@ CONTAINS
       !!              - calculate the destinations for north fold exchanges
       !!              - setup either test icebergs or calving file
       !!----------------------------------------------------------------------
-      REAL(wp), INTENT(in) ::   pdt   ! iceberg time-step (rdt*nn_fsbc)
+      REAL(wp), INTENT(in) ::   pdt   ! iceberg time-step (rn_Dt*nn_fsbc)
       INTEGER , INTENT(in) ::   kt    ! time step number
       !
       INTEGER ::   ji, jj, jn               ! dummy loop indices
@@ -76,15 +78,25 @@ CONTAINS
       CALL icb_nam               ! Read and print namelist parameters
       !
       IF( .NOT. ln_icebergs )   RETURN
-
+      !
+      ALLOCATE( utau_icb(jpi,jpj), vtau_icb(jpi,jpj) )
+      !
       !                          ! allocate gridded fields
       IF( icb_alloc() /= 0 )   CALL ctl_stop( 'STOP', 'icb_alloc : unable to allocate arrays' )
       !
       !                          ! initialised variable with extra haloes to zero
-      uo_e(:,:) = 0._wp   ;   vo_e(:,:) = 0._wp   ;
-      ua_e(:,:) = 0._wp   ;   va_e(:,:) = 0._wp   ;
-      ff_e(:,:) = 0._wp   ;   tt_e(:,:) = 0._wp   ;
-      fr_e(:,:) = 0._wp   ;   ss_e(:,:) = 0._wp   ;
+      ssu_e(:,:) = 0._wp   ;   ssv_e(:,:) = 0._wp   ;
+      ua_e(:,:)  = 0._wp   ;   va_e(:,:)  = 0._wp   ;
+      ff_e(:,:)  = 0._wp   ;   sst_e(:,:) = 0._wp   ;
+      fr_e(:,:)  = 0._wp   ;   sss_e(:,:) = 0._wp   ;
+      !
+      IF ( ln_M2016 ) THEN
+         toce_e(:,:,:) = 0._wp
+         uoce_e(:,:,:) = 0._wp
+         voce_e(:,:,:) = 0._wp
+         e3t_e(:,:,:)  = 0._wp
+      END IF
+      !
 #if defined key_si3
       hi_e(:,:) = 0._wp   ;
       ui_e(:,:) = 0._wp   ;   vi_e(:,:) = 0._wp   ;
@@ -108,6 +120,12 @@ CONTAINS
       berg_dt         = pdt
       first_width (:) = SQRT(  rn_initial_mass(:) / ( rn_LoW_ratio * rn_rho_bergs * rn_initial_thickness(:) )  )
       first_length(:) = rn_LoW_ratio * first_width(:)
+      rho_berg_1_oce  = rn_rho_bergs / pp_rho_seawater  ! scale factor used for convertion thickness to draft
+      !
+      ! deepest level affected by icebergs
+      ! can be tuned but the safest is this 
+      ! (with z* and z~ the depth of each level change overtime, so the more robust micbkb is jpk)
+      micbkb = jpk
 
       berg_grid%calving      (:,:)   = 0._wp
       berg_grid%calving_hflx (:,:)   = 0._wp
@@ -131,19 +149,17 @@ CONTAINS
       IF( jpiglo >= nicbpack )   CALL ctl_stop( 'icbini: processor index packing failure' )
       nicbfldproc(:) = -1
 
-      DO jj = 1, jpj
-         DO ji = 1, jpi
-            src_calving_hflx(ji,jj) = narea
-            src_calving     (ji,jj) = nicbpack * mjg(jj) + mig(ji)
-         END DO
-      END DO
+      DO_2D( 1, 1, 1, 1 )
+         src_calving_hflx(ji,jj) = narea
+         src_calving     (ji,jj) = nicbpack * mjg(jj) + mig(ji)
+      END_2D
       CALL lbc_lnk( 'icbini', src_calving_hflx, 'T', 1._wp )
       CALL lbc_lnk( 'icbini', src_calving     , 'T', 1._wp )
 
       ! work out interior of processor from exchange array
       ! first entry with narea for this processor is left hand interior index
       ! last  entry                               is right hand interior index
-      jj = nlcj/2
+      jj = jpj/2
       nicbdi = -1
       nicbei = -1
       DO ji = 1, jpi
@@ -159,7 +175,7 @@ CONTAINS
       END DO
       !
       ! repeat for j direction
-      ji = nlci/2
+      ji = jpi/2
       nicbdj = -1
       nicbej = -1
       DO jj = 1, jpj
@@ -176,16 +192,16 @@ CONTAINS
       !   
       ! special for east-west boundary exchange we save the destination index
       i1 = MAX( nicbdi-1, 1)
-      i3 = INT( src_calving(i1,nlcj/2) )
+      i3 = INT( src_calving(i1,jpj/2) )
       jj = INT( i3/nicbpack )
-      ricb_left = REAL( i3 - nicbpack*jj, wp )
+      ricb_left = REAL( i3 - nicbpack*jj, wp ) - (nn_hls-1)
       i1 = MIN( nicbei+1, jpi )
-      i3 = INT( src_calving(i1,nlcj/2) )
+      i3 = INT( src_calving(i1,jpj/2) )
       jj = INT( i3/nicbpack )
-      ricb_right = REAL( i3 - nicbpack*jj, wp )
+      ricb_right = REAL( i3 - nicbpack*jj, wp ) - (nn_hls-1)
       
       ! north fold
-      IF( npolj > 0 ) THEN
+      IF( l_IdoNFold ) THEN
          !
          ! icebergs in row nicbej+1 get passed across fold
          nicbfldpts(:)  = INT( src_calving(:,nicbej+1) )
@@ -213,25 +229,25 @@ CONTAINS
       IF( nn_verbose_level > 0) THEN
          WRITE(numicb,*) 'processor ', narea
          WRITE(numicb,*) 'jpi, jpj   ', jpi, jpj
-         WRITE(numicb,*) 'nldi, nlei ', nldi, nlei
-         WRITE(numicb,*) 'nldj, nlej ', nldj, nlej
+         WRITE(numicb,*) 'Nis0, Nie0 ', Nis0, Nie0
+         WRITE(numicb,*) 'Njs0, Nje0 ', Njs0, Nje0
          WRITE(numicb,*) 'berg i interior ', nicbdi, nicbei
          WRITE(numicb,*) 'berg j interior ', nicbdj, nicbej
          WRITE(numicb,*) 'berg left       ', ricb_left
          WRITE(numicb,*) 'berg right      ', ricb_right
-         jj = nlcj/2
+         jj = jpj/2
          WRITE(numicb,*) "central j line:"
          WRITE(numicb,*) "i processor"
          WRITE(numicb,*) (INT(src_calving_hflx(ji,jj)), ji=1,jpi)
          WRITE(numicb,*) "i point"
          WRITE(numicb,*) (INT(src_calving(ji,jj)), ji=1,jpi)
-         ji = nlci/2
+         ji = jpi/2
          WRITE(numicb,*) "central i line:"
          WRITE(numicb,*) "j processor"
          WRITE(numicb,*) (INT(src_calving_hflx(ji,jj)), jj=1,jpj)
          WRITE(numicb,*) "j point"
          WRITE(numicb,*) (INT(src_calving(ji,jj)), jj=1,jpj)
-         IF( npolj > 0 ) THEN
+         IF( l_IdoNFold ) THEN
             WRITE(numicb,*) 'north fold destination points '
             WRITE(numicb,*) nicbfldpts
             WRITE(numicb,*) 'north fold destination procs  '
@@ -252,7 +268,17 @@ CONTAINS
       CALL lbc_lnk_icb( 'icbini', tmask_e, 'T', +1._wp, 1, 1 )
       CALL lbc_lnk_icb( 'icbini', umask_e, 'U', +1._wp, 1, 1 )
       CALL lbc_lnk_icb( 'icbini', vmask_e, 'V', +1._wp, 1, 1 )
+
+      ! definition of extended lat/lon array needed by icb_bilin_h
+      rlon_e(:,:) = 0._wp     ;  rlon_e(1:jpi,1:jpj) = glamt(:,:) 
+      rlat_e(:,:) = 0._wp     ;  rlat_e(1:jpi,1:jpj) = gphit(:,:)
+      CALL lbc_lnk_icb( 'icbini', rlon_e, 'T', +1._wp, 1, 1 )
+      CALL lbc_lnk_icb( 'icbini', rlat_e, 'T', +1._wp, 1, 1 )
       !
+      ! definnitionn of extennded ff_f array needed by icb_utl_interp
+      ff_e(:,:) = 0._wp       ;  ff_e(1:jpi,1:jpj) = ff_f(:,:)
+      CALL lbc_lnk_icb( 'icbini', ff_e, 'F', +1._wp, 1, 1 )
+
       ! assign each new iceberg with a unique number constructed from the processor number
       ! and incremented by the total number of processors
       num_bergs(:) = 0
@@ -266,7 +292,7 @@ CONTAINS
          CALL iom_open ( cl_sdist, inum )                              ! open file
          ivar = iom_varid( inum, 'maxclass', ldstop=.FALSE. )
          IF( ivar > 0 ) THEN
-            CALL iom_get  ( inum, jpdom_data, 'maxclass', src_calving )   ! read the max distribution array
+            CALL iom_get  ( inum, jpdom_global, 'maxclass', src_calving )   ! read the max distribution array
             berg_grid%maxclass(:,:) = INT( src_calving )
             src_calving(:,:) = 0._wp
          ENDIF
@@ -370,10 +396,9 @@ CONTAINS
                 rn_test_box(1) < glamt(ji,jj) .AND. glamt(ji,jj) < rn_test_box(2) .AND.   &
                 rn_test_box(3) < gphit(ji,jj) .AND. gphit(ji,jj) < rn_test_box(4) ) THEN
                localberg%mass_scaling = rn_mass_scaling(iberg)
-               localpt%xi = REAL( mig(ji), wp )
-               localpt%yj = REAL( mjg(jj), wp )
-               localpt%lon = icb_utl_bilin(glamt, localpt%xi, localpt%yj, 'T' )
-               localpt%lat = icb_utl_bilin(gphit, localpt%xi, localpt%yj, 'T' )
+               localpt%xi = REAL( mig(ji) - (nn_hls-1), wp )
+               localpt%yj = REAL( mjg(jj) - (nn_hls-1), wp )
+               CALL icb_utl_interp( localpt%xi, localpt%yj, plat=localpt%lat, plon=localpt%lon )   
                localpt%mass      = rn_initial_mass     (iberg)
                localpt%thickness = rn_initial_thickness(iberg)
                localpt%width  = first_width (iberg)
@@ -384,6 +409,7 @@ CONTAINS
                localpt%heat_density = 0._wp
                localpt%uvel = 0._wp
                localpt%vvel = 0._wp
+               localpt%kb   = 1
                CALL icb_utl_incr()
                localberg%number(:) = num_bergs(:)
                call icb_utl_add(localberg, localpt)
@@ -416,11 +442,13 @@ CONTAINS
          &              rn_distribution, rn_mass_scaling, rn_initial_thickness, nn_verbose_write     ,   &
          &              rn_rho_bergs   , rn_LoW_ratio   , nn_verbose_level    , ln_operator_splitting,   &
          &              rn_bits_erosion_fraction        , rn_sicn_shift       , ln_passive_mode      ,   &
-         &              nn_test_icebergs                , rn_test_box         , ln_use_calving       ,   &
-         &              rn_speed_limit , cn_dir, sn_icb
+         &              ln_time_average_weight          , nn_test_icebergs    , rn_test_box          ,   &
+         &              ln_use_calving , rn_speed_limit , cn_dir, sn_icb      , ln_M2016             ,   &
+         &              cn_icbrst_indir, cn_icbrst_in   , cn_icbrst_outdir    , cn_icbrst_out        ,   &
+         &              ln_icb_grd
 #if defined key_drakkar
       CHARACTER(LEN=20) :: cl_no
-      NAMELIST/namberg_drk/ cn_icbrst_in,  cn_icbrst_out, cn_icbdir_trj, nn_icb_freq, sn_icb2, ln_rstart_icb
+      NAMELIST/namberg_drk/ cn_icbdir_trj, nn_icb_freq, sn_icb2, ln_rstart_icb
 #endif
       !!----------------------------------------------------------------------
 
@@ -442,31 +470,27 @@ CONTAINS
       ENDIF
 #endif   
       !                             !==  read namelist  ==!
-      REWIND( numnam_ref )              ! Namelist namberg in reference namelist : Iceberg parameters
       READ  ( numnam_ref, namberg, IOSTAT = ios, ERR = 901)
 901   IF( ios /= 0 ) CALL ctl_nam ( ios , 'namberg in reference namelist' )
-      REWIND( numnam_cfg )              ! Namelist namberg in configuration namelist : Iceberg parameters
       READ  ( numnam_cfg, namberg, IOSTAT = ios, ERR = 902 )
 902   IF( ios >  0 ) CALL ctl_nam ( ios , 'namberg in configuration namelist' )
       IF(lwm) WRITE ( numond, namberg )
-
 #if defined key_drakkar
       !                             !==  read namelist  ==!
-      REWIND( numnam_ref )              ! Namelist namberg in reference namelist : Iceberg parameters
       READ  ( numnam_ref, namberg_drk, IOSTAT = ios, ERR = 903)
 903   IF( ios /= 0 ) CALL ctl_nam ( ios , 'namberg_drk in reference namelist' )
-      REWIND( numnam_cfg )              ! Namelist namberg in configuration namelist : Iceberg parameters
       READ  ( numnam_cfg, namberg_drk, IOSTAT = ios, ERR = 904 )
 904   IF( ios >  0 ) CALL ctl_nam ( ios , 'namberg_drk in configuration namelist' )
       IF(lwm) WRITE ( numond, namberg_drk )
       ! set name full path of icb restart files
       !  NEMO reads restart files :<CN_ICERST_INDIR>.<<nn_no-1>>/<CN_ICERST_IN>-<<nn_no -1 >>_<RANK>.nc
       WRITE(cl_no,*) nn_no-1 ; cl_no = TRIM(ADJUSTL(cl_no) )
+      cn_icbrst_indir= TRIM(cn_icbrst_indir)//'.'//TRIM(cl_no)
       cn_icbrst_in= TRIM(cn_icbrst_in)//'-'//TRIM(cl_no)
       !  NEMO write restart files :<CN_ICERST_OUTDIR>.<<nn_no>>/<CN_ICERST_OUT>-<<nn_no >>_<RANK>.nc
       WRITE(cl_no,*) nn_no   ; cl_no = TRIM(ADJUSTL(cl_no) )
+      cn_icbrst_outdir= TRIM(cn_icbrst_outdir)//'.'//TRIM(cl_no)
       cn_icbrst_out= TRIM(cn_icbrst_out)//'-'//TRIM(cl_no)
-
 #endif
       !
       IF(lwp) WRITE(numout,*)
@@ -521,10 +545,14 @@ CONTAINS
          WRITE(numout,*) '   Fraction of erosion melt flux to divert to bergy bits    ',   &
             &                    'bits_erosion_fraction = ', rn_bits_erosion_fraction
 
+         WRITE(numout,*) '   Use icb module modification from Merino et al. (2016) : ln_M2016 = ', ln_M2016
+         WRITE(numout,*) '       ground icebergs if icb bottom lvl hit the oce bottom level : ln_icb_grd = ', ln_icb_grd
+
          WRITE(numout,*) '   Shift of sea-ice concentration in erosion flux modulation ',   &
             &                    '(0<sicn_shift<1)    rn_sicn_shift  = ', rn_sicn_shift
          WRITE(numout,*) '   Do not add freshwater flux from icebergs to ocean                ',   &
             &                    '                  passive_mode            = ', ln_passive_mode
+         WRITE(numout,*) '   Time average the weight on the ocean   time_average_weight       = ', ln_time_average_weight
          WRITE(numout,*) '   Create icebergs in absence of a restart file   nn_test_icebergs  = ', nn_test_icebergs
          WRITE(numout,*) '                   in lon/lat box                                   = ', rn_test_box
          WRITE(numout,*) '   Use calving data even if nn_test_icebergs > 0    ln_use_calving  = ', ln_use_calving

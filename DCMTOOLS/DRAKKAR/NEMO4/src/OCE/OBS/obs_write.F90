@@ -45,9 +45,11 @@ MODULE obs_write
       CHARACTER(len=ilenunit), POINTER, DIMENSION(:,:) :: cdunit
    END TYPE obswriinfo
 
+   !! * Substitutions
+#  include "do_loop_substitute.h90"
    !!----------------------------------------------------------------------
    !! NEMO/OCE 4.0 , NEMO Consortium (2018)
-   !! $Id: obs_write.F90 10425 2018-12-19 21:54:16Z smasson $
+   !! $Id: obs_write.F90 14275 2021-01-07 12:13:16Z smasson $
    !! Software governed by the CeCILL license (see ./LICENSE)
    !!----------------------------------------------------------------------
 
@@ -87,6 +89,11 @@ CONTAINS
       CHARACTER(LEN=40) :: clfname
 #endif
       CHARACTER(LEN=10) :: clfiletype
+      CHARACTER(LEN=ilenlong) :: cllongname  ! Long name of variable
+      CHARACTER(LEN=ilenunit) :: clunits     ! Units of variable
+      CHARACTER(LEN=ilengrid) :: clgrid      ! Grid of variable
+      CHARACTER(LEN=12) :: clfmt            ! writing format
+      INTEGER :: idg                        ! number of digits
       INTEGER :: ilevel
       INTEGER :: jvar
       INTEGER :: jo
@@ -114,7 +121,7 @@ CONTAINS
 
       ! Find maximum level
       ilevel = 0
-      DO jvar = 1, 2
+      DO jvar = 1, profdata%nvar
          ilevel = MAX( ilevel, MAXVAL( profdata%var(jvar)%nvlidx(:) ) )
       END DO
 
@@ -179,13 +186,37 @@ CONTAINS
          END DO
 
       END SELECT
+      
+      IF ( ( TRIM(profdata%cvars(1)) /= 'POTM' ) .AND. &
+         & ( TRIM(profdata%cvars(1)) /= 'UVEL' ) ) THEN
+         CALL alloc_obfbdata( fbdata, 1, profdata%nprof, ilevel, &
+            &                 1 + iadd, iext, .TRUE. )
+         fbdata%cname(1)      = profdata%cvars(1)
+         fbdata%coblong(1)    = cllongname
+         fbdata%cobunit(1)    = clunits
+         fbdata%caddlong(1,1) = 'Model interpolated ' // TRIM(cllongname)
+         fbdata%caddunit(1,1) = clunits
+         fbdata%cgrid(:)      = clgrid
+         DO je = 1, iext
+            fbdata%cextname(je) = pext%cdname(je)
+            fbdata%cextlong(je) = pext%cdlong(je,1)
+            fbdata%cextunit(je) = pext%cdunit(je,1)
+         END DO
+         DO ja = 1, iadd
+            fbdata%caddname(1+ja) = padd%cdname(ja)
+            fbdata%caddlong(1+ja,1) = padd%cdlong(ja,1)
+            fbdata%caddunit(1+ja,1) = padd%cdunit(ja,1)
+         END DO
+      ENDIF
 
       fbdata%caddname(1)   = 'Hx'
 
+      idg = MAX( INT(LOG10(REAL(jpnij,wp))) + 1, 4 )            ! how many digits to we need to write? min=4, max=9
+      WRITE(clfmt, "('(a,a,i', i1, '.', i1, ',a)')") idg, idg   ! '(a,a,ix.x,a)'
 #if defined key_drakkar
-      WRITE(clfname, FMT="(A,'_fdbk_',I4.4,'.nc')") TRIM(profdata%cdir)//'/'//TRIM(clfiletype), nproc
+      WRITE(clfname, clfmt) TRIM(profdata%cdir)//'/'//TRIM(clfiletype),'_fdbk_',narea-1, '.nc'
 #else
-      WRITE(clfname, FMT="(A,'_fdbk_',I4.4,'.nc')") TRIM(clfiletype), nproc
+      WRITE(clfname,clfmt) TRIM(clfiletype), '_fdbk_', narea-1, '.nc'
 #endif
 
       IF(lwp) THEN
@@ -235,7 +266,7 @@ CONTAINS
             &           fbdata%ptim(jo),   &
             &           krefdate = 19500101 )
          ! Reform the profiles arrays for output
-         DO jvar = 1, 2
+         DO jvar = 1, profdata%nvar
             DO jk = profdata%npvsta(jo,jvar), profdata%npvend(jo,jvar)
                ik = profdata%var(jvar)%nvlidx(jk)
                fbdata%padd(ik,jo,1,jvar) = profdata%var(jvar)%vmod(jk)
@@ -334,7 +365,12 @@ CONTAINS
       CHARACTER(LEN=40) :: clfname         ! netCDF filename
 #endif
       CHARACTER(LEN=10) :: clfiletype
+      CHARACTER(LEN=ilenlong) :: cllongname  ! Long name of variable
+      CHARACTER(LEN=ilenunit) :: clunits     ! Units of variable
+      CHARACTER(LEN=ilengrid) :: clgrid      ! Grid of variable
       CHARACTER(LEN=12), PARAMETER :: cpname = 'obs_wri_surf'
+      CHARACTER(LEN=12) :: clfmt           ! writing format
+      INTEGER :: idg                       ! number of digits
       INTEGER :: jo
       INTEGER :: ja
       INTEGER :: je
@@ -357,6 +393,10 @@ CONTAINS
 
       SELECT CASE ( TRIM(surfdata%cvars(1)) )
       CASE('SLA')
+         
+         ! SLA needs special treatment because of MDT, so is all done here
+         ! Other variables are done more generically
+         ! No climatology for SLA, MDT is our best estimate of that and is already output.
 
          CALL alloc_obfbdata( fbdata, 1, surfdata%nsurf, 1, &
             &                 2 + iadd, 1 + iext, .TRUE. )
@@ -387,72 +427,24 @@ CONTAINS
 
       CASE('SST')
 
-         CALL alloc_obfbdata( fbdata, 1, surfdata%nsurf, 1, &
-            &                 1 + iadd, iext, .TRUE. )
-
          clfiletype = 'sstfb'
-         fbdata%cname(1)      = surfdata%cvars(1)
-         fbdata%coblong(1)    = 'Sea surface temperature'
-         fbdata%cobunit(1)    = 'Degree centigrade'
-         DO je = 1, iext
-            fbdata%cextname(je) = pext%cdname(je)
-            fbdata%cextlong(je) = pext%cdlong(je,1)
-            fbdata%cextunit(je) = pext%cdunit(je,1)
-         END DO
-         fbdata%caddlong(1,1) = 'Model interpolated SST'
-         fbdata%caddunit(1,1) = 'Degree centigrade'
-         fbdata%cgrid(1)      = 'T'
-         DO ja = 1, iadd
-            fbdata%caddname(1+ja) = padd%cdname(ja)
-            fbdata%caddlong(1+ja,1) = padd%cdlong(ja,1)
-            fbdata%caddunit(1+ja,1) = padd%cdunit(ja,1)
-         END DO
-
+         cllongname = 'Sea surface temperature'
+         clunits    = 'Degree centigrade'
+         clgrid     = 'T'
+         
       CASE('ICECONC')
 
-         CALL alloc_obfbdata( fbdata, 1, surfdata%nsurf, 1, &
-            &                 1 + iadd, iext, .TRUE. )
-
          clfiletype = 'sicfb'
-         fbdata%cname(1)      = surfdata%cvars(1)
-         fbdata%coblong(1)    = 'Sea ice'
-         fbdata%cobunit(1)    = 'Fraction'
-         DO je = 1, iext
-            fbdata%cextname(je) = pext%cdname(je)
-            fbdata%cextlong(je) = pext%cdlong(je,1)
-            fbdata%cextunit(je) = pext%cdunit(je,1)
-         END DO
-         fbdata%caddlong(1,1) = 'Model interpolated ICE'
-         fbdata%caddunit(1,1) = 'Fraction'
-         fbdata%cgrid(1)      = 'T'
-         DO ja = 1, iadd
-            fbdata%caddname(1+ja) = padd%cdname(ja)
-            fbdata%caddlong(1+ja,1) = padd%cdlong(ja,1)
-            fbdata%caddunit(1+ja,1) = padd%cdunit(ja,1)
-         END DO
+         cllongname = 'Sea ice concentration'
+         clunits    = 'Fraction'
+         clgrid     = 'T'
 
       CASE('SSS')
 
-         CALL alloc_obfbdata( fbdata, 1, surfdata%nsurf, 1, &
-            &                 1 + iadd, iext, .TRUE. )
-
          clfiletype = 'sssfb'
-         fbdata%cname(1)      = surfdata%cvars(1)
-         fbdata%coblong(1)    = 'Sea surface salinity'
-         fbdata%cobunit(1)    = 'psu'
-         DO je = 1, iext
-            fbdata%cextname(je) = pext%cdname(je)
-            fbdata%cextlong(je) = pext%cdlong(je,1)
-            fbdata%cextunit(je) = pext%cdunit(je,1)
-         END DO
-         fbdata%caddlong(1,1) = 'Model interpolated SSS'
-         fbdata%caddunit(1,1) = 'psu'
-         fbdata%cgrid(1)      = 'T'
-         DO ja = 1, iadd
-            fbdata%caddname(1+ja) = padd%cdname(ja)
-            fbdata%caddlong(1+ja,1) = padd%cdlong(ja,1)
-            fbdata%caddunit(1+ja,1) = padd%cdunit(ja,1)
-         END DO
+         cllongname = 'Sea surface salinity'
+         clunits    = 'psu'
+         clgrid     = 'T'
 
       CASE DEFAULT
 
@@ -460,12 +452,44 @@ CONTAINS
 
       END SELECT
 
+      ! SLA needs special treatment because of MDT, so is done above
+      ! Remaining variables treated more generically
+
+      IF ( TRIM(surfdata%cvars(1)) /= 'SLA' ) THEN
+      
+         CALL alloc_obfbdata( fbdata, 1, surfdata%nsurf, 1, &
+            &                 1 + iadd, iext, .TRUE. )
+
+         fbdata%cname(1)      = surfdata%cvars(1)
+         fbdata%coblong(1)    = cllongname
+         fbdata%cobunit(1)    = clunits
+         DO je = 1, iext
+            fbdata%cextname(je) = pext%cdname(je)
+            fbdata%cextlong(je) = pext%cdlong(je,1)
+            fbdata%cextunit(je) = pext%cdunit(je,1)
+         END DO        
+         IF ( TRIM(surfdata%cvars(1)) == 'ICECONC' ) THEN
+            fbdata%caddlong(1,1) = 'Model interpolated ICE'
+         ELSE
+            fbdata%caddlong(1,1) = 'Model interpolated ' // TRIM(surfdata%cvars(1))
+         ENDIF
+         fbdata%caddunit(1,1) = clunits
+         fbdata%cgrid(1)      = clgrid
+         DO ja = 1, iadd
+            fbdata%caddname(1+ja) = padd%cdname(ja)
+            fbdata%caddlong(1+ja,1) = padd%cdlong(ja,1)
+            fbdata%caddunit(1+ja,1) = padd%cdunit(ja,1)
+         END DO
+      ENDIF
+
       fbdata%caddname(1)   = 'Hx'
 
+      idg = MAX( INT(LOG10(REAL(jpnij,wp))) + 1, 4 )            ! how many digits to we need to write? min=4, max=9
+      WRITE(clfmt, "('(a,a,i', i1, '.', i1, ',a)')") idg, idg   ! '(a,a,ix.x,a)'
 #if defined key_drakkar
-      WRITE(clfname, FMT="(A,'_fdbk_',I4.4,'.nc')") TRIM(surfdata%cdir)//TRIM(clfiletype), nproc
+      WRITE(clfname,clfmt) TRIM(surfdata%cdir)//TRIM(clfiletype), '_fdbk_', narea-1, '.nc'
 #else
-      WRITE(clfname, FMT="(A,'_fdbk_',I4.4,'.nc')") TRIM(clfiletype), nproc
+      WRITE(clfname,clfmt) TRIM(clfiletype), '_fdbk_', narea-1, '.nc'
 #endif
 
       IF(lwp) THEN

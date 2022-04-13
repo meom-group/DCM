@@ -46,12 +46,12 @@ MODULE icbstp
 
    !!----------------------------------------------------------------------
    !! NEMO/OCE 4.0 , NEMO Consortium (2018)
-   !! $Id: icbstp.F90 11536 2019-09-11 13:54:18Z smasson $
+   !! $Id: icbstp.F90 14239 2020-12-23 08:57:16Z smasson $
    !! Software governed by the CeCILL license (see ./LICENSE)
    !!----------------------------------------------------------------------
 CONTAINS
 
-   SUBROUTINE icb_stp( kt )
+   SUBROUTINE icb_stp( kt, Kmm )
       !!----------------------------------------------------------------------
       !!                  ***  ROUTINE icb_stp  ***
       !!
@@ -60,6 +60,7 @@ CONTAINS
       !! ** Method  : - top level routine to do things in the correct order
       !!----------------------------------------------------------------------
       INTEGER, INTENT(in) ::   kt   ! time step index
+      INTEGER, INTENT(in) ::   Kmm  ! ocean time level index
       !
       LOGICAL ::   ll_sample_traj, ll_budget, ll_verbose   ! local logical
 #if defined key_drakkar
@@ -72,6 +73,9 @@ CONTAINS
       !                       !==  start of timestep housekeeping  ==!
       !
       nktberg = kt
+      !
+      !CALL test_icb_utl_getkb
+      !CALL ctl_stop('end test icb')
       !
       IF( nn_test_icebergs < 0 .OR. ln_use_calving ) THEN !* read calving data
          !
@@ -102,7 +106,7 @@ CONTAINS
  9100 FORMAT('kt= ',i8, ' day= ',i8,' secs=',i8)
       !
       !                                   !* copy nemo forcing arrays into iceberg versions with extra halo
-      CALL icb_utl_copy()                 ! only necessary for variables not on T points
+      CALL icb_utl_copy( Kmm )                 ! only necessary for variables not on T points
       !
       !
       !                       !==  process icebergs  ==!
@@ -132,7 +136,7 @@ CONTAINS
 
       !                                   !* Gridded diagnostics
       !                                   !  To get these iom_put's and those preceding to actually do something
-      !                                   !  use key_iomput in cpp file and create content for XML file
+      !                                   !  use key_xios in cpp file and create content for XML file
       !
       CALL iom_put( "calving"           , berg_grid%calving      (:,:)   )  ! 'calving mass input'
       CALL iom_put( "berg_floating_melt", berg_grid%floating_melt(:,:)   )  ! 'Melt rate of icebergs + bits' , 'kg/m2/s'

@@ -1,5 +1,5 @@
 !!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-!! SI3 namelist:  
+!! SI3 Reference namelist:
 !!              1 - Generic parameters                 (nampar)
 !!              2 - Ice thickness discretization       (namitd)
 !!              3 - Ice dynamics                       (namdyn)
@@ -61,6 +61,11 @@
       rn_lf_bfr     =  15.            !        maximum bottom stress per unit volume [N/m3]
       rn_lf_relax   =   1.e-5         !        relaxation time scale to reach static friction [s-1]
       rn_lf_tensile =   0.05          !        isotropic tensile strength [0-0.5??]
+   cn_dir           = './'      !  root directory for the grounded icebergs mask data location
+   !___________!________________!___________________!___________!_____________!________!___________!__________!__________!_______________!
+   !           !  file name     ! frequency (hours) ! variable  ! time interp.!  clim  ! 'yearly'/ ! weights  ! rotation ! land/sea mask !
+   !           !                !  (if <0  months)  !   name    !   (logical) !  (T/F) ! 'monthly' ! filename ! pairing  !    filename   !
+   sn_icbmsk       = 'NOT USED' ,       -12.        , 'icb_mask',   .false.   , .true. , 'yearly'  , ''       , ''       , ''
 /
 !------------------------------------------------------------------------------
 &namdyn_rdgrft  !   Ice ridging/rafting
@@ -91,6 +96,7 @@
 &namdyn_rhg     !   Ice rheology
 !------------------------------------------------------------------------------
    ln_rhg_EVP       = .true.          !  EVP rheology
+   ln_rhg_EAP       = .false.         !  EAP rheology
       ln_aEVP       = .false.         !     adaptive rheology (Kimmritz et al. 2016 & 2017)
       rn_creepl     =   2.0e-9        !     creep limit [1/s]
       rn_ecc        =   2.0           !     eccentricity of the elliptical yield curve          
@@ -102,6 +108,10 @@
                                       !     = 1  check at the main time step (output xml: uice_cvg)
                                       !     = 2  check at both main and rheology time steps (additional output: ice_cvg.nc)
                                       !          this option 2 asks a lot of communications between cpu
+   ln_rhg_VP        = .false.         !  VP rheology
+      nn_vp_nout    = 10              !     number of outer iterations
+      nn_vp_ninn    = 1500            !     number of inner iterations
+      nn_vp_chkcvg  = 5               !     iteration step for convergence check
 /
 !------------------------------------------------------------------------------
 &namdyn_adv     !   Ice advection
@@ -194,9 +204,11 @@
 &namthd_pnd     !   Melt ponds
 !------------------------------------------------------------------------------
    ln_pnd            = .true.         !  activate melt ponds or not
-      ln_pnd_LEV     = .true.         !  level ice melt ponds (from Flocco et al 2007,2010 & Holland et al 2012)
-         rn_apnd_min =   0.15         !     minimum ice fraction that contributes to melt pond. range: 0.0 -- 0.15 ??
-         rn_apnd_max =   0.85         !     maximum ice fraction that contributes to melt pond. range: 0.7 -- 0.85 ??
+      ln_pnd_TOPO    = .false.        !  topographic melt ponds
+      ln_pnd_LEV     = .true.         !  level ice melt ponds
+         rn_apnd_min =   0.15         !     minimum meltwater fraction contributing to pond growth (TOPO and LEV)
+         rn_apnd_max =   0.85         !     maximum meltwater fraction contributing to pond growth (TOPO and LEV)
+         rn_pnd_flush=   0.1          !     pond flushing efficiency (tuning parameter) (LEV)
       ln_pnd_CST     = .false.        !  constant  melt ponds
          rn_apnd     =   0.2          !     prescribed pond fraction, at Tsu=0 degC
          rn_hpnd     =   0.05         !     prescribed pond depth,    at Tsu=0 degC
@@ -232,17 +244,17 @@
    rn_hld_ini_n     =   0.0           !  initial pond lid depth      (m), North
    rn_hld_ini_s     =   0.0           !        "            "             South
    ! -- for nn_iceini_file = 1
-   sn_hti = 'Ice_initialization'    , -12 ,'hti'   ,  .false.  , .true., 'yearly'  , '' , '', ''
-   sn_hts = 'Ice_initialization'    , -12 ,'hts'   ,  .false.  , .true., 'yearly'  , '' , '', ''
-   sn_ati = 'Ice_initialization'    , -12 ,'ati'   ,  .false.  , .true., 'yearly'  , '' , '', ''
-   sn_smi = 'Ice_initialization'    , -12 ,'smi'   ,  .false.  , .true., 'yearly'  , '' , '', ''
-   sn_tmi = 'Ice_initialization'    , -12 ,'tmi'   ,  .false.  , .true., 'yearly'  , '' , '', ''
-   sn_tsu = 'Ice_initialization'    , -12 ,'tsu'   ,  .false.  , .true., 'yearly'  , '' , '', ''
-   sn_tms = 'NOT USED'              , -12 ,'tms'   ,  .false.  , .true., 'yearly'  , '' , '', ''
+   sn_hti = 'Ice_initialization'    , -12. ,'hti'   ,  .false.  , .true., 'yearly'  , '' , '', ''
+   sn_hts = 'Ice_initialization'    , -12. ,'hts'   ,  .false.  , .true., 'yearly'  , '' , '', ''
+   sn_ati = 'Ice_initialization'    , -12. ,'ati'   ,  .false.  , .true., 'yearly'  , '' , '', ''
+   sn_smi = 'Ice_initialization'    , -12. ,'smi'   ,  .false.  , .true., 'yearly'  , '' , '', ''
+   sn_tmi = 'Ice_initialization'    , -12. ,'tmi'   ,  .false.  , .true., 'yearly'  , '' , '', ''
+   sn_tsu = 'Ice_initialization'    , -12. ,'tsu'   ,  .false.  , .true., 'yearly'  , '' , '', ''
+   sn_tms = 'NOT USED'              , -12. ,'tms'   ,  .false.  , .true., 'yearly'  , '' , '', ''
    !      melt ponds (be careful, sn_apd is the pond concentration (not fraction), so it differs from rn_apd)
-   sn_apd = 'NOT USED'              , -12 ,'apd'   ,  .false.  , .true., 'yearly'  , '' , '', ''
-   sn_hpd = 'NOT USED'              , -12 ,'hpd'   ,  .false.  , .true., 'yearly'  , '' , '', ''
-   sn_hld = 'NOT USED'              , -12 ,'hld'   ,  .false.  , .true., 'yearly'  , '' , '', ''
+   sn_apd = 'NOT USED'              , -12. ,'apd'   ,  .false.  , .true., 'yearly'  , '' , '', ''
+   sn_hpd = 'NOT USED'              , -12. ,'hpd'   ,  .false.  , .true., 'yearly'  , '' , '', ''
+   sn_hld = 'NOT USED'              , -12. ,'hld'   ,  .false.  , .true., 'yearly'  , '' , '', ''
    cn_dir='./'
 /
 !------------------------------------------------------------------------------
@@ -260,8 +272,8 @@
 !------------------------------------------------------------------------------
    ln_icediachk     = .false.         !  check online heat, mass & salt budgets
       !                               !   rate of ice spuriously gained/lost at each time step => rn_icechk=1 <=> 1.e-6 m/hour
-      rn_icechk_cel =  100.           !     check at each gridcell          (1.e-4m/h)=> stops the code if violated (and writes a file)
-      rn_icechk_glo =  1.             !     check over the entire ice cover (1.e-6m/h)=> only prints warnings
+      rn_icechk_cel =  1.             !     check at each gridcell          (1.e-06m/h)=> stops the code if violated (and writes a file)
+      rn_icechk_glo =  1.e-04         !     check over the entire ice cover (1.e-10m/h)=> only prints warnings
    ln_icediahsb     = .false.         !  output the heat, mass & salt budgets (T) or not (F)
    ln_icectl        = .false.         !  ice points output for debug (T or F)
       iiceprt       =  10             !     i-index for debug

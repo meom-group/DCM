@@ -44,7 +44,7 @@ MODULE icbrst
 
    !!----------------------------------------------------------------------
    !! NEMO/OCE 4.0 , NEMO Consortium (2018)
-   !! $Id: icbrst.F90 13061 2020-06-08 13:20:11Z smasson $
+   !! $Id: icbrst.F90 15088 2021-07-06 13:03:34Z acc $
    !! Software governed by the CeCILL license (see ./LICENSE)
    !!----------------------------------------------------------------------
 CONTAINS
@@ -68,16 +68,11 @@ CONTAINS
       TYPE(iceberg)                ::   localberg ! NOT a pointer but an actual local variable
       TYPE(point)                  ::   localpt   ! NOT a pointer but an actual local variable
       !!----------------------------------------------------------------------
-
       ! Find a restart file. Assume iceberg restarts in same directory as ocean restarts
       ! and are called TRIM(cn_ocerst)//'_icebergs'
-      cl_path = TRIM(cn_ocerst_indir)
+      cl_path = TRIM(cn_icbrst_indir)
       IF( cl_path(LEN_TRIM(cl_path):) /= '/' ) cl_path = TRIM(cl_path) // '/'
-#if defined key_drakkar
       cl_filename = TRIM(cn_icbrst_in)
-#else
-      cl_filename = TRIM(cn_ocerst_in)//'_icebergs'
-#endif
       CALL iom_open( TRIM(cl_path)//cl_filename, ncid )
 
       imax_icb = 0
@@ -92,13 +87,13 @@ CONTAINS
             CALL iom_get( ncid, 'xi'     ,localpt%xi  , ktime=jn )
             CALL iom_get( ncid, 'yj'     ,localpt%yj  , ktime=jn )
 
-            ii = INT( localpt%xi + 0.5 )
-            ij = INT( localpt%yj + 0.5 )
+            ii = INT( localpt%xi + 0.5 ) + ( nn_hls-1 )
+            ij = INT( localpt%yj + 0.5 ) + ( nn_hls-1 )
             ! Only proceed if this iceberg is on the local processor (excluding halos).
-            IF ( ii .GE. nldi+nimpp-1 .AND. ii .LE. nlei+nimpp-1 .AND. &
-           &     ij .GE. nldj+njmpp-1 .AND. ij .LE. nlej+njmpp-1 ) THEN           
+            IF ( ii >= mig(Nis0) .AND. ii <= mig(Nie0) .AND.   &
+           &     ij >= mjg(Njs0) .AND. ij <= mjg(Nje0) ) THEN           
 
-               CALL iom_get( ncid, jpdom_unknown, 'number'       , zdata(:) , ktime=jn, kstart=(/1/), kcount=(/nkounts/) )
+               CALL iom_get( ncid, jpdom_unknown, 'number', zdata(:) , ktime=jn, kstart=(/1/), kcount=(/nkounts/) )
                localberg%number(:) = INT(zdata(:))
                imax_icb = MAX( imax_icb, INT(zdata(1)) )
                CALL iom_get( ncid, 'mass_scaling' , localberg%mass_scaling, ktime=jn )
@@ -127,10 +122,11 @@ CONTAINS
       ENDIF 
 
       ! Gridded variables
-      CALL iom_get( ncid, jpdom_autoglo,    'calving'     , src_calving  )
-      CALL iom_get( ncid, jpdom_autoglo,    'calving_hflx', src_calving_hflx  )
-      CALL iom_get( ncid, jpdom_autoglo,    'stored_heat' , berg_grid%stored_heat  )
-      CALL iom_get( ncid, jpdom_autoglo_xy, 'stored_ice'  , berg_grid%stored_ice, kstart=(/1,1,1/), kcount=(/1,1,nclasses/) )
+      CALL iom_get( ncid, jpdom_auto,    'calving'     , src_calving  )
+      CALL iom_get( ncid, jpdom_auto,    'calving_hflx', src_calving_hflx  )
+      CALL iom_get( ncid, jpdom_auto,    'stored_heat' , berg_grid%stored_heat  )
+      ! with jpdom_auto_xy, ue use only the third element of kstart and kcount.
+      CALL iom_get( ncid, jpdom_auto_xy, 'stored_ice'  , berg_grid%stored_ice, kstart=(/-99,-99,1/), kcount=(/-99,-99,nclasses/) )
       
       CALL iom_get( ncid, jpdom_unknown, 'kount' , zdata(:) )
       num_bergs(:) = INT(zdata(:))
@@ -210,8 +206,12 @@ CONTAINS
       IF( kt == nitrst ) THEN
          ! Only operate on the restart timestep itself.
          ! Assume we write iceberg restarts to same directory as ocean restarts.
-         cl_path = TRIM(cn_ocerst_outdir)
+         !
+         ! directory name
+         cl_path = TRIM(cn_icbrst_outdir)
          IF( cl_path(LEN_TRIM(cl_path):) /= '/' ) cl_path = TRIM(cl_path) // '/'
+         !
+         ! file name
 #if defined key_drakkar
          IF( lk_mpp ) THEN
             WRITE(cl_filename,'(a,"_",I4.4,".nc")') TRIM(cn_icbrst_out), narea-1
@@ -220,7 +220,7 @@ CONTAINS
          ENDIF
 #else
          WRITE(cl_kt, '(i8.8)') kt
-         cl_filename = TRIM(cexper)//"_icebergs_"//cl_kt//"_restart"
+         cl_filename = TRIM(cexper)//"_"//cl_kt//"_"//TRIM(cn_icbrst_out)
          IF( lk_mpp ) THEN
             idg = MAX( INT(LOG10(REAL(MAX(1,jpnij-1),wp))) + 1, 4 )          ! how many digits to we need to write? min=4, max=9
             WRITE(clfmt, "('(a,a,i', i1, '.', i1, ',a)')") idg, idg          ! '(a,a,ix.x,a)'
@@ -229,6 +229,7 @@ CONTAINS
             WRITE(cl_filename,'(a,a)') TRIM(cl_filename),               '.nc'
          ENDIF
 #endif
+
          IF ( lwp .AND. nn_verbose_level >= 0) WRITE(numout,'(2a)') 'icebergs, write_restart: creating ',  &
            &                                                         TRIM(cl_path)//TRIM(cl_filename)
    
@@ -236,10 +237,10 @@ CONTAINS
          IF (nret .ne. NF90_NOERR) CALL ctl_stop('icebergs, write_restart: nf_create failed')
    
          ! Dimensions
-         nret = NF90_DEF_DIM(ncid, 'x', jpi, ix_dim)
+         nret = NF90_DEF_DIM(ncid, 'x', Ni_0, ix_dim)
          IF (nret .ne. NF90_NOERR) CALL ctl_stop('icebergs, write_restart: nf_def_dim x failed')
    
-         nret = NF90_DEF_DIM(ncid, 'y', jpj, iy_dim)
+         nret = NF90_DEF_DIM(ncid, 'y', Nj_0, iy_dim)
          IF (nret .ne. NF90_NOERR) CALL ctl_stop('icebergs, write_restart: nf_def_dim y failed')
    
          nret = NF90_DEF_DIM(ncid, 'c', nclasses, nc_dim)
@@ -251,16 +252,16 @@ CONTAINS
          ! global attributes
          IF( lk_mpp ) THEN
             ! Set domain parameters (assume jpdom_local_full)
-            nret = NF90_PUT_ATT( ncid, NF90_GLOBAL, 'DOMAIN_number_total'   , jpnij              )
-            nret = NF90_PUT_ATT( ncid, NF90_GLOBAL, 'DOMAIN_number'         , narea-1            )
-            nret = NF90_PUT_ATT( ncid, NF90_GLOBAL, 'DOMAIN_dimensions_ids' , (/1     , 2     /) )
-            nret = NF90_PUT_ATT( ncid, NF90_GLOBAL, 'DOMAIN_size_global'    , (/jpiglo, jpjglo/) )
-            nret = NF90_PUT_ATT( ncid, NF90_GLOBAL, 'DOMAIN_size_local'     , (/jpi   , jpj   /) )
-            nret = NF90_PUT_ATT( ncid, NF90_GLOBAL, 'DOMAIN_position_first' , (/nimpp , njmpp /) )
-            nret = NF90_PUT_ATT( ncid, NF90_GLOBAL, 'DOMAIN_position_last'  , (/nimpp + jpi - 1 , njmpp + jpj - 1  /) )
-            nret = NF90_PUT_ATT( ncid, NF90_GLOBAL, 'DOMAIN_halo_size_start', (/nldi - 1        , nldj - 1         /) )
-            nret = NF90_PUT_ATT( ncid, NF90_GLOBAL, 'DOMAIN_halo_size_end'  , (/jpi - nlei      , jpj - nlej       /) )
-            nret = NF90_PUT_ATT( ncid, NF90_GLOBAL, 'DOMAIN_type'           , 'BOX'              )
+            nret = NF90_PUT_ATT( ncid, NF90_GLOBAL, 'DOMAIN_number_total'   , jpnij                        )
+            nret = NF90_PUT_ATT( ncid, NF90_GLOBAL, 'DOMAIN_number'         , narea-1                      )
+            nret = NF90_PUT_ATT( ncid, NF90_GLOBAL, 'DOMAIN_dimensions_ids' , (/ 1         , 2          /) )
+            nret = NF90_PUT_ATT( ncid, NF90_GLOBAL, 'DOMAIN_size_global'    , (/ Ni0glo    , Nj0glo     /) )
+            nret = NF90_PUT_ATT( ncid, NF90_GLOBAL, 'DOMAIN_size_local'     , (/ Ni_0      , Nj_0       /) )
+            nret = NF90_PUT_ATT( ncid, NF90_GLOBAL, 'DOMAIN_position_first' , (/ mig0(Nis0), mjg0(Njs0) /) )
+            nret = NF90_PUT_ATT( ncid, NF90_GLOBAL, 'DOMAIN_position_last'  , (/ mig0(Nie0), mjg0(Nje0) /) )
+            nret = NF90_PUT_ATT( ncid, NF90_GLOBAL, 'DOMAIN_halo_size_start', (/ 0         , 0          /) )
+            nret = NF90_PUT_ATT( ncid, NF90_GLOBAL, 'DOMAIN_halo_size_end'  , (/ 0         , 0          /) )
+            nret = NF90_PUT_ATT( ncid, NF90_GLOBAL, 'DOMAIN_type'           , 'BOX'                        )
          ENDIF
          
          IF (associated(first_berg)) then
@@ -351,14 +352,13 @@ CONTAINS
    
          nstrt3(1) = 1
          nstrt3(2) = 1
-         nlngth3(1) = jpi
-         nlngth3(2) = jpj
+         nlngth3(1) = Ni_0
+         nlngth3(2) = Nj_0
          nlngth3(3) = 1
    
          DO jn=1,nclasses
-            griddata(:,:,1) = berg_grid%stored_ice(:,:,jn)
             nstrt3(3) = jn
-            nret = NF90_PUT_VAR( ncid, nsiceid, griddata, nstrt3, nlngth3 )
+            nret = NF90_PUT_VAR( ncid, nsiceid, berg_grid%stored_ice(Nis0:Nie0,Njs0:Nje0,jn), nstrt3, nlngth3 )
             IF (nret .ne. NF90_NOERR) THEN
                IF( lwp ) WRITE(numout,*) TRIM(NF90_STRERROR( nret ))
                CALL ctl_stop('icebergs, write_restart: nf_put_var stored_ice failed')
@@ -369,13 +369,13 @@ CONTAINS
          nret = NF90_PUT_VAR( ncid, nkountid, num_bergs(:) )
          IF (nret .ne. NF90_NOERR) CALL ctl_stop('icebergs, write_restart: nf_put_var kount failed')
    
-         nret = NF90_PUT_VAR( ncid, nsheatid, berg_grid%stored_heat(:,:) )
+         nret = NF90_PUT_VAR( ncid, nsheatid, berg_grid%stored_heat(Nis0:Nie0,Njs0:Nje0) )
          IF (nret .ne. NF90_NOERR) CALL ctl_stop('icebergs, write_restart: nf_put_var stored_heat failed')
          IF( lwp ) WRITE(numout,*) 'file: ',TRIM(cl_path)//TRIM(cl_filename),' var: stored_heat written'
    
-         nret = NF90_PUT_VAR( ncid, ncalvid , src_calving(:,:) )
+         nret = NF90_PUT_VAR( ncid, ncalvid , src_calving(Nis0:Nie0,Njs0:Nje0) )
          IF (nret .ne. NF90_NOERR) CALL ctl_stop('icebergs, write_restart: nf_put_var calving failed')
-         nret = NF90_PUT_VAR( ncid, ncalvhid, src_calving_hflx(:,:) )
+         nret = NF90_PUT_VAR( ncid, ncalvhid, src_calving_hflx(Nis0:Nie0,Njs0:Nje0) )
          IF (nret .ne. NF90_NOERR) CALL ctl_stop('icebergs, write_restart: nf_put_var calving_hflx failed')
          IF( lwp ) WRITE(numout,*) 'file: ',TRIM(cl_path)//TRIM(cl_filename),' var: calving written'
    

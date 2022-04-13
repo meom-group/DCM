@@ -19,7 +19,7 @@ MODULE lib_mpp
    !!            3.2  !  2009  (O. Marti)    add mpp_ini_znl
    !!            4.0  !  2011  (G. Madec)  move ctl_ routines from in_out_manager
    !!            3.5  !  2012  (S.Mocavero, I. Epicoco) Add mpp_lnk_bdy_3d/2d routines to optimize the BDY comm.
-   !!            3.5  !  2013  (C. Ethe, G. Madec)  message passing arrays as local variables 
+   !!            3.5  !  2013  (C. Ethe, G. Madec)  message passing arrays as local variables
    !!            3.5  !  2013  (S.Mocavero, I.Epicoco - CMCC) north fold optimizations
    !!            3.6  !  2015  (O. Tintó and M. Castrillo - BSC) Added '_multiple' case for 2D lbc and max
    !!            4.0  !  2017  (G. Madec) automatique allocation of array argument (use any 3rd dimension)
@@ -31,6 +31,7 @@ MODULE lib_mpp
    !!   ctl_warn      : initialization, namelist read, and parameters control
    !!   ctl_opn       : Open file and check if required file is available.
    !!   ctl_nam       : Prints informations when an error occurs while reading a namelist
+   !!   load_nml      : Read, condense and buffer namelist file into character array for use as an internal file
    !!----------------------------------------------------------------------
    !!----------------------------------------------------------------------
    !!   mpp_start     : get local communicator its size and rank
@@ -47,65 +48,90 @@ MODULE lib_mpp
    !!   mpp_maxloc    :
    !!   mppsync       :
    !!   mppstop       :
-   !!   mpp_ini_north : initialisation of north fold
+   !!   mpp_ini_northgather : initialisation of north fold with gathering of the communications
    !!   mpp_lbc_north_icb : alternative to mpp_nfd for extra outer halo with icebergs
+   !!   mpp_bcast_nml : broadcast/receive namelist character buffer from reading process to all others
    !!----------------------------------------------------------------------
    USE dom_oce        ! ocean space and time domain
    USE in_out_manager ! I/O manager
+#if ! defined key_mpi_off
+   USE MPI
+#endif
 
    IMPLICIT NONE
    PRIVATE
    !
-   PUBLIC   ctl_stop, ctl_warn, ctl_opn, ctl_nam
+   PUBLIC   ctl_stop, ctl_warn, ctl_opn, ctl_nam, load_nml
    PUBLIC   mpp_start, mppstop, mppsync, mpp_comm_free
-   PUBLIC   mpp_ini_north
+   PUBLIC   mpp_ini_northgather
    PUBLIC   mpp_min, mpp_max, mpp_sum, mpp_minloc, mpp_maxloc
    PUBLIC   mpp_delay_max, mpp_delay_sum, mpp_delay_rcv
    PUBLIC   mppscatter, mppgather
    PUBLIC   mpp_ini_znl
+   PUBLIC   mpp_ini_nc
    PUBLIC   mppsend, mpprecv                          ! needed by TAM and ICB routines
+   PUBLIC   mppsend_sp, mpprecv_sp                          ! needed by TAM and ICB routines
+   PUBLIC   mppsend_dp, mpprecv_dp                          ! needed by TAM and ICB routines
    PUBLIC   mpp_report
+   PUBLIC   mpp_bcast_nml
    PUBLIC   tic_tac
-#if ! defined key_mpp_mpi
-   PUBLIC MPI_Wtime
+#if defined key_mpi_off
+   PUBLIC   MPI_wait
+   PUBLIC   MPI_waitall
+   PUBLIC   MPI_Wtime
 #endif
-   
+
    !! * Interfaces
    !! define generic interface for these routine as they are called sometimes
    !! with scalar arguments instead of array arguments, which causes problems
    !! for the compilation on AIX system as well as NEC and SGI. Ok on COMPACQ
    INTERFACE mpp_min
-      MODULE PROCEDURE mppmin_a_int, mppmin_int, mppmin_a_real, mppmin_real
+      MODULE PROCEDURE mppmin_a_int, mppmin_int
+      MODULE PROCEDURE mppmin_a_real_sp, mppmin_real_sp
+      MODULE PROCEDURE mppmin_a_real_dp, mppmin_real_dp
    END INTERFACE
    INTERFACE mpp_max
-      MODULE PROCEDURE mppmax_a_int, mppmax_int, mppmax_a_real, mppmax_real
+      MODULE PROCEDURE mppmax_a_int, mppmax_int
+      MODULE PROCEDURE mppmax_a_real_sp, mppmax_real_sp
+      MODULE PROCEDURE mppmax_a_real_dp, mppmax_real_dp
    END INTERFACE
    INTERFACE mpp_sum
-      MODULE PROCEDURE mppsum_a_int, mppsum_int, mppsum_a_real, mppsum_real,   &
-         &             mppsum_realdd, mppsum_a_realdd
+      MODULE PROCEDURE mppsum_a_int, mppsum_int
+      MODULE PROCEDURE mppsum_realdd, mppsum_a_realdd
+      MODULE PROCEDURE mppsum_a_real_sp, mppsum_real_sp
+      MODULE PROCEDURE mppsum_a_real_dp, mppsum_real_dp
    END INTERFACE
    INTERFACE mpp_minloc
-      MODULE PROCEDURE mpp_minloc2d ,mpp_minloc3d
+      MODULE PROCEDURE mpp_minloc2d_sp ,mpp_minloc3d_sp
+      MODULE PROCEDURE mpp_minloc2d_dp ,mpp_minloc3d_dp
    END INTERFACE
    INTERFACE mpp_maxloc
-      MODULE PROCEDURE mpp_maxloc2d ,mpp_maxloc3d
+      MODULE PROCEDURE mpp_maxloc2d_sp ,mpp_maxloc3d_sp
+      MODULE PROCEDURE mpp_maxloc2d_dp ,mpp_maxloc3d_dp
    END INTERFACE
+
+   TYPE, PUBLIC ::   PTR_4D_sp   !: array of 4D pointers (used in lbclnk and lbcnfd)
+      REAL(sp), DIMENSION (:,:,:,:), POINTER ::   pt4d
+   END TYPE PTR_4D_sp
+
+   TYPE, PUBLIC ::   PTR_4D_dp   !: array of 4D pointers (used in lbclnk and lbcnfd)
+      REAL(dp), DIMENSION (:,:,:,:), POINTER ::   pt4d
+   END TYPE PTR_4D_dp
 
    !! ========================= !!
    !!  MPI  variable definition !!
    !! ========================= !!
-#if   defined key_mpp_mpi
-!$AGRIF_DO_NOT_TREAT
-   INCLUDE 'mpif.h'
-!$AGRIF_END_DO_NOT_TREAT
+#if ! defined key_mpi_off
    LOGICAL, PUBLIC, PARAMETER ::   lk_mpp = .TRUE.    !: mpp flag
-#else   
+#else
    INTEGER, PUBLIC, PARAMETER ::   MPI_STATUS_SIZE = 1
+   INTEGER, PUBLIC, PARAMETER ::   MPI_REAL = 4
    INTEGER, PUBLIC, PARAMETER ::   MPI_DOUBLE_PRECISION = 8
+   INTEGER, PUBLIC, PARAMETER ::   MPI_REQUEST_NULL = 1
    LOGICAL, PUBLIC, PARAMETER ::   lk_mpp = .FALSE.    !: mpp flag
+   INTEGER, PUBLIC, DIMENSION(MPI_STATUS_SIZE) ::   MPI_STATUS_IGNORE = 1     ! out from mpi_wait
+   INTEGER, PUBLIC, DIMENSION(MPI_STATUS_SIZE) ::   MPI_STATUSES_IGNORE = 1   ! out from mpi_waitall
 #endif
-
-   INTEGER, PARAMETER         ::   nprocmax = 2**10   ! maximun dimension (required to be a power of 2)
 
    INTEGER, PUBLIC ::   mppsize        ! number of process
    INTEGER, PUBLIC ::   mpprank        ! process number  [ 0 - size-1 ]
@@ -115,12 +141,33 @@ MODULE lib_mpp
 
    INTEGER :: MPI_SUMDD
 
+   ! Neighbourgs informations
+   INTEGER,    PARAMETER, PUBLIC ::   n_hlsmax = 3
+   INTEGER, DIMENSION(         8), PUBLIC ::   mpinei      !: 8-neighbourg MPI indexes (starting at 0, -1 if no neighbourg)
+   INTEGER, DIMENSION(n_hlsmax,8), PUBLIC ::   mpiSnei     !: 8-neighbourg Send MPI indexes (starting at 0, -1 if no neighbourg)
+   INTEGER, DIMENSION(n_hlsmax,8), PUBLIC ::   mpiRnei     !: 8-neighbourg Recv MPI indexes (starting at 0, -1 if no neighbourg)
+   INTEGER,    PARAMETER, PUBLIC ::   jpwe = 1   !: WEst
+   INTEGER,    PARAMETER, PUBLIC ::   jpea = 2   !: EAst
+   INTEGER,    PARAMETER, PUBLIC ::   jpso = 3   !: SOuth
+   INTEGER,    PARAMETER, PUBLIC ::   jpno = 4   !: NOrth
+   INTEGER,    PARAMETER, PUBLIC ::   jpsw = 5   !: South-West
+   INTEGER,    PARAMETER, PUBLIC ::   jpse = 6   !: South-East
+   INTEGER,    PARAMETER, PUBLIC ::   jpnw = 7   !: North-West
+   INTEGER,    PARAMETER, PUBLIC ::   jpne = 8   !: North-East
+
+   LOGICAL, DIMENSION(8), PUBLIC ::   l_SelfPerio  !   should we explicitely take care of I/J periodicity
+   LOGICAL,               PUBLIC ::   l_IdoNFold
+
    ! variables used for zonal integration
-   INTEGER, PUBLIC ::   ncomm_znl       !: communicator made by the processors on the same zonal average
-   LOGICAL, PUBLIC ::   l_znl_root      !: True on the 'left'most processor on the same row
-   INTEGER         ::   ngrp_znl        !  group ID for the znl processors
-   INTEGER         ::   ndim_rank_znl   !  number of processors on the same zonal average
+   INTEGER, PUBLIC ::   ncomm_znl         !: communicator made by the processors on the same zonal average
+   LOGICAL, PUBLIC ::   l_znl_root        !: True on the 'left'most processor on the same row
+   INTEGER         ::   ngrp_znl          !: group ID for the znl processors
+   INTEGER         ::   ndim_rank_znl     !: number of processors on the same zonal average
    INTEGER, DIMENSION(:), ALLOCATABLE, SAVE ::   nrank_znl  ! dimension ndim_rank_znl, number of the procs into the same znl domain
+
+   ! variables used for MPI3 neighbourhood collectives
+   INTEGER, DIMENSION(n_hlsmax), PUBLIC ::   mpi_nc_com4       ! MPI3 neighbourhood collectives communicator
+   INTEGER, DIMENSION(n_hlsmax), PUBLIC ::   mpi_nc_com8       ! MPI3 neighbourhood collectives communicator (with diagionals)
 
    ! North fold condition in mpp_mpi with jpni > 1 (PUBLIC for TAM)
    INTEGER, PUBLIC ::   ngrp_world        !: group ID for the world processors
@@ -133,12 +180,11 @@ MODULE lib_mpp
    INTEGER, PUBLIC, DIMENSION(:), ALLOCATABLE, SAVE ::   nrank_north   !: dimension ndim_rank_north
 
    ! Communications summary report
-   CHARACTER(len=128), DIMENSION(:), ALLOCATABLE ::   crname_lbc                   !: names of lbc_lnk calling routines
-   CHARACTER(len=128), DIMENSION(:), ALLOCATABLE ::   crname_glb                   !: names of global comm calling routines
-   CHARACTER(len=128), DIMENSION(:), ALLOCATABLE ::   crname_dlg                   !: names of delayed global comm calling routines
+   CHARACTER(len=lca), DIMENSION(:), ALLOCATABLE ::   crname_lbc                   !: names of lbc_lnk calling routines
+   CHARACTER(len=lca), DIMENSION(:), ALLOCATABLE ::   crname_glb                   !: names of global comm calling routines
+   CHARACTER(len=lca), DIMENSION(:), ALLOCATABLE ::   crname_dlg                   !: names of delayed global comm calling routines
    INTEGER, PUBLIC                               ::   ncom_stp = 0                 !: copy of time step # istp
    INTEGER, PUBLIC                               ::   ncom_fsbc = 1                !: copy of sbc time step # nn_fsbc
-   INTEGER, PUBLIC                               ::   ncom_dttrc = 1               !: copy of top time step # nn_dttrc
    INTEGER, PUBLIC                               ::   ncom_freq                    !: frequency of comm diagnostic
    INTEGER, PUBLIC , DIMENSION(:,:), ALLOCATABLE ::   ncomm_sequence               !: size of communicated arrays (halos)
    INTEGER, PARAMETER, PUBLIC                    ::   ncom_rec_max = 5000          !: max number of communication record
@@ -155,23 +201,31 @@ MODULE lib_mpp
    CHARACTER(len=3),  DIMENSION(nbdelay), PUBLIC ::   c_delaycpnt = (/ 'ICE'   , 'OCE' /)
    TYPE, PUBLIC ::   DELAYARR
       REAL(   wp), POINTER, DIMENSION(:) ::  z1d => NULL()
-      COMPLEX(wp), POINTER, DIMENSION(:) ::  y1d => NULL()
+      COMPLEX(dp), POINTER, DIMENSION(:) ::  y1d => NULL()
    END TYPE DELAYARR
    TYPE( DELAYARR ), DIMENSION(nbdelay), PUBLIC, SAVE  ::   todelay         !: must have SAVE for default initialization of DELAYARR
    INTEGER,          DIMENSION(nbdelay), PUBLIC        ::   ndelayid = -1   !: mpi request id of the delayed operations
 
    ! timing summary report
-   REAL(wp), DIMENSION(2), PUBLIC ::  waiting_time = 0._wp
-   REAL(wp)              , PUBLIC ::  compute_time = 0._wp, elapsed_time = 0._wp
-   
+   REAL(dp), DIMENSION(2), PUBLIC ::  waiting_time = 0._dp
+   REAL(dp)              , PUBLIC ::  compute_time = 0._dp, elapsed_time = 0._dp
+
    REAL(wp), DIMENSION(:), ALLOCATABLE, SAVE ::   tampon   ! buffer in case of bsend
 
    LOGICAL, PUBLIC ::   ln_nnogather                !: namelist control of northfold comms
-   LOGICAL, PUBLIC ::   l_north_nogather = .FALSE.  !: internal control of northfold comms
-   
+   INTEGER, PUBLIC ::   nn_comm                     !: namelist control of comms
+
+   INTEGER, PUBLIC, PARAMETER ::   jpfillnothing = 1
+   INTEGER, PUBLIC, PARAMETER ::   jpfillcst     = 2
+   INTEGER, PUBLIC, PARAMETER ::   jpfillcopy    = 3
+   INTEGER, PUBLIC, PARAMETER ::   jpfillperio   = 4
+   INTEGER, PUBLIC, PARAMETER ::   jpfillmpi     = 5
+
+   !! * Substitutions
+#  include "do_loop_substitute.h90"
    !!----------------------------------------------------------------------
    !! NEMO/OCE 4.0 , NEMO Consortium (2018)
-   !! $Id: lib_mpp.F90 13635 2020-10-19 14:14:38Z mathiot $
+   !! $Id: lib_mpp.F90 15267 2021-09-17 09:04:34Z smasson $
    !! Software governed by the CeCILL license (see ./LICENSE)
    !!----------------------------------------------------------------------
 CONTAINS
@@ -187,7 +241,7 @@ CONTAINS
       INTEGER ::   ierr
       LOGICAL ::   llmpi_init
       !!----------------------------------------------------------------------
-#if defined key_mpp_mpi
+#if ! defined key_mpi_off
       !
       CALL mpi_initialized ( llmpi_init, ierr )
       IF( ierr /= MPI_SUCCESS ) CALL ctl_stop( 'STOP', ' lib_mpp: Error in routine mpi_initialized' )
@@ -201,7 +255,7 @@ CONTAINS
          CALL mpi_init( ierr )
          IF( ierr /= MPI_SUCCESS ) CALL ctl_stop( 'STOP', ' lib_mpp: Error in routine mpi_init' )
       ENDIF
-       
+
       IF( PRESENT(localComm) ) THEN
          IF( Agrif_Root() ) THEN
             mpi_comm_oce = localComm
@@ -243,16 +297,68 @@ CONTAINS
       INTEGER , INTENT(in   ) ::   kbytes     ! size of the array pmess
       INTEGER , INTENT(in   ) ::   kdest      ! receive process number
       INTEGER , INTENT(in   ) ::   ktyp       ! tag of the message
-      INTEGER , INTENT(in   ) ::   md_req     ! argument for isend
+      INTEGER , INTENT(inout) ::   md_req     ! argument for isend
+      !!
+      INTEGER ::   iflag
+      INTEGER :: mpi_working_type
+      !!----------------------------------------------------------------------
+      !
+#if ! defined key_mpi_off
+      IF (wp == dp) THEN
+         mpi_working_type = mpi_double_precision
+      ELSE
+         mpi_working_type = mpi_real
+      END IF
+      CALL mpi_isend( pmess, kbytes, mpi_working_type, kdest , ktyp, mpi_comm_oce, md_req, iflag )
+#endif
+      !
+   END SUBROUTINE mppsend
+
+
+   SUBROUTINE mppsend_dp( ktyp, pmess, kbytes, kdest, md_req )
+      !!----------------------------------------------------------------------
+      !!                  ***  routine mppsend  ***
+      !!
+      !! ** Purpose :   Send messag passing array
+      !!
+      !!----------------------------------------------------------------------
+      REAL(dp), INTENT(inout) ::   pmess(*)   ! array of real
+      INTEGER , INTENT(in   ) ::   kbytes     ! size of the array pmess
+      INTEGER , INTENT(in   ) ::   kdest      ! receive process number
+      INTEGER , INTENT(in   ) ::   ktyp       ! tag of the message
+      INTEGER , INTENT(inout) ::   md_req     ! argument for isend
       !!
       INTEGER ::   iflag
       !!----------------------------------------------------------------------
       !
-#if defined key_mpp_mpi
+#if ! defined key_mpi_off
       CALL mpi_isend( pmess, kbytes, mpi_double_precision, kdest , ktyp, mpi_comm_oce, md_req, iflag )
 #endif
       !
-   END SUBROUTINE mppsend
+   END SUBROUTINE mppsend_dp
+
+
+   SUBROUTINE mppsend_sp( ktyp, pmess, kbytes, kdest, md_req )
+      !!----------------------------------------------------------------------
+      !!                  ***  routine mppsend  ***
+      !!
+      !! ** Purpose :   Send messag passing array
+      !!
+      !!----------------------------------------------------------------------
+      REAL(sp), INTENT(inout) ::   pmess(*)   ! array of real
+      INTEGER , INTENT(in   ) ::   kbytes     ! size of the array pmess
+      INTEGER , INTENT(in   ) ::   kdest      ! receive process number
+      INTEGER , INTENT(in   ) ::   ktyp       ! tag of the message
+      INTEGER , INTENT(inout) ::   md_req     ! argument for isend
+      !!
+      INTEGER ::   iflag
+      !!----------------------------------------------------------------------
+      !
+#if ! defined key_mpi_off
+      CALL mpi_isend( pmess, kbytes, mpi_real, kdest , ktyp, mpi_comm_oce, md_req, iflag )
+#endif
+      !
+   END SUBROUTINE mppsend_sp
 
 
    SUBROUTINE mpprecv( ktyp, pmess, kbytes, ksource )
@@ -270,9 +376,43 @@ CONTAINS
       INTEGER :: istatus(mpi_status_size)
       INTEGER :: iflag
       INTEGER :: use_source
+      INTEGER :: mpi_working_type
       !!----------------------------------------------------------------------
       !
-#if defined key_mpp_mpi
+#if ! defined key_mpi_off
+      ! If a specific process number has been passed to the receive call,
+      ! use that one. Default is to use mpi_any_source
+      use_source = mpi_any_source
+      IF( PRESENT(ksource) )   use_source = ksource
+      !
+      IF (wp == dp) THEN
+         mpi_working_type = mpi_double_precision
+      ELSE
+         mpi_working_type = mpi_real
+      END IF
+      CALL mpi_recv( pmess, kbytes, mpi_working_type, use_source, ktyp, mpi_comm_oce, istatus, iflag )
+#endif
+      !
+   END SUBROUTINE mpprecv
+
+   SUBROUTINE mpprecv_dp( ktyp, pmess, kbytes, ksource )
+      !!----------------------------------------------------------------------
+      !!                  ***  routine mpprecv  ***
+      !!
+      !! ** Purpose :   Receive messag passing array
+      !!
+      !!----------------------------------------------------------------------
+      REAL(dp), INTENT(inout) ::   pmess(*)   ! array of real
+      INTEGER , INTENT(in   ) ::   kbytes     ! suze of the array pmess
+      INTEGER , INTENT(in   ) ::   ktyp       ! Tag of the recevied message
+      INTEGER, OPTIONAL, INTENT(in) :: ksource    ! source process number
+      !!
+      INTEGER :: istatus(mpi_status_size)
+      INTEGER :: iflag
+      INTEGER :: use_source
+      !!----------------------------------------------------------------------
+      !
+#if ! defined key_mpi_off
       ! If a specific process number has been passed to the receive call,
       ! use that one. Default is to use mpi_any_source
       use_source = mpi_any_source
@@ -281,7 +421,36 @@ CONTAINS
       CALL mpi_recv( pmess, kbytes, mpi_double_precision, use_source, ktyp, mpi_comm_oce, istatus, iflag )
 #endif
       !
-   END SUBROUTINE mpprecv
+   END SUBROUTINE mpprecv_dp
+
+
+   SUBROUTINE mpprecv_sp( ktyp, pmess, kbytes, ksource )
+      !!----------------------------------------------------------------------
+      !!                  ***  routine mpprecv  ***
+      !!
+      !! ** Purpose :   Receive messag passing array
+      !!
+      !!----------------------------------------------------------------------
+      REAL(sp), INTENT(inout) ::   pmess(*)   ! array of real
+      INTEGER , INTENT(in   ) ::   kbytes     ! suze of the array pmess
+      INTEGER , INTENT(in   ) ::   ktyp       ! Tag of the recevied message
+      INTEGER, OPTIONAL, INTENT(in) :: ksource    ! source process number
+      !!
+      INTEGER :: istatus(mpi_status_size)
+      INTEGER :: iflag
+      INTEGER :: use_source
+      !!----------------------------------------------------------------------
+      !
+#if ! defined key_mpi_off
+      ! If a specific process number has been passed to the receive call,
+      ! use that one. Default is to use mpi_any_source
+      use_source = mpi_any_source
+      IF( PRESENT(ksource) )   use_source = ksource
+      !
+      CALL mpi_recv( pmess, kbytes, mpi_real, use_source, ktyp, mpi_comm_oce, istatus, iflag )
+#endif
+      !
+   END SUBROUTINE mpprecv_sp
 
 
    SUBROUTINE mppgather( ptab, kp, pio )
@@ -300,7 +469,7 @@ CONTAINS
       !!---------------------------------------------------------------------
       !
       itaille = jpi * jpj
-#if defined key_mpp_mpi
+#if ! defined key_mpi_off
       CALL mpi_gather( ptab, itaille, mpi_double_precision, pio, itaille     ,   &
          &                            mpi_double_precision, kp , mpi_comm_oce, ierror )
 #else
@@ -327,7 +496,7 @@ CONTAINS
       !
       itaille = jpi * jpj
       !
-#if defined key_mpp_mpi
+#if ! defined key_mpi_off
       CALL mpi_scatter( pio, itaille, mpi_double_precision, ptab, itaille     ,   &
          &                            mpi_double_precision, kp  , mpi_comm_oce, ierror )
 #else
@@ -336,7 +505,7 @@ CONTAINS
       !
    END SUBROUTINE mppscatter
 
-   
+
    SUBROUTINE mpp_delay_sum( cdname, cdelay, y_in, pout, ldlast, kcom )
      !!----------------------------------------------------------------------
       !!                   ***  routine mpp_delay_sum  ***
@@ -346,7 +515,7 @@ CONTAINS
       !!----------------------------------------------------------------------
       CHARACTER(len=*), INTENT(in   )               ::   cdname  ! name of the calling subroutine
       CHARACTER(len=*), INTENT(in   )               ::   cdelay  ! name (used as id) of the delayed operation
-      COMPLEX(wp),      INTENT(in   ), DIMENSION(:) ::   y_in
+      COMPLEX(dp),      INTENT(in   ), DIMENSION(:) ::   y_in
       REAL(wp),         INTENT(  out), DIMENSION(:) ::   pout
       LOGICAL,          INTENT(in   )               ::   ldlast  ! true if this is the last time we call this routine
       INTEGER,          INTENT(in   ), OPTIONAL     ::   kcom
@@ -354,14 +523,14 @@ CONTAINS
       INTEGER ::   ji, isz
       INTEGER ::   idvar
       INTEGER ::   ierr, ilocalcomm
-      COMPLEX(wp), ALLOCATABLE, DIMENSION(:) ::   ytmp
+      COMPLEX(dp), ALLOCATABLE, DIMENSION(:) ::   ytmp
       !!----------------------------------------------------------------------
-#if defined key_mpp_mpi
+#if ! defined key_mpi_off
       ilocalcomm = mpi_comm_oce
       IF( PRESENT(kcom) )   ilocalcomm = kcom
 
       isz = SIZE(y_in)
-      
+
       IF( narea == 1 .AND. numcom == -1 ) CALL mpp_report( cdname, ld_dlg = .TRUE. )
 
       idvar = -1
@@ -382,7 +551,7 @@ CONTAINS
             ndelayid(idvar) = MPI_REQUEST_NULL                             ! initialised request to a valid value
          END IF
       ENDIF
-      
+
       IF( ndelayid(idvar) == -1 ) THEN         ! first call without restart: define %y1d and %z1d from y_in with blocking allreduce
          !                                       --------------------------
          ALLOCATE(todelay(idvar)%z1d(isz), todelay(idvar)%y1d(isz))   ! allocate also %z1d as used for the restart
@@ -410,7 +579,7 @@ CONTAINS
 
    END SUBROUTINE mpp_delay_sum
 
-   
+
    SUBROUTINE mpp_delay_max( cdname, cdelay, p_in, pout, ldlast, kcom )
       !!----------------------------------------------------------------------
       !!                   ***  routine mpp_delay_max  ***
@@ -420,17 +589,27 @@ CONTAINS
       !!----------------------------------------------------------------------
       CHARACTER(len=*), INTENT(in   )                 ::   cdname  ! name of the calling subroutine
       CHARACTER(len=*), INTENT(in   )                 ::   cdelay  ! name (used as id) of the delayed operation
-      REAL(wp),         INTENT(in   ), DIMENSION(:)   ::   p_in    ! 
-      REAL(wp),         INTENT(  out), DIMENSION(:)   ::   pout    ! 
+      REAL(wp),         INTENT(in   ), DIMENSION(:)   ::   p_in    !
+      REAL(wp),         INTENT(  out), DIMENSION(:)   ::   pout    !
       LOGICAL,          INTENT(in   )                 ::   ldlast  ! true if this is the last time we call this routine
       INTEGER,          INTENT(in   ), OPTIONAL       ::   kcom
       !!
       INTEGER ::   ji, isz
       INTEGER ::   idvar
       INTEGER ::   ierr, ilocalcomm
+      INTEGER ::   MPI_TYPE
       !!----------------------------------------------------------------------
-      
-#if defined key_mpp_mpi
+
+#if ! defined key_mpi_off
+      if( wp == dp ) then
+         MPI_TYPE = MPI_DOUBLE_PRECISION
+      else if ( wp == sp ) then
+         MPI_TYPE = MPI_REAL
+      else
+        CALL ctl_stop( "Error defining type, wp is neither dp nor sp" )
+
+      end if
+
       ilocalcomm = mpi_comm_oce
       IF( PRESENT(kcom) )   ilocalcomm = kcom
 
@@ -471,10 +650,10 @@ CONTAINS
       ! (PM) Should we get rid of MPI2 option ? MPI3 was release in 2013. Who is still using MPI2 ?
 # if defined key_mpi2
       IF( ln_timing ) CALL tic_tac( .TRUE., ld_global = .TRUE.)
-      CALL  mpi_allreduce( p_in(:), todelay(idvar)%z1d(:), isz, MPI_DOUBLE_PRECISION, mpi_max, ilocalcomm, ierr )
+      CALL  mpi_allreduce( p_in(:), todelay(idvar)%z1d(:), isz, MPI_TYPE, mpi_max, ilocalcomm, ierr )
       IF( ln_timing ) CALL tic_tac(.FALSE., ld_global = .TRUE.)
 # else
-      CALL mpi_iallreduce( p_in(:), todelay(idvar)%z1d(:), isz, MPI_DOUBLE_PRECISION, mpi_max, ilocalcomm, ndelayid(idvar), ierr )
+      CALL mpi_iallreduce( p_in(:), todelay(idvar)%z1d(:), isz, MPI_TYPE, mpi_max, ilocalcomm, ndelayid(idvar), ierr )
 # endif
 #else
       pout(:) = p_in(:)
@@ -482,18 +661,18 @@ CONTAINS
 
    END SUBROUTINE mpp_delay_max
 
-   
+
    SUBROUTINE mpp_delay_rcv( kid )
       !!----------------------------------------------------------------------
       !!                   ***  routine mpp_delay_rcv  ***
       !!
-      !! ** Purpose :  force barrier for delayed mpp (needed for restart) 
+      !! ** Purpose :  force barrier for delayed mpp (needed for restart)
       !!
       !!----------------------------------------------------------------------
-      INTEGER,INTENT(in   )      ::  kid 
+      INTEGER,INTENT(in   )      ::  kid
       INTEGER ::   ierr
       !!----------------------------------------------------------------------
-#if defined key_mpp_mpi
+#if ! defined key_mpi_off
       IF( ln_timing ) CALL tic_tac( .TRUE., ld_global = .TRUE.)
       ! test on ndelayid(kid) useless as mpi_wait return immediatly if the request handle is MPI_REQUEST_NULL
       CALL mpi_wait( ndelayid(kid), MPI_STATUS_IGNORE, ierr ) ! after this ndelayid(kid) = MPI_REQUEST_NULL
@@ -502,10 +681,35 @@ CONTAINS
 #endif
    END SUBROUTINE mpp_delay_rcv
 
-   
+   SUBROUTINE mpp_bcast_nml( cdnambuff , kleng )
+      CHARACTER(LEN=:)    , ALLOCATABLE, INTENT(INOUT) :: cdnambuff
+      INTEGER                          , INTENT(INOUT) :: kleng
+      !!----------------------------------------------------------------------
+      !!                  ***  routine mpp_bcast_nml  ***
+      !!
+      !! ** Purpose :   broadcast namelist character buffer
+      !!
+      !!----------------------------------------------------------------------
+      !!
+      INTEGER ::   iflag
+      !!----------------------------------------------------------------------
+      !
+#if ! defined key_mpi_off
+      call MPI_BCAST(kleng, 1, MPI_INT, 0, mpi_comm_oce, iflag)
+      call MPI_BARRIER(mpi_comm_oce, iflag)
+!$AGRIF_DO_NOT_TREAT
+      IF ( .NOT. ALLOCATED(cdnambuff) ) ALLOCATE( CHARACTER(LEN=kleng) :: cdnambuff )
+!$AGRIF_END_DO_NOT_TREAT
+      call MPI_BCAST(cdnambuff, kleng, MPI_CHARACTER, 0, mpi_comm_oce, iflag)
+      call MPI_BARRIER(mpi_comm_oce, iflag)
+#endif
+      !
+   END SUBROUTINE mpp_bcast_nml
+
+
    !!----------------------------------------------------------------------
    !!    ***  mppmax_a_int, mppmax_int, mppmax_a_real, mppmax_real  ***
-   !!   
+   !!
    !!----------------------------------------------------------------------
    !!
 #  define OPERATION_MAX
@@ -522,14 +726,34 @@ CONTAINS
 #  undef DIM_1d
 #  undef INTEGER_TYPE
 !
+   !!
+   !!   ----   SINGLE PRECISION VERSIONS
+   !!
+#  define SINGLE_PRECISION
 #  define REAL_TYPE
 #  define DIM_0d
-#     define ROUTINE_ALLREDUCE           mppmax_real
+#     define ROUTINE_ALLREDUCE           mppmax_real_sp
 #     include "mpp_allreduce_generic.h90"
 #     undef ROUTINE_ALLREDUCE
 #  undef DIM_0d
 #  define DIM_1d
-#     define ROUTINE_ALLREDUCE           mppmax_a_real
+#     define ROUTINE_ALLREDUCE           mppmax_a_real_sp
+#     include "mpp_allreduce_generic.h90"
+#     undef ROUTINE_ALLREDUCE
+#  undef DIM_1d
+#  undef SINGLE_PRECISION
+   !!
+   !!
+   !!   ----   DOUBLE PRECISION VERSIONS
+   !!
+!
+#  define DIM_0d
+#     define ROUTINE_ALLREDUCE           mppmax_real_dp
+#     include "mpp_allreduce_generic.h90"
+#     undef ROUTINE_ALLREDUCE
+#  undef DIM_0d
+#  define DIM_1d
+#     define ROUTINE_ALLREDUCE           mppmax_a_real_dp
 #     include "mpp_allreduce_generic.h90"
 #     undef ROUTINE_ALLREDUCE
 #  undef DIM_1d
@@ -537,7 +761,7 @@ CONTAINS
 #  undef OPERATION_MAX
    !!----------------------------------------------------------------------
    !!    ***  mppmin_a_int, mppmin_int, mppmin_a_real, mppmin_real  ***
-   !!   
+   !!
    !!----------------------------------------------------------------------
    !!
 #  define OPERATION_MIN
@@ -554,14 +778,33 @@ CONTAINS
 #  undef DIM_1d
 #  undef INTEGER_TYPE
 !
+   !!
+   !!   ----   SINGLE PRECISION VERSIONS
+   !!
+#  define SINGLE_PRECISION
 #  define REAL_TYPE
 #  define DIM_0d
-#     define ROUTINE_ALLREDUCE           mppmin_real
+#     define ROUTINE_ALLREDUCE           mppmin_real_sp
 #     include "mpp_allreduce_generic.h90"
 #     undef ROUTINE_ALLREDUCE
 #  undef DIM_0d
 #  define DIM_1d
-#     define ROUTINE_ALLREDUCE           mppmin_a_real
+#     define ROUTINE_ALLREDUCE           mppmin_a_real_sp
+#     include "mpp_allreduce_generic.h90"
+#     undef ROUTINE_ALLREDUCE
+#  undef DIM_1d
+#  undef SINGLE_PRECISION
+   !!
+   !!   ----   DOUBLE PRECISION VERSIONS
+   !!
+
+#  define DIM_0d
+#     define ROUTINE_ALLREDUCE           mppmin_real_dp
+#     include "mpp_allreduce_generic.h90"
+#     undef ROUTINE_ALLREDUCE
+#  undef DIM_0d
+#  define DIM_1d
+#     define ROUTINE_ALLREDUCE           mppmin_a_real_dp
 #     include "mpp_allreduce_generic.h90"
 #     undef ROUTINE_ALLREDUCE
 #  undef DIM_1d
@@ -570,7 +813,7 @@ CONTAINS
 
    !!----------------------------------------------------------------------
    !!    ***  mppsum_a_int, mppsum_int, mppsum_a_real, mppsum_real  ***
-   !!   
+   !!
    !!   Global sum of 1D array or a variable (integer, real or complex)
    !!----------------------------------------------------------------------
    !!
@@ -587,15 +830,40 @@ CONTAINS
 #     undef ROUTINE_ALLREDUCE
 #  undef DIM_1d
 #  undef INTEGER_TYPE
-!
+
+   !!
+   !!   ----   SINGLE PRECISION VERSIONS
+   !!
+#  define OPERATION_SUM
+#  define SINGLE_PRECISION
 #  define REAL_TYPE
 #  define DIM_0d
-#     define ROUTINE_ALLREDUCE           mppsum_real
+#     define ROUTINE_ALLREDUCE           mppsum_real_sp
 #     include "mpp_allreduce_generic.h90"
 #     undef ROUTINE_ALLREDUCE
 #  undef DIM_0d
 #  define DIM_1d
-#     define ROUTINE_ALLREDUCE           mppsum_a_real
+#     define ROUTINE_ALLREDUCE           mppsum_a_real_sp
+#     include "mpp_allreduce_generic.h90"
+#     undef ROUTINE_ALLREDUCE
+#  undef DIM_1d
+#  undef REAL_TYPE
+#  undef OPERATION_SUM
+
+#  undef SINGLE_PRECISION
+
+   !!
+   !!   ----   DOUBLE PRECISION VERSIONS
+   !!
+#  define OPERATION_SUM
+#  define REAL_TYPE
+#  define DIM_0d
+#     define ROUTINE_ALLREDUCE           mppsum_real_dp
+#     include "mpp_allreduce_generic.h90"
+#     undef ROUTINE_ALLREDUCE
+#  undef DIM_0d
+#  define DIM_1d
+#     define ROUTINE_ALLREDUCE           mppsum_a_real_dp
 #     include "mpp_allreduce_generic.h90"
 #     undef ROUTINE_ALLREDUCE
 #  undef DIM_1d
@@ -619,17 +887,21 @@ CONTAINS
 
    !!----------------------------------------------------------------------
    !!    ***  mpp_minloc2d, mpp_minloc3d, mpp_maxloc2d, mpp_maxloc3d
-   !!   
+   !!
    !!----------------------------------------------------------------------
    !!
+   !!
+   !!   ----   SINGLE PRECISION VERSIONS
+   !!
+#  define SINGLE_PRECISION
 #  define OPERATION_MINLOC
 #  define DIM_2d
-#     define ROUTINE_LOC           mpp_minloc2d
+#     define ROUTINE_LOC           mpp_minloc2d_sp
 #     include "mpp_loc_generic.h90"
 #     undef ROUTINE_LOC
 #  undef DIM_2d
 #  define DIM_3d
-#     define ROUTINE_LOC           mpp_minloc3d
+#     define ROUTINE_LOC           mpp_minloc3d_sp
 #     include "mpp_loc_generic.h90"
 #     undef ROUTINE_LOC
 #  undef DIM_3d
@@ -637,16 +909,46 @@ CONTAINS
 
 #  define OPERATION_MAXLOC
 #  define DIM_2d
-#     define ROUTINE_LOC           mpp_maxloc2d
+#     define ROUTINE_LOC           mpp_maxloc2d_sp
 #     include "mpp_loc_generic.h90"
 #     undef ROUTINE_LOC
 #  undef DIM_2d
 #  define DIM_3d
-#     define ROUTINE_LOC           mpp_maxloc3d
+#     define ROUTINE_LOC           mpp_maxloc3d_sp
 #     include "mpp_loc_generic.h90"
 #     undef ROUTINE_LOC
 #  undef DIM_3d
 #  undef OPERATION_MAXLOC
+#  undef SINGLE_PRECISION
+   !!
+   !!   ----   DOUBLE PRECISION VERSIONS
+   !!
+#  define OPERATION_MINLOC
+#  define DIM_2d
+#     define ROUTINE_LOC           mpp_minloc2d_dp
+#     include "mpp_loc_generic.h90"
+#     undef ROUTINE_LOC
+#  undef DIM_2d
+#  define DIM_3d
+#     define ROUTINE_LOC           mpp_minloc3d_dp
+#     include "mpp_loc_generic.h90"
+#     undef ROUTINE_LOC
+#  undef DIM_3d
+#  undef OPERATION_MINLOC
+
+#  define OPERATION_MAXLOC
+#  define DIM_2d
+#     define ROUTINE_LOC           mpp_maxloc2d_dp
+#     include "mpp_loc_generic.h90"
+#     undef ROUTINE_LOC
+#  undef DIM_2d
+#  define DIM_3d
+#     define ROUTINE_LOC           mpp_maxloc3d_dp
+#     include "mpp_loc_generic.h90"
+#     undef ROUTINE_LOC
+#  undef DIM_3d
+#  undef OPERATION_MAXLOC
+
 
    SUBROUTINE mppsync()
       !!----------------------------------------------------------------------
@@ -658,14 +960,14 @@ CONTAINS
       INTEGER :: ierror
       !!-----------------------------------------------------------------------
       !
-#if defined key_mpp_mpi
+#if ! defined key_mpi_off
       CALL mpi_barrier( mpi_comm_oce, ierror )
 #endif
       !
    END SUBROUTINE mppsync
 
 
-   SUBROUTINE mppstop( ld_abort ) 
+   SUBROUTINE mppstop( ld_abort )
       !!----------------------------------------------------------------------
       !!                  ***  routine mppstop  ***
       !!
@@ -674,14 +976,14 @@ CONTAINS
       !!----------------------------------------------------------------------
       LOGICAL, OPTIONAL, INTENT(in) :: ld_abort    ! source process number
       LOGICAL ::   ll_abort
-      INTEGER ::   info
+      INTEGER ::   info, ierr
       !!----------------------------------------------------------------------
       ll_abort = .FALSE.
       IF( PRESENT(ld_abort) ) ll_abort = ld_abort
       !
-#if defined key_mpp_mpi
+#if ! defined key_mpi_off
       IF(ll_abort) THEN
-         CALL mpi_abort( MPI_COMM_WORLD )
+         CALL mpi_abort( MPI_COMM_WORLD, 123, info )
       ELSE
          CALL mppsync
          CALL mpi_finalize( info )
@@ -694,12 +996,12 @@ CONTAINS
 
    SUBROUTINE mpp_comm_free( kcom )
       !!----------------------------------------------------------------------
-      INTEGER, INTENT(in) ::   kcom
+      INTEGER, INTENT(inout) ::   kcom
       !!
       INTEGER :: ierr
       !!----------------------------------------------------------------------
       !
-#if defined key_mpp_mpi
+#if ! defined key_mpi_off
       CALL MPI_COMM_FREE(kcom, ierr)
 #endif
       !
@@ -731,10 +1033,10 @@ CONTAINS
       INTEGER :: ierr, ii   ! local integer
       INTEGER, ALLOCATABLE, DIMENSION(:) ::   kwork
       !!----------------------------------------------------------------------
-#if defined key_mpp_mpi
-      !-$$     WRITE (numout,*) 'mpp_ini_znl ', nproc, ' - ngrp_world     : ', ngrp_world
-      !-$$     WRITE (numout,*) 'mpp_ini_znl ', nproc, ' - mpi_comm_world : ', mpi_comm_world
-      !-$$     WRITE (numout,*) 'mpp_ini_znl ', nproc, ' - mpi_comm_oce   : ', mpi_comm_oce
+#if ! defined key_mpi_off
+      !-$$     WRITE (numout,*) 'mpp_ini_znl ', mpprank, ' - ngrp_world     : ', ngrp_world
+      !-$$     WRITE (numout,*) 'mpp_ini_znl ', mpprank, ' - mpi_comm_world : ', mpi_comm_world
+      !-$$     WRITE (numout,*) 'mpp_ini_znl ', mpprank, ' - mpi_comm_oce   : ', mpi_comm_oce
       !
       ALLOCATE( kwork(jpnij), STAT=ierr )
       IF( ierr /= 0 ) CALL ctl_stop( 'STOP', 'mpp_ini_znl : failed to allocate 1D array of length jpnij')
@@ -745,7 +1047,7 @@ CONTAINS
       ELSE
          !
          CALL MPI_ALLGATHER ( njmpp, 1, mpi_integer, kwork, 1, mpi_integer, mpi_comm_oce, ierr )
-         !-$$        WRITE (numout,*) 'mpp_ini_znl ', nproc, ' - kwork pour njmpp : ', kwork
+         !-$$        WRITE (numout,*) 'mpp_ini_znl ', mpprank, ' - kwork pour njmpp : ', kwork
          !-$$        CALL flush(numout)
          !
          ! Count number of processors on the same row
@@ -755,7 +1057,7 @@ CONTAINS
                ndim_rank_znl = ndim_rank_znl + 1
             ENDIF
          END DO
-         !-$$        WRITE (numout,*) 'mpp_ini_znl ', nproc, ' - ndim_rank_znl : ', ndim_rank_znl
+         !-$$        WRITE (numout,*) 'mpp_ini_znl ', mpprank, ' - ndim_rank_znl : ', ndim_rank_znl
          !-$$        CALL flush(numout)
          ! Allocate the right size to nrank_znl
          IF (ALLOCATED (nrank_znl)) DEALLOCATE(nrank_znl)
@@ -768,22 +1070,22 @@ CONTAINS
                nrank_znl(ii) = jproc -1
             ENDIF
          END DO
-         !-$$        WRITE (numout,*) 'mpp_ini_znl ', nproc, ' - nrank_znl : ', nrank_znl
+         !-$$        WRITE (numout,*) 'mpp_ini_znl ', mpprank, ' - nrank_znl : ', nrank_znl
          !-$$        CALL flush(numout)
 
          ! Create the opa group
          CALL MPI_COMM_GROUP(mpi_comm_oce,ngrp_opa,ierr)
-         !-$$        WRITE (numout,*) 'mpp_ini_znl ', nproc, ' - ngrp_opa : ', ngrp_opa
+         !-$$        WRITE (numout,*) 'mpp_ini_znl ', mpprank, ' - ngrp_opa : ', ngrp_opa
          !-$$        CALL flush(numout)
 
          ! Create the znl group from the opa group
          CALL MPI_GROUP_INCL  ( ngrp_opa, ndim_rank_znl, nrank_znl, ngrp_znl, ierr )
-         !-$$        WRITE (numout,*) 'mpp_ini_znl ', nproc, ' - ngrp_znl ', ngrp_znl
+         !-$$        WRITE (numout,*) 'mpp_ini_znl ', mpprank, ' - ngrp_znl ', ngrp_znl
          !-$$        CALL flush(numout)
 
          ! Create the znl communicator from the opa communicator, ie the pool of procs in the same row
          CALL MPI_COMM_CREATE ( mpi_comm_oce, ngrp_znl, ncomm_znl, ierr )
-         !-$$        WRITE (numout,*) 'mpp_ini_znl ', nproc, ' - ncomm_znl ', ncomm_znl
+         !-$$        WRITE (numout,*) 'mpp_ini_znl ', mpprank, ' - ncomm_znl ', ncomm_znl
          !-$$        CALL flush(numout)
          !
       END IF
@@ -803,10 +1105,55 @@ CONTAINS
 
    END SUBROUTINE mpp_ini_znl
 
-
-   SUBROUTINE mpp_ini_north
+   
+   SUBROUTINE mpp_ini_nc( khls )
       !!----------------------------------------------------------------------
-      !!               ***  routine mpp_ini_north  ***
+      !!               ***  routine mpp_ini_nc  ***
+      !!
+      !! ** Purpose :   Initialize special communicators for MPI3 neighbourhood
+      !!                collectives
+      !!
+      !! ** Method  : - Create graph communicators starting from the processes
+      !!                distribution along i and j directions
+      !
+      !! ** output
+      !!         mpi_nc_com4 = MPI3 neighbourhood collectives communicator
+      !!         mpi_nc_com8 = MPI3 neighbourhood collectives communicator (with diagonals)
+      !!----------------------------------------------------------------------
+      INTEGER,             INTENT(in   ) ::   khls        ! halo size, default = nn_hls
+      !
+      INTEGER, DIMENSION(:), ALLOCATABLE :: iSnei4, iRnei4, iSnei8, iRnei8
+      INTEGER                            :: iScnt4, iRcnt4, iScnt8, iRcnt8
+      INTEGER                            :: ierr
+      LOGICAL, PARAMETER                 :: ireord = .FALSE.
+      !!----------------------------------------------------------------------
+#if ! defined key_mpi_off && ! defined key_mpi2
+      
+      iScnt4 = COUNT( mpiSnei(khls,1:4) >= 0 )
+      iRcnt4 = COUNT( mpiRnei(khls,1:4) >= 0 )
+      iScnt8 = COUNT( mpiSnei(khls,1:8) >= 0 )
+      iRcnt8 = COUNT( mpiRnei(khls,1:8) >= 0 )
+
+      ALLOCATE( iSnei4(iScnt4), iRnei4(iRcnt4), iSnei8(iScnt8), iRnei8(iRcnt8) )   ! ok if icnt4 or icnt8 = 0
+
+      iSnei4 = PACK( mpiSnei(khls,1:4), mask = mpiSnei(khls,1:4) >= 0 )
+      iRnei4 = PACK( mpiRnei(khls,1:4), mask = mpiRnei(khls,1:4) >= 0 )
+      iSnei8 = PACK( mpiSnei(khls,1:8), mask = mpiSnei(khls,1:8) >= 0 )
+      iRnei8 = PACK( mpiRnei(khls,1:8), mask = mpiRnei(khls,1:8) >= 0 )
+
+      CALL MPI_Dist_graph_create_adjacent( mpi_comm_oce, iScnt4, iSnei4, MPI_UNWEIGHTED, iRcnt4, iRnei4, MPI_UNWEIGHTED,   &
+         &                                 MPI_INFO_NULL, ireord, mpi_nc_com4(khls), ierr )
+      CALL MPI_Dist_graph_create_adjacent( mpi_comm_oce, iScnt8, iSnei8, MPI_UNWEIGHTED, iRcnt8, iRnei8, MPI_UNWEIGHTED,   &
+         &                                 MPI_INFO_NULL, ireord, mpi_nc_com8(khls), ierr)
+
+      DEALLOCATE( iSnei4, iRnei4, iSnei8, iRnei8 )
+#endif
+   END SUBROUTINE mpp_ini_nc
+
+
+   SUBROUTINE mpp_ini_northgather
+      !!----------------------------------------------------------------------
+      !!               ***  routine mpp_ini_northgather  ***
       !!
       !! ** Purpose :   Initialize special communicator for north folding
       !!      condition together with global variables needed in the mpp folding
@@ -817,7 +1164,6 @@ CONTAINS
       !!              - Create a communicator for northern processors
       !!
       !! ** output
-      !!      njmppmax = njmpp for northern procs
       !!      ndim_rank_north = number of processors in the northern line
       !!      nrank_north (ndim_rank_north) = number  of the northern procs.
       !!      ngrp_world = group ID for the world processors
@@ -831,13 +1177,12 @@ CONTAINS
       INTEGER ::   ii, ji
       !!----------------------------------------------------------------------
       !
-#if defined key_mpp_mpi
-      njmppmax = MAXVAL( njmppt )
+#if ! defined key_mpi_off
       !
       ! Look for how many procs on the northern boundary
       ndim_rank_north = 0
-      DO jjproc = 1, jpnij
-         IF( njmppt(jjproc) == njmppmax )   ndim_rank_north = ndim_rank_north + 1
+      DO jjproc = 1, jpni
+         IF( nfproc(jjproc) /= -1 )   ndim_rank_north = ndim_rank_north + 1
       END DO
       !
       ! Allocate the right size to nrank_north
@@ -847,10 +1192,10 @@ CONTAINS
       ! Fill the nrank_north array with proc. number of northern procs.
       ! Note : the rank start at 0 in MPI
       ii = 0
-      DO ji = 1, jpnij
-         IF ( njmppt(ji) == njmppmax   ) THEN
+      DO ji = 1, jpni
+         IF ( nfproc(ji) /= -1   ) THEN
             ii=ii+1
-            nrank_north(ii)=ji-1
+            nrank_north(ii)=nfproc(ji)
          END IF
       END DO
       !
@@ -864,7 +1209,7 @@ CONTAINS
       CALL MPI_COMM_CREATE( mpi_comm_oce, ngrp_north, ncomm_north, ierr )
       !
 #endif
-   END SUBROUTINE mpp_ini_north
+   END SUBROUTINE mpp_ini_northgather
 
 
    SUBROUTINE DDPDD_MPI( ydda, yddb, ilen, itype )
@@ -875,10 +1220,10 @@ CONTAINS
       !!   This subroutine computes yddb(i) = ydda(i)+yddb(i)
       !!---------------------------------------------------------------------
       INTEGER                     , INTENT(in)    ::   ilen, itype
-      COMPLEX(wp), DIMENSION(ilen), INTENT(in)    ::   ydda
-      COMPLEX(wp), DIMENSION(ilen), INTENT(inout) ::   yddb
+      COMPLEX(dp), DIMENSION(ilen), INTENT(in)    ::   ydda
+      COMPLEX(dp), DIMENSION(ilen), INTENT(inout) ::   yddb
       !
-      REAL(wp) :: zerr, zt1, zt2    ! local work variables
+      REAL(dp) :: zerr, zt1, zt2    ! local work variables
       INTEGER  :: ji, ztmp           ! local scalar
       !!---------------------------------------------------------------------
       !
@@ -913,7 +1258,7 @@ CONTAINS
       LOGICAL ::   ll_lbc, ll_glb, ll_dlg
       INTEGER ::    ji,  jj,  jk,  jh, jf, jcount   ! dummy loop indices
       !!----------------------------------------------------------------------
-#if defined key_mpp_mpi
+#if ! defined key_mpi_off
       !
       ll_lbc = .FALSE.
       IF( PRESENT(ld_lbc) ) ll_lbc = ld_lbc
@@ -923,7 +1268,6 @@ CONTAINS
       IF( PRESENT(ld_dlg) ) ll_dlg = ld_dlg
       !
       ! find the smallest common frequency: default = frequency product, if multiple, choose the larger of the 2 frequency
-      IF( ncom_dttrc /= 1 )   CALL ctl_stop( 'STOP', 'mpp_report, ncom_dttrc /= 1 not coded...' ) 
       ncom_freq = ncom_fsbc
       !
       IF ( ncom_stp == nit000+ncom_freq ) THEN   ! avoid to count extra communications in potential initializations at nit000
@@ -984,7 +1328,7 @@ CONTAINS
             END IF
          END DO
          IF ( crname_lbc(n_sequence_lbc) /= 'already counted' ) THEN
-            WRITE(numcom,'(A, I4, A, A)') ' - ', 1,' times by subroutine ', TRIM(crname_lbc(ncom_rec_max))
+            WRITE(numcom,'(A, I4, A, A)') ' - ', 1,' times by subroutine ', TRIM(crname_lbc(n_sequence_lbc))
          END IF
          WRITE(numcom,*) ' '
          IF ( n_sequence_glb > 0 ) THEN
@@ -995,7 +1339,7 @@ CONTAINS
                   WRITE(numcom,'(A, I4, A, A)') ' - ', jj,' times by subroutine ', TRIM(crname_glb(ji-1))
                   jj = 0
                END IF
-               jj = jj + 1 
+               jj = jj + 1
             END DO
             WRITE(numcom,'(A, I4, A, A)') ' - ', jj,' times by subroutine ', TRIM(crname_glb(n_sequence_glb))
             DEALLOCATE(crname_glb)
@@ -1011,7 +1355,7 @@ CONTAINS
                   WRITE(numcom,'(A, I4, A, A)') ' - ', jj,' times by subroutine ', TRIM(crname_dlg(ji-1))
                   jj = 0
                END IF
-               jj = jj + 1 
+               jj = jj + 1
             END DO
             WRITE(numcom,'(A, I4, A, A)') ' - ', jj,' times by subroutine ', TRIM(crname_dlg(n_sequence_dlg))
             DEALLOCATE(crname_dlg)
@@ -1027,15 +1371,15 @@ CONTAINS
 #endif
    END SUBROUTINE mpp_report
 
-   
+
    SUBROUTINE tic_tac (ld_tic, ld_global)
 
     LOGICAL,           INTENT(IN) :: ld_tic
     LOGICAL, OPTIONAL, INTENT(IN) :: ld_global
-    REAL(wp), DIMENSION(2), SAVE :: tic_wt
-    REAL(wp),               SAVE :: tic_ct = 0._wp
+    REAL(dp), DIMENSION(2), SAVE :: tic_wt
+    REAL(dp),               SAVE :: tic_ct = 0._dp
     INTEGER :: ii
-#if defined key_mpp_mpi
+#if ! defined key_mpi_off
 
     IF( ncom_stp <= nit000 ) RETURN
     IF( ncom_stp == nitend ) RETURN
@@ -1043,26 +1387,40 @@ CONTAINS
     IF( PRESENT( ld_global ) ) THEN
        IF( ld_global ) ii = 2
     END IF
-    
+
     IF ( ld_tic ) THEN
        tic_wt(ii) = MPI_Wtime()                                                    ! start count tic->tac (waiting time)
-       IF ( tic_ct > 0.0_wp ) compute_time = compute_time + MPI_Wtime() - tic_ct   ! cumulate count tac->tic
+       IF ( tic_ct > 0.0_dp ) compute_time = compute_time + MPI_Wtime() - tic_ct   ! cumulate count tac->tic
     ELSE
        waiting_time(ii) = waiting_time(ii) + MPI_Wtime() - tic_wt(ii)              ! cumulate count tic->tac
        tic_ct = MPI_Wtime()                                                        ! start count tac->tic (waiting time)
     ENDIF
 #endif
-    
+
    END SUBROUTINE tic_tac
 
-#if ! defined key_mpp_mpi
+#if defined key_mpi_off
    SUBROUTINE mpi_wait(request, status, ierror)
       INTEGER                            , INTENT(in   ) ::   request
       INTEGER, DIMENSION(MPI_STATUS_SIZE), INTENT(  out) ::   status
       INTEGER                            , INTENT(  out) ::   ierror
+      IF (.FALSE.) THEN   ! to avoid compilation warning
+         status(:) = -1
+         ierror = -1
+      ENDIF
    END SUBROUTINE mpi_wait
 
-   
+   SUBROUTINE mpi_waitall(count, request, status, ierror)
+      INTEGER                            , INTENT(in   ) :: count
+      INTEGER, DIMENSION(count)          , INTENT(in   ) :: request
+      INTEGER, DIMENSION(MPI_STATUS_SIZE), INTENT(  out) :: status
+      INTEGER                            , INTENT(  out) :: ierror
+      IF (.FALSE.) THEN   ! to avoid compilation warning
+         status(:) = -1
+         ierror = -1
+      ENDIF
+   END SUBROUTINE mpi_waitall
+
    FUNCTION MPI_Wtime()
       REAL(wp) ::  MPI_Wtime
       MPI_Wtime = -1.
@@ -1070,7 +1428,7 @@ CONTAINS
 #endif
 
    !!----------------------------------------------------------------------
-   !!   ctl_stop, ctl_warn, get_unit, ctl_opn, ctl_nam   routines
+   !!   ctl_stop, ctl_warn, get_unit, ctl_opn, ctl_nam, load_nml   routines
    !!----------------------------------------------------------------------
 
    SUBROUTINE ctl_stop( cd1, cd2, cd3, cd4, cd5 ,   &
@@ -1085,7 +1443,8 @@ CONTAINS
       CHARACTER(len=*), INTENT(in   ), OPTIONAL ::        cd2, cd3, cd4, cd5
       CHARACTER(len=*), INTENT(in   ), OPTIONAL ::   cd6, cd7, cd8, cd9, cd10
       !
-      INTEGER ::   inum
+      CHARACTER(LEN=8) ::   clfmt            ! writing format
+      INTEGER          ::   inum
       !!----------------------------------------------------------------------
       !
       nstop = nstop + 1
@@ -1123,9 +1482,9 @@ CONTAINS
       IF( numevo_ice /= -1 )   CALL FLUSH(numevo_ice)
       !
       IF( cd1 == 'STOP' ) THEN
-         WRITE(numout,*)  
+         WRITE(numout,*)
          WRITE(numout,*)  'huge E-R-R-O-R : immediate stop'
-         WRITE(numout,*)  
+         WRITE(numout,*)
          CALL FLUSH(numout)
          CALL SLEEP(60)   ! make sure that all output and abort files are written by all cores. 60s should be enough...
          CALL mppstop( ld_abort = .true. )
@@ -1232,7 +1591,7 @@ CONTAINS
          OPEN( UNIT=knum, FILE=clfile, FORM=cdform, ACCESS=cdacce, STATUS=cdstat                      , ERR=100, IOSTAT=iost )
       ENDIF
       IF( iost /= 0 .AND. TRIM(clfile) == '/dev/null' ) &   ! for windows
-         &  OPEN(UNIT=knum,FILE='NUL', FORM=cdform, ACCESS=cdacce, STATUS=cdstat                      , ERR=100, IOSTAT=iost )   
+         &  OPEN(UNIT=knum,FILE='NUL', FORM=cdform, ACCESS=cdacce, STATUS=cdstat                      , ERR=100, IOSTAT=iost )
       IF( iost == 0 ) THEN
          IF(ldwp .AND. kout > 0) THEN
             WRITE(kout,*) '     file   : ', TRIM(clfile),' open ok'
@@ -1274,7 +1633,7 @@ CONTAINS
       !!----------------------------------------------------------------------
       !
       WRITE (clios, '(I5.0)')   kios
-      IF( kios < 0 ) THEN         
+      IF( kios < 0 ) THEN
          CALL ctl_warn( 'end of record or file while reading namelist '   &
             &           // TRIM(cdnam) // ' iostat = ' // TRIM(clios) )
       ENDIF
@@ -1299,15 +1658,97 @@ CONTAINS
       !
       get_unit = 15   ! choose a unit that is big enough then it is not already used in NEMO
       llopn = .TRUE.
-      DO WHILE( (get_unit < 998) .AND. llopn )
+      DO WHILE( (get_unit < 9999) .AND. llopn )
          get_unit = get_unit + 1
          INQUIRE( unit = get_unit, opened = llopn )
       END DO
-      IF( (get_unit == 999) .AND. llopn ) THEN
-         CALL ctl_stop( 'STOP', 'get_unit: All logical units until 999 are used...' )
+      IF( (get_unit == 9999) .AND. llopn ) THEN
+         CALL ctl_stop( 'STOP', 'get_unit: All logical units until 9999 are used...' )
       ENDIF
       !
    END FUNCTION get_unit
+
+   SUBROUTINE load_nml( cdnambuff , cdnamfile, kout, ldwp)
+      CHARACTER(LEN=:)    , ALLOCATABLE, INTENT(INOUT) :: cdnambuff
+      CHARACTER(LEN=*), INTENT(IN )                :: cdnamfile
+      CHARACTER(LEN=256)                           :: chline
+      CHARACTER(LEN=1)                             :: csp
+      INTEGER, INTENT(IN)                          :: kout
+      LOGICAL, INTENT(IN)                          :: ldwp  !: .true. only for the root broadcaster
+      INTEGER                                      :: itot, iun, iltc, inl, ios, itotsav
+      !
+      !csp = NEW_LINE('A')
+      ! a new line character is the best seperator but some systems (e.g.Cray)
+      ! seem to terminate namelist reads from internal files early if they
+      ! encounter new-lines. Use a single space for safety.
+      csp = ' '
+      !
+      ! Check if the namelist buffer has already been allocated. Return if it has.
+      !
+      IF ( ALLOCATED( cdnambuff ) ) RETURN
+      IF( ldwp ) THEN
+         !
+         ! Open namelist file
+         !
+         CALL ctl_opn( iun, cdnamfile, 'OLD', 'FORMATTED', 'SEQUENTIAL', -1, kout, ldwp )
+         !
+         ! First pass: count characters excluding comments and trimable white space
+         !
+         itot=0
+     10  READ(iun,'(A256)',END=20,ERR=20) chline
+         iltc = LEN_TRIM(chline)
+         IF ( iltc.GT.0 ) THEN
+          inl = INDEX(chline, '!')
+          IF( inl.eq.0 ) THEN
+           itot = itot + iltc + 1                                ! +1 for the newline character
+          ELSEIF( inl.GT.0 .AND. LEN_TRIM( chline(1:inl-1) ).GT.0 ) THEN
+           itot = itot + inl                                  !  includes +1 for the newline character
+          ENDIF
+         ENDIF
+         GOTO 10
+     20  CONTINUE
+         !
+         ! Allocate text cdnambuff for condensed namelist
+         !
+!$AGRIF_DO_NOT_TREAT
+         ALLOCATE( CHARACTER(LEN=itot) :: cdnambuff )
+!$AGRIF_END_DO_NOT_TREAT
+         itotsav = itot
+         !
+         ! Second pass: read and transfer pruned characters into cdnambuff
+         !
+         REWIND(iun)
+         itot=1
+     30  READ(iun,'(A256)',END=40,ERR=40) chline
+         iltc = LEN_TRIM(chline)
+         IF ( iltc.GT.0 ) THEN
+          inl = INDEX(chline, '!')
+          IF( inl.eq.0 ) THEN
+           inl = iltc
+          ELSE
+           inl = inl - 1
+          ENDIF
+          IF( inl.GT.0 .AND. LEN_TRIM( chline(1:inl) ).GT.0 ) THEN
+             cdnambuff(itot:itot+inl-1) = chline(1:inl)
+             WRITE( cdnambuff(itot+inl:itot+inl), '(a)' ) csp
+             itot = itot + inl + 1
+          ENDIF
+         ENDIF
+         GOTO 30
+     40  CONTINUE
+         itot = itot - 1
+         IF( itotsav .NE. itot ) WRITE(*,*) 'WARNING in load_nml. Allocated ',itotsav,' for read buffer; but used ',itot
+         !
+         ! Close namelist file
+         !
+         CLOSE(iun)
+         !write(*,'(32A)') cdnambuff
+      ENDIF
+#if ! defined key_mpi_off
+      CALL mpp_bcast_nml( cdnambuff, itot )
+#endif
+  END SUBROUTINE load_nml
+
 
    !!----------------------------------------------------------------------
 END MODULE lib_mpp

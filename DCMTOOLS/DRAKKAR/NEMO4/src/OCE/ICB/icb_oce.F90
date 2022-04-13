@@ -56,12 +56,13 @@ MODULE icb_oce
 
    TYPE, PUBLIC ::   point              !: properties of an individual iceberg (position, mass, size, etc...)
       INTEGER  ::   year
-      REAL(wp) ::   xi , yj                                                   ! iceberg coordinates in the (i,j) referential (global)
+      REAL(wp) ::   xi , yj , zk                                              ! iceberg coordinates in the (i,j) referential (global) and deepest level affected
       REAL(wp) ::   e1 , e2                                                   ! horizontal scale factors at the iceberg position
       REAL(wp) ::   lon, lat, day                                             ! geographic position
       REAL(wp) ::   mass, thickness, width, length, uvel, vvel                ! iceberg physical properties
-      REAL(wp) ::   uo, vo, ui, vi, ua, va, ssh_x, ssh_y, sst, cn, hi, sss    ! properties of iceberg environment 
+      REAL(wp) ::   ssu, ssv, ui, vi, ua, va, ssh_x, ssh_y, sst, sss, cn, hi  ! properties of iceberg environment 
       REAL(wp) ::   mass_of_bits, heat_density
+      INTEGER  ::   kb                                                   ! icb bottom level
    END TYPE point
 
    TYPE, PUBLIC ::   iceberg            !: linked list defining all the icebergs present in the model domain
@@ -84,11 +85,14 @@ MODULE icb_oce
 
    ! Extra arrays with bigger halo, needed when interpolating forcing onto iceberg position
    ! particularly for MPP when iceberg can lie inside T grid but outside U, V, or f grid
-   REAL(wp), PUBLIC, DIMENSION(:,:), ALLOCATABLE ::   uo_e, vo_e
-   REAL(wp), PUBLIC, DIMENSION(:,:), ALLOCATABLE ::   ff_e, tt_e, fr_e, ss_e
+   REAL(wp), PUBLIC, DIMENSION(:,:), ALLOCATABLE ::   ssu_e, ssv_e
+   REAL(wp), PUBLIC, DIMENSION(:,:), ALLOCATABLE ::   sst_e, sss_e, fr_e
    REAL(wp), PUBLIC, DIMENSION(:,:), ALLOCATABLE ::   ua_e, va_e
    REAL(wp), PUBLIC, DIMENSION(:,:), ALLOCATABLE ::   ssh_e
    REAL(wp), PUBLIC, DIMENSION(:,:), ALLOCATABLE ::   tmask_e, umask_e, vmask_e
+   REAl(wp), PUBLIC, DIMENSION(:,:), ALLOCATABLE ::   rlon_e, rlat_e, ff_e
+   REAl(wp), PUBLIC, DIMENSION(:,:,:), ALLOCATABLE ::   uoce_e, voce_e, toce_e, e3t_e
+   !
 #if defined key_si3 || defined key_cice
    REAL(wp), PUBLIC, DIMENSION(:,:), ALLOCATABLE ::   hi_e, ui_e, vi_e
 #endif
@@ -116,12 +120,19 @@ MODULE icb_oce
    INTEGER , PUBLIC ::   nn_sample_rate                  !: Timesteps between sampling of position for trajectory storage
    INTEGER , PUBLIC ::   nn_verbose_write                !: timesteps between verbose messages
    REAL(wp), PUBLIC ::   rn_rho_bergs                    !: Density of icebergs
+   REAL(wp), PUBLIC ::   rho_berg_1_oce                  !: convertion factor (thickness to draft) (rn_rho_bergs/pp_rho_seawater)
    REAL(wp), PUBLIC ::   rn_LoW_ratio                    !: Initial ratio L/W for newly calved icebergs
    REAL(wp), PUBLIC ::   rn_bits_erosion_fraction        !: Fraction of erosion melt flux to divert to bergy bits
    REAL(wp), PUBLIC ::   rn_sicn_shift                   !: Shift of sea-ice concentration in erosion flux modulation (0<sicn_shift<1)
    LOGICAL , PUBLIC ::   ln_operator_splitting           !: Use first order operator splitting for thermodynamics
    LOGICAL , PUBLIC ::   ln_passive_mode                 !: iceberg - ocean decoupling
+   LOGICAL , PUBLIC ::   ln_time_average_weight          !: Time average the weight on the ocean    !!gm I don't understand that !
    REAL(wp), PUBLIC ::   rn_speed_limit                  !: CFL speed limit for a berg
+   LOGICAL , PUBLIC ::   ln_M2016, ln_icb_grd            !: use Nacho's Merino 2016 work
+   !
+   ! restart
+   CHARACTER(len=256), PUBLIC :: cn_icbrst_indir , cn_icbrst_in  !:  in: restart directory, restart name
+   CHARACTER(len=256), PUBLIC :: cn_icbrst_outdir, cn_icbrst_out !: out: restart directory, restart name
    !
    !                                     ! Mass thresholds between iceberg classes [kg]
    REAL(wp), DIMENSION(nclasses), PUBLIC ::   rn_initial_mass      ! Fraction of calving to apply to this class [non-dim]
@@ -129,6 +140,7 @@ MODULE icb_oce
    REAL(wp), DIMENSION(nclasses), PUBLIC ::   rn_mass_scaling      ! Total thickness of newly calved bergs [m]
    REAL(wp), DIMENSION(nclasses), PUBLIC ::   rn_initial_thickness !  Single instance of an icebergs type initialised in icebergs_init and updated in icebergs_run
    REAL(wp), PUBLIC, ALLOCATABLE, SAVE, DIMENSION(:,:)     ::   src_calving, src_calving_hflx    !: accumulate input ice
+   INTEGER , PUBLIC             , SAVE                     ::   micbkb                           !: deepest level affected by icebergs
    INTEGER , PUBLIC             , SAVE                     ::   numicb                           !: iceberg IO
    INTEGER , PUBLIC             , SAVE, DIMENSION(nkounts) ::   num_bergs                        !: iceberg counter
    INTEGER , PUBLIC             , SAVE                     ::   nicbdi, nicbei, nicbdj, nicbej   !: processor bounds
@@ -141,16 +153,12 @@ MODULE icb_oce
    INTEGER , PUBLIC, ALLOCATABLE, SAVE, DIMENSION(:)       ::   nicbfldnsend                     !: nfold number of bergs to send to nfold neighbour
    INTEGER , PUBLIC, ALLOCATABLE, SAVE, DIMENSION(:)       ::   nicbfldexpect                    !: nfold expected number of bergs
    INTEGER , PUBLIC, ALLOCATABLE, SAVE, DIMENSION(:)       ::   nicbfldreq                       !: nfold message handle (immediate send)
-
-   REAL(wp), PUBLIC, ALLOCATABLE, SAVE, DIMENSION(:,:,:)   :: griddata                           !: work array for icbrst
-
 #if defined key_drakkar
-   CHARACTER(LEN=255), PUBLIC  :: cn_icbrst_in, cn_icbrst_out, cn_icbdir_trj
+   CHARACTER(LEN=255), PUBLIC  ::  cn_icbdir_trj
 #endif
-
    !!----------------------------------------------------------------------
    !! NEMO/OCE 4.0 , NEMO Consortium (2018)
-   !! $Id: icb_oce.F90 13263 2020-07-08 07:55:54Z ayoung $
+   !! $Id: icb_oce.F90 14030 2020-12-03 09:26:33Z mathiot $
    !! Software governed by the CeCILL license (see ./LICENSE)
    !!----------------------------------------------------------------------
 CONTAINS
@@ -172,30 +180,33 @@ CONTAINS
       icb_alloc = icb_alloc + ill
       !
       ! expanded arrays for bilinear interpolation
-      ALLOCATE( uo_e(0:jpi+1,0:jpj+1) , ua_e(0:jpi+1,0:jpj+1) ,    &
-         &      vo_e(0:jpi+1,0:jpj+1) , va_e(0:jpi+1,0:jpj+1) ,    &
+      ALLOCATE( ssu_e(0:jpi+1,0:jpj+1) , ua_e(0:jpi+1,0:jpj+1) ,   &
+         &      ssv_e(0:jpi+1,0:jpj+1) , va_e(0:jpi+1,0:jpj+1) ,   &
 #if defined key_si3 || defined key_cice
          &      ui_e(0:jpi+1,0:jpj+1) ,                            &
          &      vi_e(0:jpi+1,0:jpj+1) ,                            &
          &      hi_e(0:jpi+1,0:jpj+1) ,                            &
 #endif
-         &      ff_e(0:jpi+1,0:jpj+1) , fr_e(0:jpi+1,0:jpj+1)  ,   &
-         &      tt_e(0:jpi+1,0:jpj+1) , ssh_e(0:jpi+1,0:jpj+1) ,   &
-         &      ss_e(0:jpi+1,0:jpj+1) ,                            & 
+         &      fr_e(0:jpi+1,0:jpj+1) ,                            &
+         &      sst_e(0:jpi+1,0:jpj+1) , ssh_e(0:jpi+1,0:jpj+1) ,  &
+         &      sss_e(0:jpi+1,0:jpj+1) ,                           & 
          &      first_width(nclasses) , first_length(nclasses) ,   &
          &      src_calving (jpi,jpj) ,                            &
          &      src_calving_hflx(jpi,jpj) , STAT=ill)
       icb_alloc = icb_alloc + ill
 
+      IF ( ln_M2016 ) THEN
+         ALLOCATE( uoce_e(0:jpi+1,0:jpj+1,jpk), voce_e(0:jpi+1,0:jpj+1,jpk), &
+            &      toce_e(0:jpi+1,0:jpj+1,jpk), e3t_e(0:jpi+1,0:jpj+1,jpk) , STAT=ill )
+         icb_alloc = icb_alloc + ill
+      END IF
+      !
       ALLOCATE( tmask_e(0:jpi+1,0:jpj+1), umask_e(0:jpi+1,0:jpj+1), vmask_e(0:jpi+1,0:jpj+1), &
-         &      STAT=ill)
+         &      rlon_e(0:jpi+1,0:jpj+1) , rlat_e(0:jpi+1,0:jpj+1) , ff_e(0:jpi+1,0:jpj+1)   , STAT=ill)
       icb_alloc = icb_alloc + ill
 
       ALLOCATE( nicbfldpts(jpi) , nicbflddest(jpi) , nicbfldproc(jpni) , &
          &      nicbfldnsend(jpni), nicbfldexpect(jpni) , nicbfldreq(jpni), STAT=ill)
-      icb_alloc = icb_alloc + ill
-
-      ALLOCATE( griddata(jpi,jpj,1), STAT=ill )
       icb_alloc = icb_alloc + ill
 
       CALL mpp_sum ( 'icb_oce', icb_alloc )

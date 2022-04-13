@@ -10,8 +10,8 @@ MODULE icerst
    !!   'key_si3'                                       SI3 sea-ice model
    !!----------------------------------------------------------------------
    !!   ice_rst_opn   : open  restart file
-   !!   ice_rst_write : write restart file 
-   !!   ice_rst_read  : read  restart file 
+   !!   ice_rst_write : write restart file
+   !!   ice_rst_read  : read  restart file
    !!----------------------------------------------------------------------
    USE ice            ! sea-ice: variables
    USE dom_oce        ! ocean domain
@@ -19,7 +19,7 @@ MODULE icerst
    USE sbc_oce , ONLY : nn_fsbc, ln_cpl
    USE sbc_oce , ONLY : nn_components, jp_iam_sas   ! SAS ss[st]_m init
    USE sbc_oce , ONLY : sst_m, sss_m                ! SAS ss[st]_m init
-   USE oce     , ONLY : tsn                         ! SAS ss[st]_m init
+   USE oce     , ONLY : ts                          ! SAS ss[st]_m init
    USE eosbn2  , ONLY : l_useCT, eos_pt_from_ct     ! SAS ss[st]_m init
    USE iceistate      ! sea-ice: initial state
    USE icectl         ! sea-ice: control
@@ -38,7 +38,7 @@ MODULE icerst
 
    !!----------------------------------------------------------------------
    !! NEMO/ICE 4.0 , NEMO Consortium (2018)
-   !! $Id: icerst.F90 13449 2020-09-03 14:40:10Z gsamson $
+   !! $Id: icerst.F90 14239 2020-12-23 08:57:16Z smasson $
    !! Software governed by the CeCILL license (see ./LICENSE)
    !!----------------------------------------------------------------------
 CONTAINS
@@ -53,14 +53,15 @@ CONTAINS
       !
       CHARACTER(len=20)   ::   clkt     ! ocean time-step define as a character
       CHARACTER(len=50)   ::   clname   ! ice output restart file name
-      CHARACTER(len=256)  ::   clpath   ! full path to ice output restart file 
+      CHARACTER(len=256)  ::   clpath   ! full path to ice output restart file
+      CHARACTER(LEN=52)   ::   clpname   ! ocean output restart file name including prefix for AGRIF
       !!----------------------------------------------------------------------
       !
       IF( kt == nit000 )   lrst_ice = .FALSE.   ! default definition
 
       IF( ln_rst_list .OR. nn_stock /= -1 ) THEN
-      ! in order to get better performances with NetCDF format, we open and define the ice restart file 
-      ! one ice time step before writing the data (-> at nitrst - 2*nn_fsbc + 1), except if we write ice 
+      ! in order to get better performances with NetCDF format, we open and define the ice restart file
+      ! one ice time step before writing the data (-> at nitrst - 2*nn_fsbc + 1), except if we write ice
       ! restart files every ice time step or if an ice restart file was writen at nitend - 2*nn_fsbc + 1
       IF( kt == nitrst - 2*nn_fsbc + 1 .OR. nn_stock == nn_fsbc    &
          &                             .OR. ( kt == nitend - nn_fsbc + 1 .AND. .NOT. lrst_ice ) ) THEN
@@ -71,11 +72,11 @@ CONTAINS
             ENDIF
             ! create the file
 #if defined key_drakkar
-           clname = TRIM(cn_icerst_out)   ! name already set in icestp after reading nampar
+            clname = TRIM(cn_icerst_out)   ! name already set in icestp after reading nampar
 #else
             clname = TRIM(cexper)//"_"//TRIM(ADJUSTL(clkt))//"_"//TRIM(cn_icerst_out)
 #endif
-            clpath = TRIM(cn_icerst_outdir) 
+            clpath = TRIM(cn_icerst_outdir)
             IF( clpath(LEN_TRIM(clpath):) /= '/' ) clpath = TRIM(clpath)//'/'
             IF(lwp) THEN
                WRITE(numout,*)
@@ -87,7 +88,23 @@ CONTAINS
                ENDIF
             ENDIF
             !
-            CALL iom_open( TRIM(clpath)//TRIM(clname), numriw, ldwrt = .TRUE., kdlev = jpl )
+            IF(.NOT.lwxios) THEN
+               CALL iom_open( TRIM(clpath)//TRIM(clname), numriw, ldwrt = .TRUE., kdlev = jpl, cdcomp = 'ICE' )
+            ELSE
+#if defined key_xios
+               cw_icerst_cxt = "rstwi_"//TRIM(ADJUSTL(clkt))
+               IF( TRIM(Agrif_CFixed()) == '0' ) THEN
+                  clpname = clname
+               ELSE
+                  clpname = TRIM(Agrif_CFixed())//"_"//clname
+               ENDIF
+               numriw = iom_xios_setid(TRIM(clpath)//TRIM(clpname))
+               CALL iom_init( cw_icerst_cxt, kdid = numriw, ld_closedef = .FALSE. )
+               CALL iom_swap( cxios_context )
+#else
+               CALL ctl_stop( 'Can not use XIOS in rst_opn' )
+#endif
+            ENDIF
             lrst_ice = .TRUE.
          ENDIF
       ENDIF
@@ -118,15 +135,16 @@ CONTAINS
       IF( iter == nitrst ) THEN
          IF(lwp) WRITE(numout,*)
          IF(lwp) WRITE(numout,*) 'ice_rst_write : write ice restart file  kt =', kt
-         IF(lwp) WRITE(numout,*) '~~~~~~~~~~~~~~'         
+         IF(lwp) WRITE(numout,*) '~~~~~~~~~~~~~~'
       ENDIF
 
       ! Write in numriw (if iter == nitrst)
-      ! ------------------ 
+      ! ------------------
       !                                                                        ! calendar control
-      CALL iom_rstput( iter, nitrst, numriw, 'nn_fsbc', REAL( nn_fsbc, wp ) )      ! time-step 
+      CALL iom_rstput( iter, nitrst, numriw, 'nn_fsbc', REAL( nn_fsbc, wp ) )      ! time-step
       CALL iom_rstput( iter, nitrst, numriw, 'kt_ice' , REAL( iter   , wp ) )      ! date
-      CALL iom_delay_rst( 'WRITE', 'ICE', numriw )   ! save only ice delayed global communication variables
+
+      IF(.NOT.lwxios) CALL iom_delay_rst( 'WRITE', 'ICE', numriw )   ! save only ice delayed global communication variables
 
       ! Prognostic variables
       CALL iom_rstput( iter, nitrst, numriw, 'v_i'  , v_i   )
@@ -141,14 +159,14 @@ CONTAINS
       CALL iom_rstput( iter, nitrst, numriw, 'v_ip' , v_ip  )
       CALL iom_rstput( iter, nitrst, numriw, 'v_il' , v_il  )
       ! Snow enthalpy
-      DO jk = 1, nlay_s 
+      DO jk = 1, nlay_s
          WRITE(zchar1,'(I2.2)') jk
          znam = 'e_s'//'_l'//zchar1
          z3d(:,:,:) = e_s(:,:,jk,:)
          CALL iom_rstput( iter, nitrst, numriw, znam , z3d )
       END DO
       ! Ice enthalpy
-      DO jk = 1, nlay_i 
+      DO jk = 1, nlay_i
          WRITE(zchar1,'(I2.2)') jk
          znam = 'e_i'//'_l'//zchar1
          z3d(:,:,:) = e_i(:,:,jk,:)
@@ -157,32 +175,40 @@ CONTAINS
       ! fields needed for Met Office (Jules) coupling
       IF( ln_cpl ) THEN
          CALL iom_rstput( iter, nitrst, numriw, 'cnd_ice', cnd_ice )
-         CALL iom_rstput( iter, nitrst, numriw, 't1_ice' , t1_ice  )
+         CALL iom_rstput( iter, nitrst, numriw, 't1_ice' , t1_ice )
       ENDIF
       !
 
       ! close restart file
       ! ------------------
       IF( iter == nitrst ) THEN
-         CALL iom_close( numriw )
+         IF(.NOT.lwxios) THEN
+            CALL iom_close( numriw )
+         ELSE
+            CALL iom_context_finalize(      cw_icerst_cxt          )
+            iom_file(numriw)%nfid       = 0
+            numriw = 0
+         ENDIF
          lrst_ice = .FALSE.
       ENDIF
       !
    END SUBROUTINE ice_rst_write
 
 
-   SUBROUTINE ice_rst_read
+   SUBROUTINE ice_rst_read( Kbb, Kmm, Kaa )
       !!----------------------------------------------------------------------
       !!                    ***  ice_rst_read  ***
       !!
       !! ** purpose  :   read restart file
       !!----------------------------------------------------------------------
+      INTEGER, INTENT(in) :: Kbb, Kmm, Kaa ! ocean time level indices
       INTEGER           ::   jk
       LOGICAL           ::   llok
       INTEGER           ::   id0, id1, id2, id3, id4, id5   ! local integer
       CHARACTER(len=25) ::   znam
       CHARACTER(len=2)  ::   zchar, zchar1
       REAL(wp)          ::   zfice, ziter
+      CHARACTER(lc)     ::   clpname
       REAL(wp), DIMENSION(jpi,jpj,jpl) ::   z3d   ! 3D workspace
       !!----------------------------------------------------------------------
 
@@ -192,18 +218,29 @@ CONTAINS
          WRITE(numout,*) '~~~~~~~~~~~~'
       ENDIF
 
-      CALL iom_open ( TRIM(cn_icerst_indir)//'/'//cn_icerst_in, numrir, kdlev = jpl )
+      lxios_sini = .FALSE.
+      CALL iom_open ( TRIM(cn_icerst_indir)//'/'//cn_icerst_in, numrir )
 
-      ! test if v_i exists 
+      IF( lrxios) THEN
+          cr_icerst_cxt = 'si3_rst'
+          IF(lwp) WRITE(numout,*) 'Enable restart reading by XIOS for SI3'
+!         IF( TRIM(Agrif_CFixed()) == '0' ) THEN
+!            clpname = cn_icerst_in
+!         ELSE
+!            clpname = TRIM(Agrif_CFixed())//"_"//cn_icerst_in
+!         ENDIF
+          CALL iom_init( cr_icerst_cxt, kdid = numrir, ld_closedef = .TRUE. )
+      ENDIF
+
+      ! test if v_i exists
       id0 = iom_varid( numrir, 'v_i' , ldstop = .FALSE. )
 
       !                    ! ------------------------------ !
       IF( id0 > 0 ) THEN   ! == case of a normal restart == !
          !                 ! ------------------------------ !
-         
          ! Time info
          CALL iom_get( numrir, 'nn_fsbc', zfice )
-         CALL iom_get( numrir, 'kt_ice' , ziter )    
+         CALL iom_get( numrir, 'kt_ice' , ziter )
          IF(lwp) WRITE(numout,*) '   read ice restart file at time step    : ', ziter
          IF(lwp) WRITE(numout,*) '   in any case we force it to nit000 - 1 : ', nit000 - 1
 
@@ -217,33 +254,33 @@ CONTAINS
             &                   '   verify the file or rerun with the value 0 for the',         &
             &                   '   control of time parameter  nrstdt' )
 
-         ! --- mandatory fields --- ! 
-         CALL iom_get( numrir, jpdom_autoglo, 'v_i'  , v_i   )
-         CALL iom_get( numrir, jpdom_autoglo, 'v_s'  , v_s   )
-         CALL iom_get( numrir, jpdom_autoglo, 'sv_i' , sv_i  )
-         CALL iom_get( numrir, jpdom_autoglo, 'a_i'  , a_i   )
-         CALL iom_get( numrir, jpdom_autoglo, 't_su' , t_su  )
-         CALL iom_get( numrir, jpdom_autoglo, 'u_ice', u_ice )
-         CALL iom_get( numrir, jpdom_autoglo, 'v_ice', v_ice )
+         ! --- mandatory fields --- !
+         CALL iom_get( numrir, jpdom_auto, 'v_i'  , v_i   )
+         CALL iom_get( numrir, jpdom_auto, 'v_s'  , v_s   )
+         CALL iom_get( numrir, jpdom_auto, 'sv_i' , sv_i  )
+         CALL iom_get( numrir, jpdom_auto, 'a_i'  , a_i   )
+         CALL iom_get( numrir, jpdom_auto, 't_su' , t_su  )
+         CALL iom_get( numrir, jpdom_auto, 'u_ice', u_ice, cd_type = 'U', psgn = -1._wp )
+         CALL iom_get( numrir, jpdom_auto, 'v_ice', v_ice, cd_type = 'V', psgn = -1._wp )
          ! Snow enthalpy
          DO jk = 1, nlay_s
             WRITE(zchar1,'(I2.2)') jk
             znam = 'e_s'//'_l'//zchar1
-            CALL iom_get( numrir, jpdom_autoglo, znam , z3d )
+            CALL iom_get( numrir, jpdom_auto, znam , z3d )
             e_s(:,:,jk,:) = z3d(:,:,:)
          END DO
          ! Ice enthalpy
          DO jk = 1, nlay_i
             WRITE(zchar1,'(I2.2)') jk
             znam = 'e_i'//'_l'//zchar1
-            CALL iom_get( numrir, jpdom_autoglo, znam , z3d )
+            CALL iom_get( numrir, jpdom_auto, znam , z3d )
             e_i(:,:,jk,:) = z3d(:,:,:)
          END DO
          ! -- optional fields -- !
          ! ice age
          id1 = iom_varid( numrir, 'oa_i' , ldstop = .FALSE. )
          IF( id1 > 0 ) THEN                       ! fields exist
-            CALL iom_get( numrir, jpdom_autoglo, 'oa_i', oa_i )
+            CALL iom_get( numrir, jpdom_auto, 'oa_i', oa_i )
          ELSE                                     ! start from rest
             IF(lwp) WRITE(numout,*) '   ==>>   previous run without ice age output then set it to zero'
             oa_i(:,:,:) = 0._wp
@@ -251,8 +288,8 @@ CONTAINS
          ! melt ponds
          id2 = iom_varid( numrir, 'a_ip' , ldstop = .FALSE. )
          IF( id2 > 0 ) THEN                       ! fields exist
-            CALL iom_get( numrir, jpdom_autoglo, 'a_ip' , a_ip )
-            CALL iom_get( numrir, jpdom_autoglo, 'v_ip' , v_ip )
+            CALL iom_get( numrir, jpdom_auto, 'a_ip' , a_ip )
+            CALL iom_get( numrir, jpdom_auto, 'v_ip' , v_ip )
          ELSE                                     ! start from rest
             IF(lwp) WRITE(numout,*) '   ==>>   previous run without melt ponds output then set it to zero'
             a_ip(:,:,:) = 0._wp
@@ -261,7 +298,7 @@ CONTAINS
          ! melt pond lids
          id3 = iom_varid( numrir, 'v_il' , ldstop = .FALSE. )
          IF( id3 > 0 ) THEN
-            CALL iom_get( numrir, jpdom_autoglo, 'v_il', v_il)
+            CALL iom_get( numrir, jpdom_auto, 'v_il', v_il)
          ELSE
             IF(lwp) WRITE(numout,*) '   ==>>   previous run without melt ponds lids output then set it to zero'
             v_il(:,:,:) = 0._wp
@@ -271,8 +308,8 @@ CONTAINS
             id4 = iom_varid( numrir, 'cnd_ice' , ldstop = .FALSE. )
             id5 = iom_varid( numrir, 't1_ice'  , ldstop = .FALSE. )
             IF( id4 > 0 .AND. id5 > 0 ) THEN         ! fields exist
-               CALL iom_get( numrir, jpdom_autoglo, 'cnd_ice', cnd_ice )
-               CALL iom_get( numrir, jpdom_autoglo, 't1_ice' , t1_ice  )
+               CALL iom_get( numrir, jpdom_auto, 'cnd_ice', cnd_ice )
+               CALL iom_get( numrir, jpdom_auto, 't1_ice' , t1_ice  )
             ELSE                                     ! start from rest
                IF(lwp) WRITE(numout,*) '   ==>>   previous run without conductivity output then set it to zero'
                cnd_ice(:,:,:) = 0._wp
@@ -280,8 +317,7 @@ CONTAINS
             ENDIF
          ENDIF
 
-         CALL iom_delay_rst( 'READ', 'ICE', numrir )   ! read only ice delayed global communication variables
-
+         IF(.NOT.lrxios) CALL iom_delay_rst( 'READ', 'ICE', numrir )   ! read only ice delayed global communication variables
          !                 ! ---------------------------------- !
       ELSE                 ! == case of a simplified restart == !
          !                 ! ---------------------------------- !
@@ -296,13 +332,13 @@ CONTAINS
          IF( nn_components == jp_iam_sas ) THEN   ! SAS case: ss[st]_m were not initialized by sbc_ssm_init
             !
             IF(lwp) WRITE(numout,*) '  SAS: default initialisation of ss[st]_m arrays used in ice_istate'
-            IF( l_useCT )  THEN    ;   sst_m(:,:) = eos_pt_from_ct( tsn(:,:,1,jp_tem), tsn(:,:,1,jp_sal) )
-            ELSE                   ;   sst_m(:,:) = tsn(:,:,1,jp_tem)
+            IF( l_useCT )  THEN    ;   sst_m(:,:) = eos_pt_from_ct( ts(:,:,1,jp_tem, Kmm), ts(:,:,1,jp_sal, Kmm) )
+            ELSE                   ;   sst_m(:,:) = ts(:,:,1,jp_tem, Kmm)
             ENDIF
-            sss_m(:,:) = tsn(:,:,1,jp_sal)
+            sss_m(:,:) = ts(:,:,1,jp_sal, Kmm)
          ENDIF
          !
-         CALL ice_istate( nit000 )
+         CALL ice_istate( nit000, Kbb, Kmm, Kaa )
          !
       ENDIF
 

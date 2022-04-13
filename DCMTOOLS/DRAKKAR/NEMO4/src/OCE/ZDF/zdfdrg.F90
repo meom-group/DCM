@@ -76,15 +76,16 @@ MODULE zdfdrg
    REAL(wp), ALLOCATABLE, SAVE, DIMENSION(:,:), PUBLIC ::   rCdU_top, rCdU_bot   !: top/bottom drag coeff. at t-point (<0)  [m/s]
 
    !! * Substitutions
-#  include "vectopt_loop_substitute.h90"
+#  include "do_loop_substitute.h90"
+#  include "domzgr_substitute.h90"
    !!----------------------------------------------------------------------
    !! NEMO/OCE 4.0 , NEMO Consortium (2018)
-   !! $Id: zdfdrg.F90 13481 2020-09-16 17:14:51Z clem $
+   !! $Id: zdfdrg.F90 14834 2021-05-11 09:24:44Z hadcv $
    !! Software governed by the CeCILL license (see ./LICENSE)
    !!----------------------------------------------------------------------
 CONTAINS
 
-   SUBROUTINE zdf_drg( kt, k_mk, pCdmin, pCdmax, pz0, pke0, pCd0,   &   ! <<== in 
+   SUBROUTINE zdf_drg( kt, Kmm, k_mk, pCdmin, pCdmax, pz0, pke0, pCd0,   &   ! <<== in 
       &                                                     pCdU )      ! ==>> out : bottom drag [m/s]
       !!----------------------------------------------------------------------
       !!                   ***  ROUTINE zdf_drg  ***
@@ -102,6 +103,7 @@ CONTAINS
       !! ** Action  :   p_Cd   drag coefficient at t-point
       !!----------------------------------------------------------------------
       INTEGER                 , INTENT(in   ) ::   kt       ! ocean time-step index
+      INTEGER                 , INTENT(in   ) ::   Kmm      ! ocean time level index
       !                       !               !!         !==  top or bottom variables  ==!
       INTEGER , DIMENSION(:,:), INTENT(in   ) ::   k_mk     ! wet level (1st or last)
       REAL(wp)                , INTENT(in   ) ::   pCdmin   ! min drag value
@@ -117,37 +119,33 @@ CONTAINS
       !!----------------------------------------------------------------------
       !
       IF( l_log_not_linssh ) THEN     !==  "log layer"  ==!   compute Cd and -Cd*|U|
-         DO jj = 2, jpjm1
-            DO ji = 2, jpim1
-               imk = k_mk(ji,jj)          ! ocean bottom level at t-points
-               zut = un(ji,jj,imk) + un(ji-1,jj,imk)     ! 2 x velocity at t-point
-               zvt = vn(ji,jj,imk) + vn(ji,jj-1,imk)
-               zzz = 0.5_wp * e3t_n(ji,jj,imk)           ! altitude below/above (top/bottom) the boundary
-               !
+         DO_2D_OVR( nn_hls-1, nn_hls-1, nn_hls-1, nn_hls-1 )
+            imk = k_mk(ji,jj)          ! ocean bottom level at t-points
+            zut = uu(ji,jj,imk,Kmm) + uu(ji-1,jj,imk,Kmm)     ! 2 x velocity at t-point
+            zvt = vv(ji,jj,imk,Kmm) + vv(ji,jj-1,imk,Kmm)
+            zzz = 0.5_wp * e3t(ji,jj,imk,Kmm)           ! altitude below/above (top/bottom) the boundary
+            !
 !!JC: possible WAD implementation should modify line below if layers vanish
-               zcd = (  vkarmn / LOG( zzz / pz0 )  )**2
-               zcd = pCd0(ji,jj) * MIN(  MAX( pCdmin , zcd ) , pCdmax  )   ! here pCd0 = mask*boost
-               pCdU(ji,jj) = - zcd * SQRT(  0.25 * ( zut*zut + zvt*zvt ) + pke0  )
-            END DO
-         END DO
+            zcd = (  vkarmn / LOG( zzz / pz0 )  )**2
+            zcd = pCd0(ji,jj) * MIN(  MAX( pCdmin , zcd ) , pCdmax  )   ! here pCd0 = mask*boost
+            pCdU(ji,jj) = - zcd * SQRT(  0.25 * ( zut*zut + zvt*zvt ) + pke0  )
+         END_2D
       ELSE                                            !==  standard Cd  ==!
-         DO jj = 2, jpjm1
-            DO ji = 2, jpim1
-               imk = k_mk(ji,jj)    ! ocean bottom level at t-points
-               zut = un(ji,jj,imk) + un(ji-1,jj,imk)     ! 2 x velocity at t-point
-               zvt = vn(ji,jj,imk) + vn(ji,jj-1,imk)
-               !                                                           ! here pCd0 = mask*boost * drag
-               pCdU(ji,jj) = - pCd0(ji,jj) * SQRT(  0.25 * ( zut*zut + zvt*zvt ) + pke0  )
-            END DO
-         END DO
+         DO_2D_OVR( nn_hls-1, nn_hls-1, nn_hls-1, nn_hls-1 )
+            imk = k_mk(ji,jj)    ! ocean bottom level at t-points
+            zut = uu(ji,jj,imk,Kmm) + uu(ji-1,jj,imk,Kmm)     ! 2 x velocity at t-point
+            zvt = vv(ji,jj,imk,Kmm) + vv(ji,jj-1,imk,Kmm)
+            !                                                           ! here pCd0 = mask*boost * drag
+            pCdU(ji,jj) = - pCd0(ji,jj) * SQRT(  0.25 * ( zut*zut + zvt*zvt ) + pke0  )
+         END_2D
       ENDIF
       !
-      IF(ln_ctl)   CALL prt_ctl( tab2d_1=pCdU, clinfo1=' Cd*U ')
+      IF(sn_cfctl%l_prtctl)   CALL prt_ctl( tab2d_1=pCdU, clinfo1=' Cd*U ')
       !
    END SUBROUTINE zdf_drg
 
 
-   SUBROUTINE zdf_drg_exp( kt, pub, pvb, pua, pva )
+   SUBROUTINE zdf_drg_exp( kt, Kmm, pub, pvb, pua, pva )
       !!----------------------------------------------------------------------
       !!                  ***  ROUTINE zdf_drg_exp  ***
       !!
@@ -160,6 +158,7 @@ CONTAINS
       !! ** Action  :   (pua,pva)   momentum trend increased by top & bottom friction trend
       !!---------------------------------------------------------------------
       INTEGER                         , INTENT(in   ) ::   kt         ! ocean time-step index
+      INTEGER                         , INTENT(in   ) ::   Kmm        ! time level indices
       REAL(wp), DIMENSION(jpi,jpj,jpk), INTENT(inout) ::   pub, pvb   ! the two components of the before velocity
       REAL(wp), DIMENSION(jpi,jpj,jpk), INTENT(inout) ::   pua, pva   ! the two components of the velocity tendency
       !! 
@@ -170,8 +169,8 @@ CONTAINS
       REAL(wp), DIMENSION(:,:,:), ALLOCATABLE ::   ztrdu, ztrdv
       !!---------------------------------------------------------------------
       !
-!!gm bug : time step is only rdt (not 2 rdt if euler start !)
-      zm1_2dt = - 1._wp / ( 2._wp * rdt )
+!!gm bug : time step is only rn_Dt (not 2 rn_Dt if euler start !)
+      zm1_2dt = - 1._wp / ( 2._wp * rn_Dt )
 
       IF( l_trddyn ) THEN      ! trends: store the input trends
          ALLOCATE( ztrdu(jpi,jpj,jpk) , ztrdv(jpi,jpj,jpk) )
@@ -179,45 +178,41 @@ CONTAINS
          ztrdv(:,:,:) = pva(:,:,:)
       ENDIF
 
-      DO jj = 2, jpjm1
-         DO ji = 2, jpim1
-            ikbu = mbku(ji,jj)          ! deepest wet ocean u- & v-levels
-            ikbv = mbkv(ji,jj)
+      DO_2D( 0, 0, 0, 0 )
+         ikbu = mbku(ji,jj)          ! deepest wet ocean u- & v-levels
+         ikbv = mbkv(ji,jj)
+         !
+         ! Apply stability criteria on absolute value  : abs(bfr/e3) < 1/(2dt) => bfr/e3 > -1/(2dt)
+         zCdu = 0.5*( rCdU_bot(ji+1,jj)+rCdU_bot(ji,jj) ) / e3u(ji,jj,ikbu,Kmm)
+         zCdv = 0.5*( rCdU_bot(ji,jj+1)+rCdU_bot(ji,jj) ) / e3v(ji,jj,ikbv,Kmm)
+         !
+         pua(ji,jj,ikbu) = pua(ji,jj,ikbu) + MAX(  zCdu , zm1_2dt  ) * pub(ji,jj,ikbu)
+         pva(ji,jj,ikbv) = pva(ji,jj,ikbv) + MAX(  zCdv , zm1_2dt  ) * pvb(ji,jj,ikbv)
+      END_2D
+      !
+      IF( ln_isfcav ) THEN        ! ocean cavities
+         DO_2D( 0, 0, 0, 0 )
+            ikbu = miku(ji,jj)          ! first wet ocean u- & v-levels
+            ikbv = mikv(ji,jj)
             !
             ! Apply stability criteria on absolute value  : abs(bfr/e3) < 1/(2dt) => bfr/e3 > -1/(2dt)
-            zCdu = 0.5*( rCdU_bot(ji+1,jj)+rCdU_bot(ji,jj) ) / e3u_n(ji,jj,ikbu)
-            zCdv = 0.5*( rCdU_bot(ji,jj+1)+rCdU_bot(ji,jj) ) / e3v_n(ji,jj,ikbv)
+            zCdu = 0.5*( rCdU_top(ji+1,jj)+rCdU_top(ji,jj) ) / e3u(ji,jj,ikbu,Kmm)    ! NB: Cdtop masked
+            zCdv = 0.5*( rCdU_top(ji,jj+1)+rCdU_top(ji,jj) ) / e3v(ji,jj,ikbv,Kmm)
             !
             pua(ji,jj,ikbu) = pua(ji,jj,ikbu) + MAX(  zCdu , zm1_2dt  ) * pub(ji,jj,ikbu)
             pva(ji,jj,ikbv) = pva(ji,jj,ikbv) + MAX(  zCdv , zm1_2dt  ) * pvb(ji,jj,ikbv)
-         END DO
-      END DO
-      !
-      IF( ln_isfcav ) THEN        ! ocean cavities
-         DO jj = 2, jpjm1
-            DO ji = 2, jpim1
-               ikbu = miku(ji,jj)          ! first wet ocean u- & v-levels
-               ikbv = mikv(ji,jj)
-               !
-               ! Apply stability criteria on absolute value  : abs(bfr/e3) < 1/(2dt) => bfr/e3 > -1/(2dt)
-               zCdu = 0.5*( rCdU_top(ji+1,jj)+rCdU_top(ji,jj) ) / e3u_n(ji,jj,ikbu)    ! NB: Cdtop masked
-               zCdv = 0.5*( rCdU_top(ji,jj+1)+rCdU_top(ji,jj) ) / e3v_n(ji,jj,ikbv)
-               !
-               pua(ji,jj,ikbu) = pua(ji,jj,ikbu) + MAX(  zCdu , zm1_2dt  ) * pub(ji,jj,ikbu)
-               pva(ji,jj,ikbv) = pva(ji,jj,ikbv) + MAX(  zCdv , zm1_2dt  ) * pvb(ji,jj,ikbv)
-           END DO
-         END DO
+         END_2D
       ENDIF
       !
       IF( l_trddyn ) THEN      ! trends: send trends to trddyn for further diagnostics
          ztrdu(:,:,:) = pua(:,:,:) - ztrdu(:,:,:)
          ztrdv(:,:,:) = pva(:,:,:) - ztrdv(:,:,:)
-         CALL trd_dyn( ztrdu(:,:,:), ztrdv(:,:,:), jpdyn_bfr, kt )
+         CALL trd_dyn( ztrdu(:,:,:), ztrdv(:,:,:), jpdyn_bfr, kt, Kmm )
          DEALLOCATE( ztrdu, ztrdv )
       ENDIF
       !                                          ! print mean trends (used for debugging)
-      IF(ln_ctl)   CALL prt_ctl( tab3d_1=pua, clinfo1=' bfr  - Ua: ', mask1=umask,               &
-         &                       tab3d_2=pva, clinfo2=       ' Va: ', mask2=vmask, clinfo3='dyn' )
+      IF(sn_cfctl%l_prtctl)   CALL prt_ctl( tab3d_1=pua, clinfo1=' bfr  - Ua: ', mask1=umask,               &
+         &                                  tab3d_2=pva, clinfo2=       ' Va: ', mask2=vmask, clinfo3='dyn' )
       !
    END SUBROUTINE zdf_drg_exp
 
@@ -239,15 +234,13 @@ CONTAINS
       !
       !                     !==  drag nature  ==!
       !
-      REWIND( numnam_ref )                   ! Namelist namdrg in reference namelist
       READ  ( numnam_ref, namdrg, IOSTAT = ios, ERR = 901)
 901   IF( ios /= 0 )   CALL ctl_nam( ios , 'namdrg in reference namelist' )
-      REWIND( numnam_cfg )                   ! Namelist namdrg in configuration namelist
       READ  ( numnam_cfg, namdrg, IOSTAT = ios, ERR = 902 )
 902   IF( ios >  0 )   CALL ctl_nam( ios , 'namdrg in configuration namelist' )
       IF(lwm) WRITE ( numond, namdrg )
       !
-      IF( ln_drgice_imp .AND. nn_ice /= 2 )   ln_drgice_imp = .FALSE.
+      IF ( ln_drgice_imp .AND.   nn_ice /= 2  )   ln_drgice_imp = .FALSE.
       !
       IF(lwp) THEN
          WRITE(numout,*)
@@ -352,11 +345,9 @@ CONTAINS
       !
       !                          !==  read namlist  ==!
       !
-      REWIND( numnam_ref )                   ! Namelist cl_namdrg in reference namelist
       IF(ll_top)   READ  ( numnam_ref, namdrg_top, IOSTAT = ios, ERR = 901)
       IF(ll_bot)   READ  ( numnam_ref, namdrg_bot, IOSTAT = ios, ERR = 901)
 901   IF( ios /= 0 )   CALL ctl_nam( ios , TRIM(cl_namref) )
-      REWIND( numnam_cfg )                   ! Namelist cd_namdrg in configuration namelist
       IF(ll_top)   READ  ( numnam_cfg, namdrg_top, IOSTAT = ios, ERR = 902 )
       IF(ll_bot)   READ  ( numnam_cfg, namdrg_bot, IOSTAT = ios, ERR = 902 )
 902   IF( ios >  0 )   CALL ctl_nam( ios , TRIM(cl_namcfg) )
@@ -365,11 +356,9 @@ CONTAINS
 
 #if defined key_drakkar
       IF( ln_boost ) THEN
-         REWIND( numnam_ref )
          IF (ll_top)  READ (numnam_ref,namdrg_top_drk, IOSTAT = ios, ERR = 903)
          IF (ll_bot)  READ (numnam_ref,namdrg_bot_drk, IOSTAT = ios, ERR = 903)
 903      IF( ios /= 0 )   CALL ctl_nam( ios , TRIM(cl_namref)//'_drk' )
-         REWIND( numnam_cfg )
          IF (ll_top)  READ (numnam_cfg,namdrg_top_drk, IOSTAT = ios, ERR = 904)
          IF (ll_bot)  READ (numnam_cfg,namdrg_bot_drk, IOSTAT = ios, ERR = 904)
 904      IF( ios /= 0 )   CALL ctl_nam( ios , TRIM(cl_namref)//'_drk' )
@@ -404,7 +393,7 @@ CONTAINS
          IF(lwp) WRITE(numout,*) '           using enhancement factor of ', rn_boost
          ! cl_varname is a coefficient in [0,1] giving where to apply the regional boost
          CALL iom_open ( TRIM(cl_file), inum )
-         CALL iom_get  ( inum, jpdom_data, TRIM(cl_varname), zmsk_boost, 1 )
+         CALL iom_get  ( inum, jpdom_global, TRIM(cl_varname), zmsk_boost, 1 )
          CALL iom_close( inum)
          zmsk_boost(:,:) = 1._wp + rn_boost * zmsk_boost(:,:)
          !
@@ -415,6 +404,7 @@ CONTAINS
       IF(ll_top)   zmsk_boost(:,:) = zmsk_boost(:,:) * ssmask(:,:) * (1. - tmask(:,:,1) )  ! none zero in ocean cavities only
       IF(ll_bot)   zmsk_boost(:,:) = zmsk_boost(:,:) * ssmask(:,:)                         ! x seafloor mask
       !
+      l_log_not_linssh = .FALSE.    ! default definition
       !
       SELECT CASE( ndrg )
       !
@@ -463,13 +453,11 @@ CONTAINS
             !
             l_log_not_linssh = .FALSE.    !- don't update Cd at each time step
             !
-            DO jj = 1, jpj                   ! pCd0 = mask (and boosted) logarithmic drag coef. 
-               DO ji = 1, jpi
-                  zzz =  0.5_wp * e3t_0(ji,jj,k_mk(ji,jj))
-                  zcd = (  vkarmn / LOG( zzz / rn_z0 )  )**2
-                  pCd0(ji,jj) = zmsk_boost(ji,jj) * MIN(  MAX( rn_Cd0 , zcd ) , rn_Cdmax  )  ! rn_Cd0 < Cd0 < rn_Cdmax
-               END DO
-            END DO
+            DO_2D( nn_hls, nn_hls, nn_hls, nn_hls )              ! pCd0 = mask (and boosted) logarithmic drag coef.
+               zzz =  0.5_wp * e3t_0(ji,jj,k_mk(ji,jj))
+               zcd = (  vkarmn / LOG( zzz / rn_z0 )  )**2
+               pCd0(ji,jj) = zmsk_boost(ji,jj) * MIN(  MAX( rn_Cd0 , zcd ) , rn_Cdmax  )  ! rn_Cd0 < Cd0 < rn_Cdmax
+            END_2D
          ELSE                       !* Cd updated at each time-step ==> pCd0 = mask * boost
             IF(lwp) WRITE(numout,*)
             IF(lwp) WRITE(numout,*) '   N.B.   non-linear free surface case, Cd0 updated at each time-step '

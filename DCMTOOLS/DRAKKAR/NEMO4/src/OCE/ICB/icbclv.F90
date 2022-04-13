@@ -20,7 +20,6 @@ MODULE icbclv
    USE lib_mpp        ! NEMO MPI library, lk_mpp in particular
    USE lbclnk         ! NEMO boundary exchanges for gridded data
 
-   USE icb_oce        ! iceberg variables
    USE icbdia         ! iceberg diagnostics
    USE icbutl         ! iceberg utility routines
    USE icb_oce        ! iceberg parameters 
@@ -31,9 +30,11 @@ MODULE icbclv
    PUBLIC   icb_clv_flx  ! routine called in icbstp.F90 module
    PUBLIC   icb_clv      ! routine called in icbstp.F90 module
 
+   !! * Substitutions
+#  include "do_loop_substitute.h90"
    !!----------------------------------------------------------------------
    !! NEMO/OCE 4.0 , NEMO Consortium (2018)
-   !! $Id: icbclv.F90 10714 2019-02-22 15:13:22Z mathiot $
+   !! $Id: icbclv.F90 15088 2021-07-06 13:03:34Z acc $
    !! Software governed by the CeCILL license (see ./LICENSE)
    !!----------------------------------------------------------------------
 CONTAINS
@@ -71,43 +72,36 @@ CONTAINS
          !do jn=1, nclasses
          !  where (berg_grid%calving==0.) berg_grid%stored_ice(:,:,jn)=0.
          !end do
-         DO jj = 2, jpjm1
-            DO ji = 2, jpim1
-               IF( berg_grid%calving(ji,jj) /= 0._wp )                                          &    ! Need units of J
-                  berg_grid%stored_heat(ji,jj) = SUM( berg_grid%stored_ice(ji,jj,:) ) *         &    ! initial stored ice in kg
-                     &                   berg_grid%calving_hflx(ji,jj) * e1e2t(ji,jj) / berg_grid%calving(ji,jj)   ! J/s/m2 x m^2 
-                     !                                                                                             ! = J/s/calving in kg/s
-            END DO
-         END DO
+         DO_2D( 0, 0, 0, 0 )
+            IF( berg_grid%calving(ji,jj) /= 0._wp )                                          &    ! Need units of J
+               berg_grid%stored_heat(ji,jj) = SUM( berg_grid%stored_ice(ji,jj,:) ) *         &    ! initial stored ice in kg
+                  &                   berg_grid%calving_hflx(ji,jj) * e1e2t(ji,jj) / berg_grid%calving(ji,jj)   ! J/s/m2 x m^2 
+                  !                                                                                             ! = J/s/calving in kg/s
+         END_2D
       ENDIF
 
       ! assume that all calving flux must be distributed even if distribution array does not sum
       ! to one - this may not be what is intended, but it's what you've got
 #if defined key_drakkar
       za=SUM( rn_distribution(1:nclasses) )
-      DO jj = 1, jpj
-         DO ji = 1, jpi
+      DO_2D( 1, 1, 1, 1 )
             imx = berg_grid%maxclass(ji,jj)
             zb = SUM( rn_distribution(1:imx) )
             zdist = za / zb 
-
             DO jn = 1, imx
                berg_grid%stored_ice(ji,jj,jn) = berg_grid%stored_ice(ji,jj,jn)     &
                   &                           + berg_dt * berg_grid%calving(ji,jj) * rn_distribution(jn) * zdist
             END DO
-         END DO
-      END DO
+      END_2D
 #else
-      DO jj = 1, jpj
-         DO ji = 1, jpi
-            imx = berg_grid%maxclass(ji,jj)
-            zdist = SUM( rn_distribution(1:nclasses) ) / SUM( rn_distribution(1:imx) )
-            DO jn = 1, imx
-               berg_grid%stored_ice(ji,jj,jn) = berg_grid%stored_ice(ji,jj,jn)     &
-                  &                           + berg_dt * berg_grid%calving(ji,jj) * rn_distribution(jn) * zdist
-            END DO
+      DO_2D( 1, 1, 1, 1 )
+         imx = berg_grid%maxclass(ji,jj)
+         zdist = SUM( rn_distribution(1:nclasses) ) / SUM( rn_distribution(1:imx) )
+         DO jn = 1, imx
+            berg_grid%stored_ice(ji,jj,jn) = berg_grid%stored_ice(ji,jj,jn)     &
+               &                           + berg_dt * berg_grid%calving(ji,jj) * rn_distribution(jn) * zdist
          END DO
-      END DO
+      END_2D
 #endif
 
       ! before changing the calving, save the amount we're about to use and do budget
@@ -154,14 +148,15 @@ CONTAINS
                   !
                   newpt%lon = glamt(ji,jj)         ! at t-point (centre of the cell)
                   newpt%lat = gphit(ji,jj)
-                  newpt%xi  = REAL( mig(ji), wp )
-                  newpt%yj  = REAL( mjg(jj), wp )
+                  newpt%xi  = REAL( mig(ji), wp ) - ( nn_hls - 1 )
+                  newpt%yj  = REAL( mjg(jj), wp ) - ( nn_hls - 1 )
                   !
                   newpt%uvel = 0._wp               ! initially at rest
                   newpt%vvel = 0._wp
                   !                                ! set berg characteristics
                   newpt%mass           = rn_initial_mass     (jn)
                   newpt%thickness      = rn_initial_thickness(jn)
+                  newpt%kb             = 1         ! compute correctly in icbthm if needed        
                   newpt%width          = first_width         (jn)
                   newpt%length         = first_length        (jn)
                   newberg%mass_scaling = rn_mass_scaling     (jn)
@@ -191,11 +186,6 @@ CONTAINS
             END DO
          END DO
       END DO
-      !
-      DO jn = 1, nclasses
-         CALL lbc_lnk( 'icbclv', berg_grid%stored_ice(:,:,jn), 'T', 1._wp )
-      END DO
-      CALL lbc_lnk( 'icbclv', berg_grid%stored_heat, 'T', 1._wp )
       !
       IF( nn_verbose_level > 0 .AND. icntmax > 1 )   WRITE(numicb,*) 'icb_clv: icnt=', icnt,' on', narea
       !
