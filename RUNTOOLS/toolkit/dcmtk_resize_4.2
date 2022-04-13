@@ -10,7 +10,7 @@
 
 usage() {
     echo
-    echo "USAGE: $(basename $0) [-h] -f FILE-in  -o FILE-out"
+    echo "USAGE: $(basename $0) [-h] -f FILE-in  -o FILE-out [-x XDIM-name] [-y YDIM-name]"
     echo
     echo "  PURPOSE:"
     echo "      Eliminate halos from global FILE-in (nemo <=4.0.x) in order"
@@ -23,25 +23,30 @@ usage() {
     echo "   "
     echo "  OPTIONS:"
     echo "     -h : print this message "
+    echo "     -x  XDIM-name : give name  of X-dimension, default $xdim "
+    echo "     -y  XDIM-name : give name  of Y-dimension, default $ydim "
     echo
     exit 0
         }
 
-if [ $# = 0 ] ; then
-   usage
-fi
-cf_in='none'
-cf_out='none'
-# horizontal dim name
 xdim='x'
 ydim='y'
 
-while getopts :hf:o:  opt
+cf_in='none'
+cf_out='none'
+
+if [ $# = 0 ] ; then
+   usage
+fi
+
+while getopts :hf:o:x:y:  opt
   do
     case $opt in
        (h)  usage ;;
        (f)  cf_in=$OPTARG  ;;
        (o)  cf_out=$OPTARG  ;;
+       (x)  xdim=$OPTARG  ;;
+       (y)  ydim=$OPTARG  ;;
        (*)  ;;
     esac
   done
@@ -68,9 +73,23 @@ fi
 x=$(ncdump -h $cf_in | sed -n /dimensions/,/variables/p | grep -w $xdim | awk -F= '{print $2}' | awk -F\; '{print $1}' )
 y=$(ncdump -h $cf_in | sed -n /dimensions/,/variables/p | grep -w $ydim | awk -F= '{print $2}' | awk -F\; '{print $1}' )
 
+stop=
+if [ ! $x ] ; then
+   echo " E R R O R : no dimensions with name $xdim found in $cf_in"
+   stop=1
+fi
+if [ ! $y ] ; then
+   echo " E R R O R : no dimensions with name $ydim found in $cf_in"
+   stop=1
+fi
+if [ $stop ] ; then 
+   echo " Please, use -x 'xdim' -y 'ydim' options to fit your needs"
+   exit
+fi
 echo " Horizontal dimension in $cf_in :"
 echo "     $xdim : $x"
 echo "     $ydim : $y"
+exit
 # one way to eliminate heading blank char
 x=$(( x + 0 ))
 y=$(( y + 0 ))
