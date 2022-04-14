@@ -243,6 +243,7 @@ else
 	@cp -f -R $(CUS)/ext $(COMPIL_DIR)/.
 	@cp -f -R $(CUS)/mk  $(COMPIL_DIR)/.
 	@cp -f -R $(CUS)/arch  $(COMPIL_DIR)/.
+	@cp -f -R $(CUS)/makenemo $(COMPIL_DIR)/
 endif
 	@gmake copyfile
 ifeq ("$(wildcard $(CONFIG)-$(CASE)_cfgs.txt)","")
