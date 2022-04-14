@@ -1,0 +1,41 @@
+#!/bin/bash
+# This script check the compatibility between file_def_xxx.xml files and
+# field_def_xxx.xml. It just check that field_ref asked in file_def are
+# well defined in field_def file. 
+# So far check is done for oce and ice
+
+for typ in oce ice ; do
+  rm -f .field_lst.txt .fieldid_lst.txt
+  # set the list of existing fields
+  grep field\ id field_def_nemo-$typ.xml | awk -F= '{print $2}' |awk -F\" '{print $2}' | sort -u > .fieldid_lst.txt
+  # scan all filedef for this type
+  for filexml in file_def*nemo-$typ.xml ; do
+    # set the list of field_ref in filexml
+    grep field_ref $filexml | awk -F= '{print $2}' |awk -F\" '{print $2}' | sort -u > .field_lst.txt
+    for fr in $(cat .field_lst.txt) ; do
+       grep -q -w $fr .fieldid_lst.txt
+       if [ $? != 0 ] ; then
+        echo " ERROR : $fr (${filexml}) is not defined in field_def_nemo-$typ.xml"
+        grep -Hn -C 5 $fr ${filexml} 
+       fi
+    done
+  done
+done
+
+
+exit
+ 1208  grep field_ref file_def_nemo-oce.xml | more
+ 1209  grep field_ref file_def_nemo-oce.xml | awk -F= '{print $2}' |awk -F\" '{print $2}'
+ 1210  grep field_ref file_def_nemo-oce.xml | awk -F= '{print $2}' |awk -F\" '{print $2}' | sort -u
+ 1211  grep field_ref file_def_nemo-oce.xml | awk -F= '{print $2}' |awk -F\" '{print $2}' | sort -u > field_lst.txt
+ 1212  vi field_def_nemo-oce.xml 
+ 1213  grep field_id field_def_nemo-oce.xml | awk -F= '{print $2}' |awk -F\" '{print $2}' | sort -u > fieldid_lst.txt
+ 1214  vi fieldid_lst.txt 
+ 1215  grep field_id field_def_nemo-oce.xml 
+ 1216  vi field_def_nemo-oce.xml
+ 1217  grep field\ id field_def_nemo-oce.xml 
+ 1218  grep field\ id field_def_nemo-oce.xml | awk -F= '{print $2}' |awk -F\" '{print $2}' | sort -u > fieldid_lst.txt
+ 1219  vi fieldid_lst.txt
+ 1220  for fr in $(cat field_lst.txt) ; do   grep -n $fr fieldid_lst.txt; done
+ 1221  for fr in $(cat field_lst.txt) ; do   grep -n -w $fr fieldid_lst.txt; done
+
