@@ -2,9 +2,63 @@
 # This script scan all the local F90 files and set up a list of the used NAMELIST statements.
 # Assume that NAMELIST statement are capitalized...
 
-grep NAMELIST *90 | awk -F/ '{print $2}' | sort -u  > lst_namelist.txt
+
+usage() {
+   echo
+   echo "USAGE : $(basename $0) [-h] [-n NAM-block]"
+   echo
+   echo "  PURPOSE: "
+   echo "     Show the NAMELIST block contained into the Fortran 90 files"
+   echo "     of the current directory. Implicit assumption that NAMELIST"
+   echo "     statement is written in upper-case letters."
+   echo "     Using -n option limit the display to a specific namelist block."
+   echo
+   echo "  ARGUMENTS:"
+   echo "     none "
+   echo
+   echo "  OPTIONS:"
+   echo "    -h : print this help message and exit."
+   echo "    -n NAM-block : give the name of a specific namelist block"
+   echo
+   exit 0
+        }
+
+# function for text color
+set_color() {
+r="\033[31m"  # red
+g="\033[32m"  # green
+b="\033[34m"  # blue
+m="\033[35m"  # magenta
+k="\033[0m"   # black/reset
+#
+# more font effect
+bld="\033[1m"
+ita="\033[3m"
+und="\033[4m"
+str="\033[9m"
+            }
+# command parser
+blk='none'
+while getopts :hn: opt ; do
+   case $opt in
+     (h) usage ;;
+     (n) blk=${OPTARG} ;;
+     (*) usage ;;
+    esac
+done
+
+set_color
+
+if [ $blk = 'none' ] ; then
+   grep NAMELIST *90 | awk -F/ '{print $2}' | sort -u  > lst_namelist.txt
+else
+   echo $blk  > lst_namelist.txt
+fi
+
 for blk in $(cat lst_namelist.txt ) ; do
-   grep -A 10 "/$blk/" *90 | awk '{print $0 ; if ( $NF != "&" ) exit }'
+    printf "$bld${r}${blk}${k} \n"
+    grep -h -A 50 "/$blk/" *90 | awk ' {ll=$0 ; if ( NR == 1 ) {print ll} else {sub(/^[ \t\r\n]+/, "", ll) ; if ( substr(ll,1,1) =="&") print $0 } }'
+#   grep -A 10 "/$blk/" *90 | awk '{print $0 ; if ( $NF != "&" ) exit }'
    echo 
 
 done
