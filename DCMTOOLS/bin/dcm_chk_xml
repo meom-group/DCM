@@ -4,6 +4,47 @@
 # well defined in field_def file. 
 # So far check is done for oce and ice
 
+usage() {
+   echo
+   echo "USAGE : $(basename $0) [-h] "
+   echo
+   echo "  PURPOSE: "
+   echo "     Check that file_def_xxx.xml files are coherent with field_def_xxx.xml files"
+   echo
+   echo "  ARGUMENTS:"
+   echo "     none "
+   echo
+   echo "  OPTIONS:"
+   echo "    -h : print this help message and exit."
+   echo
+   exit 0
+        }
+
+# function for text color
+set_color() {
+r="\033[31m"  # red
+g="\033[32m"  # green
+b="\033[34m"  # blue
+m="\033[35m"  # magenta
+k="\033[0m"   # black/reset
+#
+# more font effect
+bld="\033[1m"
+ita="\033[3m"
+und="\033[4m"
+str="\033[9m"
+            }
+
+# command parser
+while getopts :h opt ; do
+   case $opt in
+     (h) usage ;;
+     (*) usage ;;
+    esac
+done
+
+set_color
+
 for typ in oce ice ; do
   rm -f .field_lst.txt .fieldid_lst.txt
   # set the list of existing fields
@@ -15,27 +56,10 @@ for typ in oce ice ; do
     for fr in $(cat .field_lst.txt) ; do
        grep -q -w $fr .fieldid_lst.txt
        if [ $? != 0 ] ; then
-        echo " ERROR : $fr (${filexml}) is not defined in field_def_nemo-$typ.xml"
-        grep -Hn -C 5 $fr ${filexml} 
+        printf " $bld${r}ERROR${k} : ${bld}$fr${k} (${filexml}) is not defined in field_def_nemo-$typ.xml \n"
+        grep --color -Hn -C 3 $fr ${filexml} 
        fi
     done
   done
 done
-
-
-exit
- 1208  grep field_ref file_def_nemo-oce.xml | more
- 1209  grep field_ref file_def_nemo-oce.xml | awk -F= '{print $2}' |awk -F\" '{print $2}'
- 1210  grep field_ref file_def_nemo-oce.xml | awk -F= '{print $2}' |awk -F\" '{print $2}' | sort -u
- 1211  grep field_ref file_def_nemo-oce.xml | awk -F= '{print $2}' |awk -F\" '{print $2}' | sort -u > field_lst.txt
- 1212  vi field_def_nemo-oce.xml 
- 1213  grep field_id field_def_nemo-oce.xml | awk -F= '{print $2}' |awk -F\" '{print $2}' | sort -u > fieldid_lst.txt
- 1214  vi fieldid_lst.txt 
- 1215  grep field_id field_def_nemo-oce.xml 
- 1216  vi field_def_nemo-oce.xml
- 1217  grep field\ id field_def_nemo-oce.xml 
- 1218  grep field\ id field_def_nemo-oce.xml | awk -F= '{print $2}' |awk -F\" '{print $2}' | sort -u > fieldid_lst.txt
- 1219  vi fieldid_lst.txt
- 1220  for fr in $(cat field_lst.txt) ; do   grep -n $fr fieldid_lst.txt; done
- 1221  for fr in $(cat field_lst.txt) ; do   grep -n -w $fr fieldid_lst.txt; done
 
