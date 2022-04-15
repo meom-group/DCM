@@ -1,16 +1,69 @@
 #!/bin/sh
 
 # class = @DCM core functions@
-if [ $# = 0 ] ; then
-   echo "  Usage  : $(basename $0 ) go "
-   echo "  Purpose: "
-   echo "    Create NEMO4 directory tree under the current directory."
-   echo "  Arguments : "
-   echo "    go : launch the creation !"
-   echo "  "
+
+usage()  {
+   echo
+   printf "${bld}USAGE :$k  $(basename $0) [-h] [-c] \n"
+   echo
+   printf "  ${bld}PURPOSE:$k \n"
+   echo "     Create a NEMO4 src tree at current src position "
+   echo "     You must use this script in a 'src' directory."
+   echo
+   printf "  ${bld}ARGUMENTS:$k \n"
+   echo "     none "
+   echo
+   printf "  ${bld}OPTIONS:$k \n"
+   echo "    -h : print this help message and exit."
+   echo "    -c : clone NEMO4 src tree from NEMOREF/NEMO4 "
+   echo "        Default is to create hard coded list of directory"
+   echo
    exit 0
+        }
+
+# function for text color
+set_color() {
+r="\033[31m"  # red
+g="\033[32m"  # green
+b="\033[34m"  # blue
+m="\033[35m"  # magenta
+k="\033[0m"   # black/reset
+#
+# more font effect
+bld="\033[1m"
+ita="\033[3m"
+und="\033[4m"
+str="\033[9m"
+            }
+# command parser
+clone=''
+set_color
+while getopts :hc opt ; do
+   case $opt in
+     (h) usage ;;
+     (c) clone=yes ;;
+     (*) usage ;;
+    esac
+done
+
+
+src=$( basename $PWD)
+if [ $src != src ] ; then
+  printf " ${bld}${r} E R R O R : NOT in src directory ${k} \n"
+  usage
 fi
 
+if [ $clone ] ; then
+   printf " ${bld}CLONING${k} NEMO4 tree from ${r}$(basename $( dirname ${HOMEDCM}))/NEMOREF/NEMO4/src${k} \n"
+   lst=$( ls -R ${HOMEDCM}/NEMOREF/NEMO4/src | grep '/' | tr -d ':' )
+   for d in $lst ; do
+     loc=$( echo .${d#*src})
+     mkdir -p $loc
+   done
+
+else
+   printf " ${bld}HARD CODED${k} creation of NEMO4 tree (default)  \n"
+mkdir -p ./ABL
 mkdir -p ./ICE
 mkdir -p ./NST
 mkdir -p ./OCE
@@ -25,11 +78,13 @@ mkdir -p ./OCE/DYN
 mkdir -p ./OCE/FLO
 mkdir -p ./OCE/ICB
 mkdir -p ./OCE/IOM
+mkdir -p ./OCE/ISF
 mkdir -p ./OCE/LBC
 mkdir -p ./OCE/LDF
 mkdir -p ./OCE/OBS
 mkdir -p ./OCE/SBC
 mkdir -p ./OCE/STO
+mkdir -p ./OCE/TDE
 mkdir -p ./OCE/TRA
 mkdir -p ./OCE/TRD
 mkdir -p ./OCE/USR
@@ -37,6 +92,7 @@ mkdir -p ./OCE/ZDF
 mkdir -p ./OFF
 mkdir -p ./SAO
 mkdir -p ./SAS
+mkdir -p ./SWE
 mkdir -p ./TOP
 mkdir -p ./TOP/AGE
 mkdir -p ./TOP/C14
@@ -47,3 +103,4 @@ mkdir -p ./TOP/PISCES/P2Z
 mkdir -p ./TOP/PISCES/P4Z
 mkdir -p ./TOP/PISCES/SED
 mkdir -p ./TOP/TRP
+fi
