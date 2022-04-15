@@ -171,21 +171,7 @@ cd $UDIR/CONFIG_$CONFIG/${CONFIG}-${CASE}
   cd ..
 
   cd src
-
-  for subdir in ICE  NST  OCE  OFF  SAO  SAS  TOP ; do
-     chkdir $subdir
-  done
-
-  cd OCE
-  for subdir in ASM BDY C1D CRS DIA DIU DOM DYN FLO ICB IOM LBC LDF OBS SBC STO TRA TRD USR ZDF ; do
-     chkdir $subdir
-  done
-  cd ../
-
-  cd TOP
-  for subdir in AGE C14 CFC  MY_TRC PISCES TRP ; do
-    chkdir $subdir
-  done
+    dcm_create_dir go  
   cd ../
 
   
