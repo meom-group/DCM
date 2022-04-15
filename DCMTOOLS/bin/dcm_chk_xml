@@ -1,0 +1,138 @@
+#!/bin/bash
+# This script check the compatibility between file_def_xxx.xml files and
+# field_def_xxx.xml. It just check that field_ref asked in file_def are
+# well defined in field_def file. 
+# So far check is done for oce and ice
+
+usage() {
+   echo
+   echo "USAGE : $(basename $0) [-h] [-c CONFIG-CASE] [-a] [-v]"
+   echo
+   echo "  PURPOSE: "
+   echo "     Check that file_def_xxx.xml files are coherent with field_def_xxx.xml files"
+   echo
+   echo "  ARGUMENTS:"
+   echo "     none "
+   echo
+   echo "  OPTIONS:"
+   echo "    -h : print this help message and exit."
+   echo "    -c CONFIG-CASE : With this option, xml field_def and file_def are also"
+   echo "           checked against NEMO iom_put calls"
+   echo "    -a : As -c but retrieve CONFIG-CASE from the name of the actual directory"
+   echo "         that should be a 'CTL' directory."
+   echo "    -v : The output is more detailed (verbose)"
+   echo
+   exit 0
+        }
+
+# function for text color
+set_color() {
+r="\033[31m"  # red
+g="\033[32m"  # green
+b="\033[34m"  # blue
+m="\033[35m"  # magenta
+k="\033[0m"   # black/reset
+#
+# more font effect
+bld="\033[1m"
+ita="\033[3m"
+und="\033[4m"
+str="\033[9m"
+            }
+
+get_configcase() {
+   tmp=$(basename $PWD)
+   if [ ${tmp:0:6} = TMPDIR ] ; then
+      echo ${tmp#TMPDIR_}
+      return
+   fi
+   if [ $tmp != CTL ] ; then
+      echo " SORRY,  you need to be in CTL or TMPDIR  when using -a option"
+      exit 1
+   fi
+   tmp=$(dirname $PWD)
+   echo $(basename $tmp)
+                 }
+
+confcase='none'
+confwork=''
+verbose=''
+# command parser
+
+while getopts :hc:av opt ; do
+   case $opt in
+     (h) usage ;;
+     (c) confcase=${OPTARG} ;;
+     (a) confcase=$(get_configcase) ;; 
+     (v) verbose='on' ;;
+     (*) usage ;;
+    esac
+done
+
+set_color
+
+
+if [ $confcase != 'none' ] ; then
+   # check against NEMO
+   CONFIG=${confcase%-*}
+   CASE=${confcase#*-}
+
+   confwork=$UDIR/CONFIG_${CONFIG}/${confcase}/WORK
+
+   if [ ! -d $confwork ] ; then
+      echo "$confcase  configuration has no WORK available..."
+      exit
+   fi
+   rm -f $confwork/.field_id.txt
+   rm -f $confwork/.field_ref.txt
+fi
+
+for typ in oce ice ; do
+  rm -f .field_lst.txt .fieldid_lst.txt
+  # set the list of existing fields
+  grep field\ id field_def_nemo-$typ.xml | awk -F= '{print $2}' |awk -F\" '{print $2}' | sort -u > .fieldid_lst.txt
+  if [ $confwork ] ; then cat .fieldid_lst.txt >> $confwork/.field_id.txt ; fi
+ 
+  # scan all filedef for this type
+  for filexml in file_def*nemo-$typ.xml ; do
+    # set the list of field_ref in filexml
+    grep field_ref $filexml | awk -F= '{print $2}' |awk -F\" '{print $2}' | sort -u > .field_lst.txt
+    if [ $confwork ] ; then cat .field_lst.txt >> $confwork/.field_ref.txt ; fi
+    for fr in $(cat .field_lst.txt) ; do
+       grep -q -w $fr .fieldid_lst.txt
+       if [ $? != 0 ] ; then
+        printf " $bld${r}ERROR${k} : ${bld}$fr${k} (${filexml}) is not defined in field_def_nemo-$typ.xml \n"
+        if [ $verbose ] ; then    grep --color -Hn -C 3 $fr ${filexml}  ; fi
+       fi
+    done
+  done
+done
+
+
+if [ $confwork ] ; then
+  cd $confwork
+  # sort list files
+  cat  .field_id.txt  | sort -u > .ztmp ; mv .ztmp .field_id.txt
+  cat  .field_ref.txt | sort -u > .ztmp ; mv .ztmp .field_ref.txt
+  
+  # set list of xios id from iom_put statement
+  grep -w "CALL[[:blank:]]iom_put" *90  | awk -F'CALL ' '{print $2}' |\
+                    awk -F'(' '{print $2}' | awk -F, '{print $1}' |\
+                    tr -d [:blank:] | tr -d \' | tr -d \" | grep -iv trim | grep -iv cdname  | sort -u  > .xios_id.txt
+
+  # check if all id refered in file_def exist in NEMO 
+  for fieldref in $(cat .field_ref.txt) ; do
+     grep -q -w $fieldref .xios_id.txt
+     if [ $? != 0 ] ; then
+        printf " $bld${r}ERROR${k} : ${bld}$fieldref${k}  is not used in NEMO and output is asked for.\n"
+     fi
+  done
+  # check if all xios id used in NEMO are defined in field_def xml files
+  for xiosid in  $(cat .xios_id.txt)  ; do
+     grep -q -w $xiosid .field_id.txt
+     if [ $? != 0 ] ; then
+        printf " $bld${r}ERROR${k} : ${bld}$xiosid${k}  is not defined in field_def but used in NEMO\n"
+        if [ $verbose ] ; then grep -w "CALL[[:blank:]]iom_put" *90 | grep --color -w $xiosid  ; fi
+     fi
+  done
+fi
