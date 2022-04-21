@@ -9,6 +9,7 @@ MODULE diaprod
    !!=====================================================================
    !! History :  3.4  ! 2012  (D. Storkey)  Original code
    !!            4.0  ! 2019  (D. Storkey)
+   !!            4.2  ! 2022  (J.M. Molines)
    !!----------------------------------------------------------------------
 
    !!----------------------------------------------------------------------
@@ -16,15 +17,8 @@ MODULE diaprod
    !!----------------------------------------------------------------------
    USE oce             ! ocean dynamics and tracers 
    USE dom_oce         ! ocean space and time domain
-!  USE domvvl          ! for thickness weighted diagnostics if key_vvl
-!   USE eosbn2          ! equation of state  (eos call)
-!  USE phycst          ! physical constants
-!  USE lbclnk          ! ocean lateral boundary conditions (or mpp link)
-!  USE in_out_manager  ! I/O manager
-   USE iom
-!  USE ioipsl
-!  USE lib_mpp         ! MPP library
-   USE timing          ! preformance summary
+   USE iom             
+   USE timing          ! performance summary
 
    IMPLICIT NONE
    PRIVATE
