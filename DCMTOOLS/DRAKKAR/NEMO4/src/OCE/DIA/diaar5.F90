@@ -137,7 +137,12 @@ CONTAINS
          !
       ENDIF
 
+#if defined key_drakkar
+      IF( iom_use( 'botpres' ) .OR. iom_use( 'sshthster' )  .OR. iom_use( 'sshsteric' ) &
+            &                  .OR. iom_use( 'sshthst'   ) )  THEN
+#else
       IF( iom_use( 'botpres' ) .OR. iom_use( 'sshthster' )  .OR. iom_use( 'sshsteric' )  ) THEN
+#endif
          !
          ztsn(:,:,:,jp_tem) = ts(:,:,:,jp_tem,Kmm)                    ! thermosteric ssh
          ztsn(:,:,:,jp_sal) = sn0(:,:,:)
@@ -164,11 +169,50 @@ CONTAINS
 !!gm   riceload should be added in both ln_linssh=T or F, no?
 !!gm
          END IF
+#if defined key_drakkar
+       CALL iom_put( 'sshthst', zbotpres )
+       IF ( iom_use('sshthster') ) THEN
+         zarho = glob_sum( 'diaar5', e1e2t(:,:) * zbotpres(:,:) )
+         zssh_steric = - zarho / area_tot
+         CALL iom_put( 'sshthster', zssh_steric )      
+       ENDIF
+#else
          !
          zarho = glob_sum( 'diaar5', e1e2t(:,:) * zbotpres(:,:) )
          zssh_steric = - zarho / area_tot
          CALL iom_put( 'sshthster', zssh_steric )
+#endif
 
+#if defined key_drakkar
+         ! add extra iom_use for sshsteric and botpres to avoid useless computation
+         IF ( iom_use('botpres') .OR. iom_use('sshsteric') ) THEN
+           !                                         ! steric sea surface height
+           zbotpres(:,:) = 0._wp                        ! no atmospheric surface pressure, levitating sea-ice
+           DO jk = 1, jpkm1
+              zbotpres(:,:) = zbotpres(:,:) + e3t(:,:,jk,Kmm) * rhd(:,:,jk)
+           END DO
+           IF( ln_linssh ) THEN
+              IF ( ln_isfcav ) THEN
+                 DO ji = 1,jpi
+                    DO jj = 1,jpj
+                       iks = mikt(ji,jj)
+                       zbotpres(ji,jj) = zbotpres(ji,jj) + ssh(ji,jj,Kmm) * rhd(ji,jj,iks) + riceload(ji,jj)
+                    END DO
+                 END DO
+              ELSE
+                 zbotpres(:,:) = zbotpres(:,:) + ssh(:,:,Kmm) * rhd(:,:,1)
+              END IF
+           END IF
+           !
+           zarho = glob_sum( 'diaar5', e1e2t(:,:) * zbotpres(:,:) )
+           zssh_steric = - zarho / area_tot
+           CALL iom_put( 'sshsteric', zssh_steric )
+           !                                         ! ocean bottom pressure
+           zztmp = rho0 * grav * 1.e-4_wp               ! recover pressure from pressure anomaly and cover to dbar = 1.e4 Pa
+           zbotpres(:,:) = zztmp * ( zbotpres(:,:) + ssh(:,:,Kmm) + thick0(:,:) )
+           CALL iom_put( 'botpres', zbotpres )
+         ENDIF
+#else
          !                                         ! steric sea surface height
          zbotpres(:,:) = 0._wp                        ! no atmospheric surface pressure, levitating sea-ice
          DO jk = 1, jpkm1
@@ -194,6 +238,7 @@ CONTAINS
          zztmp = rho0 * grav * 1.e-4_wp               ! recover pressure from pressure anomaly and cover to dbar = 1.e4 Pa
          zbotpres(:,:) = zztmp * ( zbotpres(:,:) + ssh(:,:,Kmm) + thick0(:,:) )
          CALL iom_put( 'botpres', zbotpres )
+#endif
          !
          DEALLOCATE( zgdept )
          !
