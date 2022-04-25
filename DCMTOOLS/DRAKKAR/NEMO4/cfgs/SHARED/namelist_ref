@@ -1170,6 +1170,7 @@
    ln_dynvor_enT = .false. !  energy conserving scheme (T-point)
    ln_dynvor_eeT = .false. !  energy conserving scheme (een using e3t)
    ln_dynvor_een = .true.  !  energy & enstrophy scheme
+   !
    ln_dynvor_msk = .false. !  vorticity multiplied by fmask (=T)        ==>>> PLEASE DO NOT ACTIVATE
    !                       !  (f-point vorticity schemes only)
    !
