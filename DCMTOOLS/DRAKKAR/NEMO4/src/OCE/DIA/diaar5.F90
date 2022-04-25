@@ -490,9 +490,9 @@ CONTAINS
          zvol0 (:,:) = 0._wp
          thick0(:,:) = 0._wp
          DO_3D( 1, 1, 1, 1, 1, jpkm1 )   ! interpolation of salinity at the last ocean level (i.e. the partial step)
-            idep = tmask(ji,jj,jk) * e3t_0(ji,jj,jk)
-            zvol0 (ji,jj) = zvol0 (ji,jj) +  idep * e1e2t(ji,jj)
-            thick0(ji,jj) = thick0(ji,jj) +  idep
+            zztmp = tmask(ji,jj,jk) * e3t_0(ji,jj,jk)
+            zvol0 (ji,jj) = zvol0 (ji,jj) +  zztmp * e1e2t(ji,jj)
+            thick0(ji,jj) = thick0(ji,jj) + zztmp 
          END_3D
          vol0 = glob_sum( 'diaar5', zvol0 )
          DEALLOCATE( zvol0 )
