@@ -201,6 +201,14 @@ getforcing()        {
          # check for cloud cover
          tmp=$( LookInNamelist  sn_cc ) 
          if [ $tmp = NOT ] ; then filter="$filter | grep -v sn_cc " ; fi
+         
+         # check for CFB files 
+         tmp=$( LookInNamelist  sn_uoatm )
+         if [ $tmp = NOT ] ; then filter="$filter | grep -v sn_uoatm | grep -v sn_voatm  " ; fi
+
+         # check for CFB files 
+         tmp=$( LookInNamelist  sn_hpgi )
+         if [ $tmp = NOT ] ; then filter="$filter | grep -v sn_hpgi | grep -v sn_hpgj  " ; fi
 
          # check for WDMP forcing
          tmp=$( LookInNamelist ln_wdmp );  tmp=$(normalize $tmp )

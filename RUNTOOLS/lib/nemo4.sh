@@ -79,30 +79,32 @@ fi
 echo " [1.2]  set flags according to CPP_keys"
 echo " ======================================"
 # Reminder : NEMO4 CPP keys are :
+key_RK3
 # key_agrif
 # key_asminc
-# key_c1d
 # key_cice
 # key_cice4
 # key_cyclone
-# key_diadct
-# key_diaharm
 # key_diahth
 # key_diainstant
-# key_floats
-# key_iomput
-# key_mpp_mpi
+# key_example
+# key_isf
+# key_linssh
+# key_loop_fusion
+# key_mpi2
+# key_mpi_off
 # key_nemocice_decomp
 # key_netcdf4
 # key_nosignedzero
-# key_oa3mct_v3
+# key_oa3mct_v1v2
 # key_oasis3
+# key_qco
+# key_qcoTest_FluxForm
 # key_si3
+# key_single
 # key_top
-#   key_sed_off
-#   key_trdmxl_trc
-#   key_trdtrc
-# key_vectopt_loop
+# key_trdtrc
+# key_xios
 
 #  DRAKKAR CPP key
 # key_drakkar
@@ -111,7 +113,7 @@ echo " ======================================"
 IOIPSL=0  # probably never used except with test cases ( if no XIOS ? )
 
 AGRIF=0   ;  if [ $(keychk key_agrif  )  ] ; then AGRIF=1   ; fi
-XIOS=0    ;  if [ $(keychk key_iomput )  ] ; then XIOS=1    ; DIROUText='XIOS'    ; fi
+XIOS=0    ;  if [ $(keychk key_xios   )  ] ; then XIOS=1    ; DIROUText='XIOS'    ; fi
 ICE=0     ;  if [ $(keychk key_si3    )  ] ; then ICE=1     ; fi
 TOP=0     ;  if [ $(keychk key_top )     ] ; then TOP=1     ; fi
 FLOAT=0   ;  if [ $(keychk key_floats)   ] ; then FLOAT=1   ; fi
