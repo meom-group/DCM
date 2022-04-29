@@ -24,9 +24,10 @@ mkdir -p  $P_S_DIR
 mkdir -p  $P_S_DIR/ANNEX
 
 ## Generic name for some directories
-CN_DIAOBS=${CONFIG_CASE}-DIAOBS     # receive files from diaobs functionality, if used
-CN_DIRRST=${CONFIG_CASE}-RST        # receive restart files
-CN_DIRICB=${CONFIG_CASE}-ICB        # receive Iceberg Output files
+CN_DIAOBS=${DDIR}/${CONFIG_CASE}-DIAOBS     # receive files from diaobs functionality, if used
+CN_DIRRST=${DDIR}/${CONFIG_CASE}-RST        # receive restart files
+CN_DIRICB=${DDIR}/${CONFIG_CASE}-ICB        # receive Iceberg Output files
+CN_DIROUT=${DDIR}/${CONFIG_CASE}-XIOS       # root of XIOS output
 
 ## -----------------------------------------------------
 echo '(1) get all the working tools on the TMPDIR directory'
@@ -110,7 +111,8 @@ key_RK3
 # key_drakkar
 
 
-IOIPSL=0  # probably never used except with test cases ( if no XIOS ? )
+IOIPSL=0  # probably never used except with test cases ( if no XIOS ? ) 
+        DIROUText='IOIPSL'  # default value
 
 AGRIF=0   ;  if [ $(keychk key_agrif  )  ] ; then AGRIF=1   ; fi
 XIOS=0    ;  if [ $(keychk key_xios   )  ] ; then XIOS=1    ; DIROUText='XIOS'    ; fi
@@ -174,9 +176,10 @@ sed -e "s/<NN_NO>/$no/" \
     -e "s/<NIT000>/$nit000/" \
     -e "s/<NITEND>/$nitend/" \
     -e "s/<RESTART>/$restart_flag/" \
-    -e "s@<CN_DIAOBS>@$DDIR/${CN_DIAOBS}.$no@"   \
-    -e "s@<CN_DIRICB>@$DDIR/${CN_DIRICB}.$no@"   \
-    -e "s@<CN_DIRRST>@$DDIR/${CN_DIRRST}@"   namelist > znamelist1
+    -e "s@<CN_DIROUT>@${CN_DIROUT}.$no@"   \
+    -e "s@<CN_DIAOBS>@${CN_DIAOBS}.$no@"   \
+    -e "s@<CN_DIRICB>@${CN_DIRICB}.$no@"   \
+    -e "s@<CN_DIRRST>@${CN_DIRRST}@"   namelist > znamelist1
 \cp znamelist1 namelist
 \cp namelist  namelist_ref
 \cp namelist  namelist_cfg
@@ -245,7 +248,7 @@ if [ $AGRIF = 1 ] ; then
         sed -e "s/<NN_NO>/$no/"   \
             -e "s/<NIT000>/${nit0[idx]}/" \
             -e "s/<NITEND>/${nite[idx]}/" \
-            -e "s@<CN_DIRRST>@$DDIR/${CN_DIRRST}@" \
+            -e "s@<CN_DIRRST>@${CN_DIRRST}@" \
             -e "s/<RESTART>/$restart_flag/" ${idx}_namelist > z${idx}_namelist1
 
         \cp z${idx}_namelist1 ${idx}_namelist
@@ -254,8 +257,8 @@ if [ $AGRIF = 1 ] ; then
     done
 fi
 
-echo "   ***  Check/Create directory : ${CONFIG_CASE}-${DIROUText}.$no"
-mkdir -p  $DDIR/${CONFIG_CASE}-${DIROUText}.$no
+echo "   ***  Check/Create directory : ${CN_DIROUT}.$no"
+mkdir -p   ${CN_DIROUT}.$no
 
 echo "   ***  Check/Create directory : ${CONFIG_CASE}-${MOOROUText}.$no"
 MOOROUText=MOORINGS
@@ -264,13 +267,13 @@ MOOROUText=MOORINGS
 
 if [ $DIAOBS = 1 ] ; then 
     echo "   ***  Check/Create directory : ${CN_DIAOBS}.$no"
-    mkdir -p $DDIR/${CN_DIAOBS}.$no 
+    mkdir -p ${CN_DIAOBS}.$no 
 fi
 
 
 if [ $RST_DIRS = 1 ] ; then 
     echo "   ***  Check/Create directory : ${CN_DIRRST}.$no"
-    mkdir -p $DDIR/${CN_DIRRST}.$no
+    mkdir -p ${CN_DIRRST}.$no
 fi
 
 rdt=$(LookInNamelist rn_Dt)
@@ -302,7 +305,7 @@ if [ $TOP = 1 ] ; then
     echo ' [2.2]  Tracer namelist(s)'
     echo " ========================="
     rcopy $P_CTL_DIR/namelist_top ./
-    sed -e "s@<CN_DIRRST>@$DDIR/${CN_DIRRST}@"   namelist_top > ztmpnmtop
+    sed -e "s@<CN_DIRRST>@${CN_DIRRST}@"   namelist_top > ztmpnmtop
     mv ztmpnmtop namelist_top
     cp namelist_top namelist_top_ref
     cp namelist_top namelist_top_cfg
@@ -318,7 +321,7 @@ if [ $ICE != 0 ] ; then
     echo ' [2.3]  Ice namelist'
     echo " ========================="
     rcopy $P_CTL_DIR/namelist_ice.${CONFIG_CASE} namelist_ice
-    sed -e "s@<CN_DIRRST>@$DDIR/${CN_DIRRST}@"   namelist_ice > ztmpnmice
+    sed -e "s@<CN_DIRRST>@${CN_DIRRST}@"   namelist_ice > ztmpnmice
     mv ztmpnmice namelist_ice
     cp namelist_ice namelist_ice_ref
     cp namelist_ice namelist_ice_cfg
@@ -415,7 +418,7 @@ tmp=$(LookInNamelist ln_icebergs) ; tmp=$(normalize $tmp)
 if [ $tmp = T ] ; then
     ICB=1
     echo "   ***  Check/Create directory : ${CN_DIRICB}.$no"
-    mkdir -p $DDIR/${CN_DIRICB}.$no 
+    mkdir -p ${CN_DIRICB}.$no 
 fi
 echo "   ***  ICB  = $ICB"
 
@@ -483,11 +486,9 @@ if [ $ENSEMBLE = 1 ] ; then
               -e "s/NIT000/$nit000/" \
               -e "s/NITEND/$nitend/" \
               -e "s/RESTART/$restart_flag/" \
-              -e "s@CN_DIROUT@$DDIR/${CONFIG_CASE}-${DIROUText}.$no@" \
-              -e "s@CN_DIROUT2@$DDIR/${CONFIG_CASE}-${DIROUText}.$no/SSF@" \
-              -e "s@CN_DIROUT3@$DDIR/${CONFIG_CASE}-${DIROUText}.$no/5D@" \
-              -e "s@CN_DIAOBS@$DDIR/${CN_DIAOBS}.$no@"   \
-              -e "s@CN_DIRRST@$DDIR/${CN_DIRRST}@"   namelist.$nnn > znamelist1
+              -e "s@<CN_DIROUT>@${CN_DIROUT}.$no@" \
+              -e "s@<CN_DIAOBS>@${CN_DIAOBS}.$no@"   \
+              -e "s@<CN_DIRRST>@${CN_DIRRST}@"   namelist.$nnn > znamelist1
               \cp znamelist1 namelist.$nnn
        done
     fi
@@ -507,9 +508,9 @@ if [ $ENSEMBLE = 1 ] ; then
     fi
     for member in $(seq $ENSEMBLE_START $ENSEMBLE_END) ; do
         nnn=$(getmember_extension $member  nodot )  # number of the member without .
-        mkdir -p  $DDIR/${CONFIG_CASE}-${DIROUText}.${no}/$nnn
+        mkdir -p  ${CN_DIROUT}.${no}/$nnn
         if [ $RST_DIRS = 1 ] ; then
-            mkdir -p  $DDIR/${CN_DIRRST}.${no}/$nnn
+            mkdir -p  ${CN_DIRRST}.${no}/$nnn
         fi
     done
 fi
@@ -816,7 +817,7 @@ else
             nnn=$(getmember_extension $member  nodot )  # number of the member without .
 
             zrstdir='./'   # set zrstdir to RST directory if used
-            if [ $RST_DIRS = 1 ] ; then zrstdir=$DDIR/${CN_DIRRST}.$prev_ext/$nnn/ ; fi
+            if [ $RST_DIRS = 1 ] ; then zrstdir=${CN_DIRRST}.$prev_ext/$nnn/ ; fi
 
             if [  $ln_ens_rst_in = F ] ; then mmm='' ; fi # force mmm to empty string if ln_ens_rst_in = false
 
@@ -1255,11 +1256,11 @@ case $STOP_FLAG in
       # from now, take care of using the correct namelist name in the calls !
 
      # rename the output directory extension in order not to mix the output with correct run
-    echo "   ***  ${CONFIG_CASE}-${DIROUText}.$no renamed to ${CONFIG_CASE}-${DIROUText}.$ext"
-    mv $DDIR/${CONFIG_CASE}-${DIROUText}.$no $DDIR/${CONFIG_CASE}-${DIROUText}.$ext 
+    echo "   ***  ${CN_DIROUT}.$no renamed to ${CN_DIROUT}.$ext"
+    mv ${CN_DIROUT}.$no ${CN_DIROUT}.$ext 
     if [ $DIAOBS = 1 ] ; then
         echo "   ***  ${CN_DIAOBS}.$no renamed to ${CN_DIAOBS}.$ext"
-        mv $DDIR/${CN_DIAOBS}.$no $DDIR/${CN_DIAOBS}.$ext 
+        mv ${CN_DIAOBS}.$no ${CN_DIAOBS}.$ext 
     fi ;;
 esac
 
@@ -1278,8 +1279,8 @@ case $STOP_FLAG in
         echo ' [6.1] Process the rebuild of nc file from XIOS files '
         echo ' ========================================================='
 
-        cp $CN_DOMCFG  $DDIR/${CONFIG_CASE}-${DIROUText}.$ext/
-        cp iodef.xml domain_def.xml $DDIR/${CONFIG_CASE}-${DIROUText}.$ext/
+        cp $CN_DOMCFG  ${CN_DIROUT}.$ext/
+        cp iodef.xml domain_def.xml ${CN_DIROUT}.$ext/
    
         if [ $DIAPTR = 1 ] ; then  # process diaptr files (one_file mode). Only rename
         date
@@ -1288,7 +1289,7 @@ case $STOP_FLAG in
             for member in $(seq  $ENSEMBLE_START $ENSEMBLE_END ) ; do
               nnn=$(getmember_extension $member nodot)
               mmm=$(getmember_extension $member      )
-              cd  $DDIR/${CONFIG_CASE}-${DIROUText}.$ext/$nnn
+              cd  ${CN_DIROUT}.$ext/$nnn
               for f in ${CONFIG_CASE}${mmm}*diaptr_*.nc ; do
                  if [ -f $f ] ; then  # check if $f exist ( case of ln_diaptr=T but no i/o in iodef)
                    freq=$( echo $f | awk -F_ '{print $2}' )
@@ -1397,7 +1398,7 @@ case $STOP_FLAG in
         echo '   [6.2.2] Recombine and save OBS fdbk files '
         echo '   ------------------------------------------'
 #        cp ./fbcomb.exe $DDIR/${CN_DIAOBS}.$ext
-        cd $DDIR/${CN_DIAOBS}.$ext
+        cd ${CN_DIAOBS}.$ext
 
         if [ $ENACT = 1 ] ; then
             mkdir -p  $P_S_DIR/OBS/

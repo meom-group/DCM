@@ -6,7 +6,7 @@
 ============================================================================================================
     -->
 
-    <file_definition type="multiple_file" name="<OUTDIR>/@expname@_@freq@" sync_freq="1d" min_digits="4">
+    <file_definition type="multiple_file" name="@dirout@/@expname@_@freq@" sync_freq="1d" min_digits="4">
       <file_group id="1h" output_freq="1h"  split_freq="1d"  output_level="10" enabled=".TRUE."> <!-- 1h files -->
         <file id="file1" name_suffix="_gridTsurf" description="ocean T grid variables" >
            <field field_ref="sst"          name="sosstsst"  />

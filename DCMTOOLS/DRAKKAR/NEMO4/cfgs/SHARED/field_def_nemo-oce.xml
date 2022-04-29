@@ -534,6 +534,11 @@ that are available in the tidal-forcing implementation (see
 
     </field_group>
 
+<!-- DRAKKAR adds start-->
+    <field_group id="SBC_SCALAR"  grid_ref="grid_scalar" >
+         <field id="fwprv"         long_name="Fresh Water imbalance"  standard_name="Fresh_water_imbalance"           unit="kg/m2/s"    />
+    </field_group>
+<!-- DRAKKAR adds end-->
 
   </field_group> <!-- SBC -->
 
@@ -788,6 +793,35 @@ that are available in the tidal-forcing implementation (see
   <!-- f-eddy viscosity coefficients (ldfdyn) -->
   <field id="ahmf_2d"      long_name=" surface f-eddy viscosity coefficient"   unit="m2/s or m4/s" />
   <field id="ahmf_3d"      long_name=" 3D      f-eddy viscosity coefficient"   unit="m2/s or m4/s"  grid_ref="grid_T_3D"/>
+
+  <!-- DRAKKAR adds start-->
+   <!-- product fields -->
+  <field_group id="diaprod">
+     <field id="ut"           long_name="product_of_sea_water_x_velocity_and_temperature"                unit="degree_C m/s"   grid_ref="grid_U_3D"   />
+     <field id="ut_e3u"       long_name="product_of_sea_water_x_velocity_and_temperature * e3u"          unit="degree_C m2/s"  grid_ref="grid_U_3D" > ut * e3u </field>
+     <field id="us"           long_name="product_of_sea_water_x_velocity_and_salinity"                   unit="PSU m/s"        grid_ref="grid_U_3D"   />
+     <field id="us_e3u"       long_name="product_of_sea_water_x_velocity_and_salinity * e3u"             unit="PSU m2/s"       grid_ref="grid_U_3D" > us * e3u </field>
+     <field id="urhop"        long_name="product_of_sea_water_x_velocity_and_potential_density"          unit="(kg/m3).(m/s)"  grid_ref="grid_U_3D"   />
+     <field id="urhop_e3u"    long_name="product_of_sea_water_x_velocity_and_potential_density * e3u"    unit="(kg/m3).(m2/s)" grid_ref="grid_U_3D" > urhop * e3u </field>
+     <field id="vt"           long_name="product_of_sea_water_y_velocity_and_temperature"                unit="degree_C m/s"   grid_ref="grid_V_3D"   />
+     <field id="vt_e3v"       long_name="product_of_sea_water_y_velocity_and_temperature * e3v"          unit="degree_C m2/s"  grid_ref="grid_V_3D" > vt * e3v </field>
+     <field id="vs"           long_name="product_of_sea_water_y_velocity_and_salinity"                   unit="PSU m/s"        grid_ref="grid_V_3D"   />
+     <field id="vs_e3v"       long_name="product_of_sea_water_y_velocity_and_salinity * e3t"             unit="PSU m2/s"       grid_ref="grid_V_3D" > vs * e3v </field>
+     <field id="vrhop"        long_name="product_of_sea_water_y_velocity_and_potential_density"          unit="(kg/m3).(m/s)"  grid_ref="grid_V_3D"   />
+     <field id="vrhop_e3v"    long_name="product_of_sea_water_y_velocity_and_potential_density * e3t"    unit="(kg/m3).(m2/s)" grid_ref="grid_V_3D" > vrhop * e3v </field>
+     <field id="wt"           long_name="product_of_upward_sea_water_velocity_and_temperature"           unit="degree_C m/s"   grid_ref="grid_W_3D"   />
+     <field id="ws"           long_name="product_of_upward_sea_water_velocity_and_salinity"              unit="PSU m/s"        grid_ref="grid_W_3D"   />
+     <field id="wrhop"        long_name="product_of_upward_sea_water_velocity_and_potential_density"     unit="(kg/m3).(m/s)"  grid_ref="grid_W_3D"   />
+     <field id="uv"           long_name="product_of_sea_water_x_velocity_and_sea_water_y_velocity"       unit="m2/s2   "       grid_ref="grid_T_3D"   />
+     <field id="uu"           long_name="product_of_sea_water_x_velocity_and_sea_water_x_velocity"       unit="m2/s2   "       grid_ref="grid_U_3D"   />
+     <field id="uu_e3u"       long_name="product_of_sea_water_x_velocity_and_sea_water_x_velocity* e3u"  unit="m3/s2   "       grid_ref="grid_U_3D" > uu * e3u  </field>
+     <field id="uw"           long_name="product_of_upward_sea_water_velocity_and_sea_water_x_velocity"  unit="m2/s2   "       grid_ref="grid_W_3D"   />
+     <field id="vv"           long_name="product_of_sea_water_y_velocity_and_sea_water_y_velocity"       unit="m2/s2   "       grid_ref="grid_V_3D"   />
+     <field id="vv_e3v"       long_name="product_of_sea_water_y_velocity_and_sea_water_y_velocity* e3v"  unit="m3/s2   "       grid_ref="grid_V_3D" > vv * e3v  </field>
+     <field id="vw"           long_name="product_of_upward_sea_water_velocity_and_sea_water_y_velocity"  unit="m2/s2"          grid_ref="grid_W_3D"   />
+  </field_group>
+  <!-- END DRAKKAR adds end -->
+
 
   <field_group id="scalar"  grid_ref="grid_scalar"  >
     <!-- Need to have a salinity reference climatological file : sali_ref_clim_monthly -->
