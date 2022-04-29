@@ -389,14 +389,6 @@ tmp=$(LookInNamelist ln_tradmp) ; tmp=$(normalize $tmp )
 if [ $tmp = T ] ; then TRADMP=1 ; fi
 echo "   ***  TRADMP = $TRADMP"
 
-# damping mask (e.g. AABW )
-AABW_DMP=0  
-if [ $TRADMP = 1 ] ; then
-    tmp=$(LookInNamelist ln_dmpmask namelist namtra_dmp_drk ) ; tmp=$(normalize $tmp)
-    if [ $tmp = T ] ; then AABW_DMP=1 ; fi
-fi
-echo "   ***  AABW_DMP = $AABW_DMP"
-
 # Lagrangian floats
 RFLOAT=0 ; IFLOAT=$FLOAT
 if [ $FLOAT = 1 ] ; then

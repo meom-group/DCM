@@ -97,17 +97,8 @@ getinitdmp()        {
           blk=namtsd_drk ;  getfiles  $blk $P_DTA_DIR $F_DTA_DIR 
                             getweight $blk $P_WEI_DIR $F_WEI_DIR
           # get also resto file ( in case of std NEMO stuff since 3.6 )
-          nn_hdmp=$(LookInNamelist nn_hdmp namelist namtra_dmp_drk) 
-          if [ $nn_hdmp != -2 ] ; then
-             cn_resto=$(LookInNamelist cn_resto namelist namtra_dmp )
-             rapatrie $cn_resto  $P_DTA_DIR $F_DTA_DIR $cn_resto
-          else
-             # look for ln_dmpmask
-             tmp=$(LookInNamelist ln_dmpmask namelist namtra_dmp_drk) ; tmp=$(normalize $tmp )
-             if [ $tmp = T ] ; then
-                blk=namtra_dmp_drk ; getfiles  $blk $P_DTA_DIR $F_DTA_DIR   
-             fi
-          fi
+          cn_resto=$(LookInNamelist cn_resto namelist namtra_dmp )
+          rapatrie $cn_resto  $P_DTA_DIR $F_DTA_DIR $cn_resto
         fi
      fi
                     }
