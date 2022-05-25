@@ -1807,8 +1807,162 @@ initagrif() {
    refinement=$( cat AGRIF_FixedGrids.in | awk ' NF==7 { print $7}' )
    timeref=( '  ' $refinement )
             } 
+
 # ---
 update_db_file()  {
+     nop1=$(( $no + 1 ))
+     # Procedure to change nn_itend during a run : If NEMO version supports it ( DRAKKAR enhancement)
+     # creating a file, named nitend.txt with new desired value for nitend in the TMPDIR_CONFCASE directory,
+     # will produce a modification in the stream of the run, changing nn_itend to the next possible choice
+     # according to nn_write.  Doing so one can make a run shorter or longer ( In this later case, however,
+     # there might be missing forcing files or OBC files ... )
+     # check if 'nitend.txt' was used :
+     if [ -f nitend.txt ] ; then  # change nitend by its real value
+       echo modified nitend on the fly, correct db file
+       newval=$(cat nitend.txt)
+       nit000=`tail -1 $CONFIG_CASE.db | awk '{print $2}' `
+       nitend=`tail -1 $CONFIG_CASE.db | awk '{print $3}' `
+       nwrite=$(LookInNamelist nn_write namelist)
+       # newnitend is computed as in NEMO
+       newnitend=$( echo $nit000 $newval $nwrite | awk '{ print $1 - 1 + int( ( $2 - $1 ) / $3 +1 ) * $3 }')
+       sed -e "s/ $nitend\$/ $newnitend/" $CONFIG_CASE.db > tmpdb
+       mv tmpdb $CONFIG_CASE.db
+       # also update the current namelist for restart renaming to work
+       sed  -e "/nn_itend/s/$nitend/ $newnitend/" namelist > znamelist
+       mv znamelist namelist
+       \rm nitend.txt  # safe remove for next run 
+     fi
+
+     # add last date at the current line
+     nline=$(wc $CONFIG_CASE.db | awk '{print $1}')
+
+     # aammdd is the ndastp of the last day of the run ...
+     # where can we get it ???? : in the ocean.output for sure !!
+     aammdd=$( cat $output_ref | grep date | tail -1 | awk '{print $NF}' )
+
+    # Look for line in db file  with only 3 columns, keep this line in last
+    last=$( cat $CONFIG_CASE.db | awk ' NF == 3 ' )
+    ncol=$( echo $last | wc -w )  # ncol = 0 means no 3 colums line found
+    if [ $ncol = 0 ] ; then
+      echo "db file is up to date with respect to date $aammdd"
+    else
+      sed -e "s/$last/$last\ $aammdd/" $CONFIG_CASE.db > tmpdb
+      mv -f tmpdb $CONFIG_CASE.db
+    fi
+
+    # add a new last line for the next run
+    nstep_per_day=$(( 86400 / $rdt ))
+
+    # actual limit of current segment
+    nit000=`tail -1 $CONFIG_CASE.db | awk '{print $2}' `
+    nitend=`tail -1 $CONFIG_CASE.db | awk '{print $3}' `
+    ndays=$(( ( nitend - nit000 + 1 ) / nstep_per_day ))
+
+    dif=$((  $nitend - $nit000  + 1  ))
+
+   # specific case (6month segments)
+   if [ $ndays = 185 ] ; then
+     dif=$(( 180 * $nstep_per_day ))
+   elif [ $ndays = 180 ] ; then
+     dif=$(( 185 * $nstep_per_day ))
+   fi
+
+   # add trick for one year segment and leap year (note that yr 2100 is not a leap year ...)
+   if [ $ndays = 365 ] ; then
+      znxty=$(( ${aammdd:0:4} + 1 ))
+      if [ $(( $znxty % 4 )) = 0 ] ; then  # leap year
+        if [ $(( $znxty % 100 )) -eq  0   -a   $(( $znxty % 400 )) -ne  0 ] ; then
+          dif=$(( 365 * $nstep_per_day ))
+        else
+          dif=$(( 366 * $nstep_per_day ))
+        fi
+      fi
+   elif [ $ndays = 366 ] ; then
+        dif=$(( 365 * $nstep_per_day ))
+   fi
+
+   # add tricks for monthly segments (true month for XIOS)
+   # monthly is either 1 or other number, defined in includefile.sh
+   nn_leapy=$( LookInNamelist nn_leapy namelist )
+   if [ $ndays -le 31 -a $monthly  -eq  1 ] ; then
+      # get end-date of last segment # note 10# trick to force numbers such as 01 02 ...07 to be decimal (and not Octal ! )
+      ybase=$((10#${aammdd:0:4} ))
+      mbase=$((10#${aammdd:4:2} ))
+      dbase=$((10#${aammdd:6:2} ))
+      if [ $mbase = 12 ]; then
+        ynew=$(( ybase + 1 ))
+        mnew=1
+        dnew=31
+      else
+        ynew=$ybase
+        mnew=$(( mbase + 1 ))
+        case $mnew in
+        (1|3|5|7|8|10|12 )
+           dnew=31 ;;
+        (4|6|9|11 )
+          dnew=30 ;;
+        (2 )
+          if [ $nn_leapy = 0 ] ; then
+               dnew=28
+          else
+            if [ $(( $ynew % 4 )) = 0 ] ; then  # leap year
+               if [ $(( $ynew % 100 )) -eq  0  -a  $(( $ynew % 400 )) -ne  0  ] ; then
+                 dnew=28
+               else
+                 dnew=29
+               fi
+            else
+               dnew=28
+            fi 
+           fi ;;
+         esac
+       fi
+       dif=$(( $dnew * $nstep_per_day ))
+   fi
+   #  trick for semestrial segments
+   if [ $ndays -eq 181  -o $ndays -eq 182 -o $ndays -eq 184 ] && [ $semestrial = 1 ] ; then
+      ybase=$((10#${aammdd:0:4} ))
+      mbase=$((10#${aammdd:4:2} ))
+      dbase=$((10#${aammdd:6:2} ))
+
+      case $ndays in
+      ( 181 | 182 )  dnew=184 ;;
+      ( 184       )  ynew=$(( ybase + 1 ))
+          if [ $(( $ynew % 4 )) = 0 ] ; then  # leap year
+             if [ $(( $ynew % 100 )) -eq  0  -a  $(( $ynew % 400 )) -ne  0  ] ; then
+               dnew=181
+             else
+               dnew=182
+             fi
+          else
+             dnew=181
+          fi ;;
+      esac
+      dif=$(( dnew * $nstep_per_day ))
+   fi
+
+
+echo $dnew $dif
+
+    nit000=$(( $nitend + 1 ))
+    nitend=$(( $nitend + $dif ))
+
+    # offer the opportunity to modify last line of db file on the fly: use newdb last line if any
+    if [ -f newdb ] ; then
+      line=$( cat newdb )
+      echo $line >> $CONFIG_CASE.db
+      \rm newdb
+    elif [ -f newdb.$nop1 ] ; then
+      line=$( cat newdb.$nop1 )
+      echo $line >> $CONFIG_CASE.db
+    else
+      echo $nop1 $nit000 $nitend >> $CONFIG_CASE.db
+    fi
+                  }
+
+######################################################################################
+# ---
+update_db_file_old()  {
      nop1=$(( $no + 1 ))
      # Procedure to change nn_itend during a run : If NEMO version supports it ( DRAKKAR enhancement)
      # creating a file, named nitend.txt with new desired value for nitend in the TMPDIR_CONFCASE directory,
