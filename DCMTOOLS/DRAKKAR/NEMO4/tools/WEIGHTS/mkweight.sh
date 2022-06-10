@@ -1,12 +1,12 @@
-#!/bin/ksh
-  #  mkweight.ksh is a wrapper to nocs-weight generator.
+#!/bin/bash
+  #  mkweight.sh is a wrapper to nocs-weight generator.
   ##-------------------------------------------------------------
   ##  $Rev: 41 $
   ##  $Date: 2010-12-10 12:12:38 +0100 (Fri, 10 Dec 2010) $
-  ##  $Id: mkweight.ksh 41 2010-12-10 11:12:38Z molines $
+  ##  $Id: mkweight.sh 41 2010-12-10 11:12:38Z molines $
   ##--------------------------------------------------------------
 
-# this function indicate how to use mkweight.ksh
+# this function indicate how to use mkweight.sh
 usage() {
       echo
       echo
