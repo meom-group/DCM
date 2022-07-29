@@ -541,7 +541,8 @@ getobs () {
 
   # hard coded file names
   root_enact=EN.4.2.1.f.profiles.l09.
-  root_sla=fdbk_j2_
+#  root_sla=fdbk_j2_
+   root_sla=fdbk_dt_global_SAT_phy_l3_
   slaRefLevel='slaReferenceLevel.nc'
 
   rdt=$(LookInNamelist rn_rdt)
@@ -612,6 +613,7 @@ getobs () {
  if [ $SLA = 1 ] ; then
    rapatrie $slaRefLevel $P_SLA_DIR $F_SLA_DIR $slaRefLevel
    flist=
+   if [ $slaAnnual = 1 ] ; then
    for y in $(seq $yyyy1 $yyyy2) ; do
       f=$root_sla$y.nc
       if [ -f  $P_SLA_DIR/$f ] ; then
@@ -619,6 +621,20 @@ getobs () {
         rapatrie $f  $P_SLA_DIR $F_SLA_DIR $f
       fi
    done
+   else
+   for y in $(seq $yyyy1 $yyyy2) ; do
+     for m in $(seq -f '%02g' 1 12 ) ; do
+       mdastpcur=$y$m
+       f=$root_sla${y}${m}.nc
+       if [ $mdastpcur -ge $mdastpdeb  -a $mdastpcur -le $mdastpfin ] ; then
+           if [ -f $P_SLA_DIR/$f ] ; then
+             flist="$flist '$f' "
+             rapatrie $f  $P_SLA_DIR $F_SLA_DIR $f
+           fi
+       fi
+     done
+   done
+   fi
 
    cat namelist_cfg | sed -e "s/SLAFBFILES_LIST/$flist/" > znamelist1
    mv znamelist1 namelist_cfg
