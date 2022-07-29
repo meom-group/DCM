@@ -482,7 +482,7 @@ CONTAINS
       fbdata%caddname(1)   = 'Hx'
 
 #if defined key_drakkar
-      WRITE(clfname, FMT="(A,'_fdbk_',I4.4,'.nc')") TRIM(surfdata%cdir)//TRIM(clfiletype), nproc
+      WRITE(clfname, FMT="(A,'_fdbk_',I4.4,'.nc')") TRIM(surfdata%cdir)//'/'//TRIM(clfiletype), nproc
 #else
       WRITE(clfname, FMT="(A,'_fdbk_',I4.4,'.nc')") TRIM(clfiletype), nproc
 #endif

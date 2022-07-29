@@ -413,6 +413,12 @@ CONTAINS
             profdata  (jtype)%cdir = cn_dir
             profdataqc(jtype)%cdir = cn_dir
 #endif
+#if defined key_drakkar_ensemble
+            IF (ln_ensemble) THEN
+               profdata  (jtype)%cdir = TRIM(profdata  (jtype)%cdir)//'/'//TRIM(cn_member(2:))
+               profdataqc(jtype)%cdir = TRIM(profdataqc(jtype)%cdir)//'/'//TRIM(cn_member(2:))
+            ENDIF
+#endif
             nvarsprof(jtype) = 2
             IF ( TRIM(cobstypesprof(jtype)) == 'prof' ) THEN
                nextrprof(jtype) = 1
@@ -471,6 +477,12 @@ CONTAINS
 #if defined key_drakkar
             surfdata  (jtype)%cdir = cn_dir
             surfdataqc(jtype)%cdir = cn_dir
+#endif
+#if defined key_drakkar_ensemble
+            IF (ln_ensemble) THEN
+            surfdata  (jtype)%cdir = TRIM(surfdata  (jtype)%cdir)//'/'//TRIM(cn_member(2:))
+            surfdataqc(jtype)%cdir = TRIM(surfdataqc(jtype)%cdir)//'/'//TRIM(cn_member(2:))
+            ENDIF
 #endif
             nvarssurf(jtype) = 1
             nextrsurf(jtype) = 0
