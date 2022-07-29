@@ -232,8 +232,8 @@ CONTAINS
       ENDIF
 
 #if  defined key_drakkar
-      CALL ini_date( rn_dobsini )
-      CALL fin_date( rn_dobsend )
+!     CALL ini_date( rn_dobsini )
+!     CALL fin_date( rn_dobsend )
 #endif
 
       IF(lwp) THEN

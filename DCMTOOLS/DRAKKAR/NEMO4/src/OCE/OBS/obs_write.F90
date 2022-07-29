@@ -229,8 +229,18 @@ CONTAINS
                fbdata%iobsi(jo,jvar) = profdata%mi(jo,jvar)
                fbdata%iobsj(jo,jvar) = profdata%mj(jo,jvar)
             ELSE
+#if defined key_drakkar
+               IF ( profdata%mi(jo,jvar) /= -1 ) THEN
+                 fbdata%iobsi(jo,jvar) = mig(profdata%mi(jo,jvar))
+                 fbdata%iobsj(jo,jvar) = mjg(profdata%mj(jo,jvar))
+               ELSE
+                 fbdata%iobsi(jo,jvar) = 1
+                 fbdata%iobsj(jo,jvar) = 1
+               ENDIF
+#else
                fbdata%iobsi(jo,jvar) = mig(profdata%mi(jo,jvar))
                fbdata%iobsj(jo,jvar) = mjg(profdata%mj(jo,jvar))
+#endif
             ENDIF
          END DO
          CALL greg2jul( 0, &
@@ -522,8 +532,18 @@ CONTAINS
             fbdata%iobsi(jo,1) = surfdata%mi(jo)
             fbdata%iobsj(jo,1) = surfdata%mj(jo)
          ELSE
+#if defined key_drakkar
+            IF ( surfdata%mi(jo) /= -1 ) THEN
+              fbdata%iobsi(jo,1) = mig(surfdata%mi(jo))
+              fbdata%iobsj(jo,1) = mjg(surfdata%mj(jo))
+            ELSE
+              fbdata%iobsi(jo,1) = 1
+              fbdata%iobsj(jo,1) = 1
+            ENDIF
+#else
             fbdata%iobsi(jo,1) = mig(surfdata%mi(jo))
             fbdata%iobsj(jo,1) = mjg(surfdata%mj(jo))
+#endif
          ENDIF
          CALL greg2jul( 0, &
             &           surfdata%nmin(jo), &

@@ -70,7 +70,7 @@
 !-----------------------------------------------------------------------
 &namrun_drk     !   extra parameters of the run (drakkar)
 !-----------------------------------------------------------------------
-    cn_dirout  = <CONFCASE>-XIOS               ! XIOS output directory rootname
+    cn_dirout  = "<CN_DIROUT>"     ! XIOS output directory rootname
                                                ! data will be in <cn_dirout>-<SEG>/<MBR>
                                                ! <SEG> and <MBR> (if any) added by NEMO
 /
@@ -1491,8 +1491,8 @@
    rn_gridsearchres = 0.5            ! Grid search resolution
    rn_mdtcorr  = 1.61                ! MDT  correction
    rn_mdtcutoff = 65.0               ! MDT cutoff for computed correction
-   rn_dobsini  = 00010101.000000     ! Initial date in window YYYYMMDD.HHMMSS
-   rn_dobsend  = 00010102.000000     ! Final date in window YYYYMMDD.HHMMSS
+   rn_dobsini  = <RN_DOBSINI>        ! Initial date in window YYYYMMDD.HHMMSS
+   rn_dobsend  = <RN_DOBSEND>        ! Final date in window YYYYMMDD.HHMMSS
    rn_sla_avglamscl = 0.             ! E/W diameter of SLA observation footprint (metres/degrees)
    rn_sla_avgphiscl = 0.             ! N/S diameter of SLA observation footprint (metres/degrees)
    rn_sst_avglamscl = 0.             ! E/W diameter of SST observation footprint (metres/degrees)

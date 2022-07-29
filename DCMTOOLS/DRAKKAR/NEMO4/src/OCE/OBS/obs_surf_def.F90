@@ -440,7 +440,11 @@ CONTAINS
       
       ! Set gridded stuff
       
+#if ! defined key_drakkar
+!JMM BUG : use of ji out of loop ==> out of bound 
       newsurf%mt(insurf)    = surf%mt(ji)
+! moved into loop (already there btw)
+#endif
  
       ! Deallocate temporary data
 
