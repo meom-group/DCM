@@ -1,0 +1,189 @@
+    <!-- 
+============================================================================================================
+=                                           output files definition                                        =
+=                                            Define your own files                                         =
+=                                         put the variables you want...                                    =
+============================================================================================================
+    -->
+
+      <file_group id="1m" output_freq="1mo"  split_freq="1mo"  output_level="10" enabled=".TRUE."> <!-- 1mo files -->
+<!-- GridT 2D -->
+        <file id="file201" name_suffix="_gridTsurf" description="ocean T grid variables" >
+          <field field_ref="sst"          name="sosstsst" standard_name="Sea Surface Conservative temperature" />
+          <field field_ref="sss"          name="sosaline" standard_name="Sea Surface Absolute Salinity"  />
+          <field field_ref="ssh"          name="sossheig"  />
+          <field field_ref="botpres"      name="botpres"   />
+<!-- IMHOTEP -->
+          <field field_ref="sshthst"      name="sosshths"  />
+          <field field_ref="sshhast"      name="sosshhas"  />
+<!-- END IMHOTEP -->
+          <field field_ref="mldr10_1"     name="somxl010"  />
+           <variable name="start_date"       type="int"><NDATE0>    </variable>
+           <variable name="output_frequency" type="string">1m       </variable>
+           <variable name="CONFIG"           type="string"><CONFIG> </variable>
+           <variable name="CASE"             type="string"><CASE>   </variable>
+        </file>
+<!-- ICB FILES -->
+        <file id="file202" name_suffix="_ICBT_" description=" ICB variables" >
+          <field field_ref="berg_melt"          name="berg_melt"  />
+          <field field_ref="berg_buoy_melt"     name="berg_buoy_melt"  />
+          <field field_ref="berg_eros_melt"     name="berg_eros_melt"  />
+          <field field_ref="berg_conv_melt"     name="berg_conv_melt"  />
+
+           <variable name="start_date"       type="int"><NDATE0>    </variable>
+           <variable name="output_frequency" type="string">1m       </variable>
+           <variable name="CONFIG"           type="string"><CONFIG> </variable>
+           <variable name="CASE"             type="string"><CASE>   </variable>
+        </file>
+<!-- U FILES -->
+        <file id="file203" name_suffix="_gridUsurf_" description="ocean U grid variables" >
+          <field field_ref="ssu"          name="vozocrtx"  />
+          <field field_ref="uoce10"       name="vozo10m" enabled=".false."  />
+          <field field_ref="uoce30"       name="vozo30m" enabled=".false."  />
+          <field field_ref="uoce50"       name="vozo50m" enabled=".false."  />
+
+           <variable name="start_date"       type="int"><NDATE0>    </variable>
+           <variable name="output_frequency" type="string">1m       </variable>
+           <variable name="CONFIG"           type="string"><CONFIG> </variable>
+           <variable name="CASE"             type="string"><CASE>   </variable>
+        </file>
+
+<!-- V FILES -->
+        <file id="file204" name_suffix="_gridVsurf_" description="ocean V grid variables" >
+          <field field_ref="ssv"           name="vomecrty" />
+          <field field_ref="voce10"        name="vome10m"  enabled=".false."/>
+          <field field_ref="voce30"        name="vome30m"  enabled=".false." />
+          <field field_ref="voce50"        name="vome50m"  enabled=".false." />
+
+           <variable name="start_date"       type="int"><NDATE0>    </variable>
+           <variable name="output_frequency" type="string">1m       </variable>
+           <variable name="CONFIG"           type="string"><CONFIG> </variable>
+           <variable name="CASE"             type="string"><CASE>   </variable>
+        </file>
+<!-- 3D FIELDS -->
+<!-- ========= -->
+<!-- T FILES -->
+        <file id="file205" name_suffix="_gridT_" description="ocean T grid variables" >
+            <field field_ref="e3t" long_name="T-cell thickness" />
+            <field field_ref="toce"         name="votemper" standard_name="Conservative temperature" >  @toce_e3t / @e3t  </field>
+            <field field_ref="soce"         name="vosaline" standard_name="Absolute Salinity">          @soce_e3t / @e3t  </field>
+
+           <variable name="start_date"       type="int"><NDATE0>    </variable>
+           <variable name="output_frequency" type="string">1m       </variable>
+           <variable name="CONFIG"           type="string"><CONFIG> </variable>
+           <variable name="CASE"             type="string"><CASE>   </variable>
+           <variable name="EOS"              type="string"> TEOS10  </variable>
+        </file>
+<!-- U FILES -->
+        <file id="file206" name_suffix="_gridU_" description="ocean U grid variables" >
+           <field field_ref="e3u" long_name="U-cell thickness"  />
+           <field field_ref="uoce"        name="vozocrtx" >  @uoce_e3u / @e3u  </field>
+           <field field_ref="utau"        name="sozotaux" />
+
+           <variable name="start_date"       type="int"><NDATE0>    </variable>
+           <variable name="output_frequency" type="string">1m       </variable>
+           <variable name="CONFIG"           type="string"><CONFIG> </variable>
+           <variable name="CASE"             type="string"><CASE>   </variable>
+        </file>
+
+<!-- V FILES -->
+        <file id="file207" name_suffix="_gridV_" description="ocean V grid variables" >
+           <field field_ref="e3v" long_name="V-cell thickness"  />
+           <field field_ref="voce"         name="vomecrty" > @voce_e3v / @e3v  </field>
+           <field field_ref="vtau"         name="sometauy" />
+
+           <variable name="start_date"       type="int"><NDATE0>    </variable>
+           <variable name="output_frequency" type="string">1m       </variable>
+           <variable name="CONFIG"           type="string"><CONFIG> </variable>
+           <variable name="CASE"             type="string"><CASE>   </variable>
+        </file>
+
+<!-- W FILES -->
+        <file id="file208" name_suffix="_gridW_" description="ocean W grid variables" >
+          <field field_ref="woce"         name="vovecrtz"    />
+          <field field_ref="avt"          name="voavt"       />
+          <field field_ref="av_wave"      name="avtiwm"      />
+
+           <variable name="start_date"       type="int"><NDATE0>    </variable>
+           <variable name="output_frequency" type="string">1m       </variable>
+           <variable name="CONFIG"           type="string"><CONFIG> </variable>
+           <variable name="CASE"             type="string"><CASE>   </variable>
+        </file>
+<!-- FLXT FILES -->
+        <file id="file209" name_suffix="_flxT_" description="ocean T grid variables" >
+           <field field_ref="mldkz5"       name="somixhgt"  />
+           <field field_ref="qt"           name="sohefldo"  />
+           <field field_ref="qsr"          name="soshfldo"  />
+           <field field_ref="qns_oce"      name="qns_oce"   />
+           <field field_ref="qns"          name="qns"       />
+           <field field_ref="qla_oce"      name="solhflup"  />
+           <field field_ref="qlw_oce"      name="solwfldo"  />
+           <field field_ref="qsb_oce"      name="sosbhfup"  />
+           <field field_ref="empmr"        name="sowaflup"  />
+           <field field_ref="saltflx"      name="sosfldow"  />    <!-- check in the code the 'old drakkar name' -->
+           <field field_ref="erp"          name="sowafld" enabled=".false."  />
+           <field field_ref="wdmp"         name="wdmp"   />
+           <field field_ref="qair"         name="sohumspe"  />
+           <field field_ref="tair"         name="sotemair"  />
+           <field field_ref="precip"       name="sowapre"   />
+           <field field_ref="fwfisf"       name="fwfisf"    />
+   <!--
+           <field field_ref="clouds"       name="soccov"    />   -->
+
+           <field field_ref="wspd"         name="sowinsp"  />
+           <field field_ref="runoffs"      name="sornf"    />
+
+   <!--    <field field_ref="20d"          name="20d"       /> 
+           <field field_ref="hc300"        name="hc300"     />  diahth routine -->
+
+           <variable name="start_date"       type="int"><NDATE0>    </variable>
+           <variable name="output_frequency" type="string">1m       </variable>
+           <variable name="CONFIG"           type="string"><CONFIG> </variable>
+           <variable name="CASE"             type="string"><CASE>   </variable>
+        </file>
+
+<!--  PROD files -->
+        <file id="file210" name_suffix="_PRODU_" description="second order moment at U point " enabled=".FALSE.">
+
+           <field field_ref="ut"             name="vout"  >  @ut_e3u / @e3u </field>
+           <field field_ref="us"             name="vous"  >  @us_e3u / @e3u </field>
+           <field field_ref="urhop"          name="vourho"  enabled=".false." > @urhop_e3u / @e3u  </field>
+
+           <variable name="start_date"       type="int"><NDATE0>    </variable>
+           <variable name="output_frequency" type="string">1m       </variable>
+           <variable name="CONFIG"           type="string"><CONFIG> </variable>
+           <variable name="CASE"             type="string"><CASE>   </variable>
+        </file>
+
+        <file id="file211" name_suffix="_PRODV_" description="second order moment at V point" enabled=".FALSE.">
+           <field field_ref="vt"             name="vovt"  > @vt_e3v / @e3v </field>
+           <field field_ref="vs"             name="vovs"  > @vs_e3v / @e3v </field>
+           <field field_ref="vrhop"          name="vovrho"  enabled=".false."  > @vrhop_e3u / @e3v  </field>
+
+           <variable name="start_date"       type="int"><NDATE0>    </variable>
+           <variable name="output_frequency" type="string">1m       </variable>
+           <variable name="CONFIG"           type="string"><CONFIG> </variable>
+           <variable name="CASE"             type="string"><CASE>   </variable>
+        </file>
+
+        <file id="file212" name_suffix="_PRODW_" description="second order moment at W point" enabled=".FALSE.">
+           <field field_ref="wt"             name="vowt"  />
+           <field field_ref="ws"             name="vows"  />
+           <field field_ref="wrhop"          name="vowrho"  enabled=".false."  />
+
+           <variable name="start_date"       type="int"><NDATE0>    </variable>
+           <variable name="output_frequency" type="string">1m       </variable>
+           <variable name="CONFIG"           type="string"><CONFIG> </variable>
+           <variable name="CASE"             type="string"><CASE>   </variable>
+        </file>
+        <file id="file213" name_suffix="_FWB_scalar" description="scalar variables" enabled=".true." >
+           <field field_ref="fwprv"          name="fwprv"  />
+           <variable name="start_date"       type="int"><NDATE0>    </variable>
+           <variable name="output_frequency" type="string">1m       </variable>
+           <variable name="CONFIG"           type="string"><CONFIG> </variable>
+           <variable name="CASE"             type="string"><CASE>   </variable>
+        </file>
+
+
+      </file_group>
+

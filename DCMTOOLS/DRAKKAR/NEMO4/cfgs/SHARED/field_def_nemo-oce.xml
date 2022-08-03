@@ -44,6 +44,69 @@
         <field id="potvor"      long_name="potential vorticity"                      unit="s-1"    grid_ref="grid_T_3D"/>
         <field id="salt2c"      long_name="Salt content vertically integrated"       unit="1e-3*kg/m2" />
 
+<!-- START DRAKKAR ENSEMBLE RUN -->
+        <!-- Surface -->
+        <field id="e3t_mean"            long_name="e3t member average"                       unit="m"        grid_ref="grid_T_2D"/>
+        <field id="e3t_std"             long_name="e3t member std dev"                       unit="m"        grid_ref="grid_T_2D"/>
+
+        <field id="ssh_mean"            long_name="SSH member average"                       unit="m"        grid_ref="grid_T_2D"/>
+        <field id="ssh_std"             long_name="SSH member std dev"                       unit="m"        grid_ref="grid_T_2D"/>
+
+        <field id="sss_mean"            long_name="SSS member average"                       unit="g/kg"     grid_ref="grid_T_2D"/>
+        <field id="sss_mean_e3t"        long_name="SSS member average * e3t_mean"           unit="g/kg.m"   grid_ref="grid_T_2D" > sss_mean * e3t_mean </field>
+        <field id="sss_std"             long_name="SSS member std dev"                       unit="g/kg"     grid_ref="grid_T_2D"/>
+        <field id="sss_std_e3t"         long_name="SSS member stdev * e3t_mean"              unit="g/kg.m"   grid_ref="grid_T_2D" > sss_std * e3t_mean </field>
+
+        <field id="sst_mean"            long_name="SST member average"                       unit="degC"     grid_ref="grid_T_2D"/>
+        <field id="sst_mean_e3t"        long_name="SST member average * e3t_mean"           unit="DegC.m"   grid_ref="grid_T_2D" > sst_mean * e3t_mean </field>
+        <field id="sst_std"             long_name="SST member std dev"                       unit="degC"     grid_ref="grid_T_2D"/>
+        <field id="sst_std_e3t"         long_name="SST member stdev * e3t_mean"              unit="DegC.m"   grid_ref="grid_T_2D" > sst_std * e3t_mean </field>
+        <!-- 50 m -->
+        <field id="e3t_mean_050"        long_name="e3t member average at 50m"            unit="m"        grid_ref="grid_T_2D"/>
+        <field id="e3t_std_050"         long_name="e3t member std dev at 50m"            unit="m"        grid_ref="grid_T_2D"/>
+        <field id="soce_mean_050"       long_name="Salinity member average at 50m"       unit="g/kg"     grid_ref="grid_T_2D"/>
+        <field id="soce_mean_050_e3t"   long_name="Salinity member average at 50m x e3t" unit="g/kg.m"   grid_ref="grid_T_2D" > soce_mean_050 *e3t_mean_050 </field>
+        <field id="soce_std_050"        long_name="Salinity member std dev at 50m"       unit="g/kg"     grid_ref="grid_T_2D"/>
+        <field id="soce_std_050_e3t"    long_name="Salinity member std dev at 50m x e3t" unit="g/kg.m"   grid_ref="grid_T_2D" > soce_std_050 *e3t_mean_050 </field>
+        <field id="toce_mean_050"       long_name="Temperature member average at 50m"    unit="degC"     grid_ref="grid_T_2D"/>
+        <field id="toce_mean_050_e3t"   long_name="Temper member average at 50m x e3t"   unit="DegC.m"   grid_ref="grid_T_2D" > toce_mean_050 *e3t_mean_050 </field>
+        <field id="toce_std_050"        long_name="Temperature member std dev at 50m"    unit="degC"     grid_ref="grid_T_2D"/>
+        <field id="toce_std_050_e3t"    long_name="Temper member std dev at 50m x e3t"   unit="DegC.m"   grid_ref="grid_T_2D" > toce_std_050 *e3t_mean_050 </field>
+        <!-- 100 m -->
+        <field id="e3t_mean_100"        long_name="e3t member average at 100m"           unit="m"        grid_ref="grid_T_2D"/>
+        <field id="e3t_std_100"         long_name="e3t member std dev at 100m"           unit="m"        grid_ref="grid_T_2D"/>
+        <field id="soce_mean_100"       long_name="Salinity member average at 100m"      unit="g/kg"     grid_ref="grid_T_2D"/>
+        <field id="soce_mean_100_e3t"   long_name="Salinit member average at 100m x e3t" unit="g/kg.m"   grid_ref="grid_T_2D" > soce_mean_100 *e3t_mean_100 </field>
+        <field id="soce_std_100"        long_name="Salinity member std dev at 100m"      unit="g/kg"     grid_ref="grid_T_2D"/>
+        <field id="soce_std_100_e3t"    long_name="Salinit member std dev at 100m x e3t" unit="g/kg.m"   grid_ref="grid_T_2D" > soce_std_100 *e3t_mean_100 </field>
+        <field id="toce_mean_100"       long_name="Temperature member average at 100m"   unit="degC"     grid_ref="grid_T_2D"/>
+        <field id="toce_mean_100_e3t"   long_name="Temper member average at 100m x e3t"  unit="DegC.m"   grid_ref="grid_T_2D" > toce_mean_100 *e3t_mean_100 </field>
+        <field id="toce_std_100"        long_name="Temperature member std dev at 100m"   unit="degC"     grid_ref="grid_T_2D"/>
+        <field id="toce_std_100_e3t"    long_name="Temper member std dev at 100m x e3t"  unit="DegC.m"   grid_ref="grid_T_2D" > toce_std_100 *e3t_mean_100 </field>
+        <!-- 200 m -->
+        <field id="e3t_mean_200"        long_name="e3t member average at 200m"           unit="m"        grid_ref="grid_T_2D"/>
+        <field id="e3t_std_200"         long_name="e3t member std dev at 200m"           unit="m"        grid_ref="grid_T_2D"/>
+        <field id="soce_mean_200"       long_name="Salinity member average at 200m"      unit="g/kg"     grid_ref="grid_T_2D"/>
+        <field id="soce_mean_200_e3t"   long_name="Salinit member average at 200m x e3t" unit="g/kg.m"   grid_ref="grid_T_2D" > soce_mean_200 *e3t_mean_200 </field>
+        <field id="soce_std_200"        long_name="Salinity member std dev at 200m"      unit="g/kg"     grid_ref="grid_T_2D"/>
+        <field id="soce_std_200_e3t"    long_name="Salinit member std dev at 200m x e3t" unit="g/kg.m"   grid_ref="grid_T_2D" > soce_std_200 *e3t_mean_200 </field>
+        <field id="toce_mean_200"       long_name="Temperature member average at 200m"   unit="degC"     grid_ref="grid_T_2D"/>
+        <field id="toce_mean_200_e3t"   long_name="Temper member average at 200m x e3t"  unit="DegC.m"   grid_ref="grid_T_2D" > toce_mean_200 *e3t_mean_200 </field>
+        <field id="toce_std_200"        long_name="Temperature member std dev at 200m"   unit="degC"     grid_ref="grid_T_2D"/>
+        <field id="toce_std_200_e3t"    long_name="Temper member std dev at 200m x e3t"  unit="DegC.m"   grid_ref="grid_T_2D" > toce_std_200 *e3t_mean_200 </field>
+        <!-- 300 m -->
+        <field id="e3t_mean_300"        long_name="e3t member average at 300m"           unit="m"        grid_ref="grid_T_2D"/>
+        <field id="e3t_std_300"         long_name="e3t member std dev at 300m"           unit="m"        grid_ref="grid_T_2D"/>
+        <field id="soce_mean_300"       long_name="Salinity member average at 300m"      unit="g/kg"     grid_ref="grid_T_2D"/>
+        <field id="soce_mean_300_e3t"   long_name="Salinit member average at 300m x e3t" unit="g/kg.m"   grid_ref="grid_T_2D" > soce_mean_300 *e3t_mean_300 </field>
+        <field id="soce_std_300"        long_name="Salinity member std dev at 300m"      unit="g/kg"     grid_ref="grid_T_2D"/>
+        <field id="soce_std_300_e3t"    long_name="Salinit member std dev at 300m x e3t" unit="g/kg.m"   grid_ref="grid_T_2D" > soce_std_300 *e3t_mean_300 </field>
+        <field id="toce_mean_300"       long_name="Temperature member average at 300m"   unit="degC"     grid_ref="grid_T_2D"/>
+        <field id="toce_mean_300_e3t"   long_name="Temper member average at 300m x e3t"  unit="DegC.m"   grid_ref="grid_T_2D" > toce_mean_300 *e3t_mean_300 </field>
+        <field id="toce_std_300"        long_name="Temperature member std dev at 300m"   unit="degC"     grid_ref="grid_T_2D"/>
+        <field id="toce_std_300_e3t"    long_name="Temper member std dev at 300m x e3t"  unit="DegC.m"   grid_ref="grid_T_2D" > toce_std_300 *e3t_mean_300 </field>
+<!-- END DRAKKAR ENSEMBLE RUN -->
+
         <!-- t-eddy viscosity coefficients (ldfdyn) -->
 	<field id="ahmt_2d"      long_name=" surface t-eddy viscosity coefficient"   unit="m2/s or m4/s"                      />
 	<field id="ahmt_3d"      long_name=" 3D      t-eddy viscosity coefficient"   unit="m2/s or m4/s"  grid_ref="grid_T_3D"/>
@@ -286,8 +349,13 @@
           <field id="qsr3d"        long_name="Shortwave Radiation 3D distribution"   standard_name="downwelling_shortwave_flux_in_sea_water"                              unit="W/m2"      grid_ref="grid_T_3D" />
           <field id="qrp"          long_name="Surface Heat Flux: Damping"            standard_name="heat_flux_into_sea_water_due_to_newtonian_relaxation"                 unit="W/m2"                           />
           <field id="erp"          long_name="Surface Water Flux: Damping"           standard_name="water_flux_out_of_sea_water_due_to_newtonian_relaxation"              unit="kg/m2/s"                        />
+          <field id="wdmp"         long_name="Surface Water Flux: Damping correction" standard_name="water_flux_out_of_sea_water_infered_from_newtonian_relax"            unit="kg/m2/s"                        />
           <field id="taum"         long_name="wind stress module"                    standard_name="magnitude_of_surface_downward_stress"                                 unit="N/m2"                           />
           <field id="wspd"         long_name="wind speed module"                     standard_name="wind_speed"                                                           unit="m/s"                            />
+          <field id="mqnet"        long_name="Net Downward Heat Flux Ensemble mean"                                         unit="W/m2"       />
+          <field id="msfx"         long_name="Downward Salt Flux Ensemble mean"                                             unit="g/kg/m2/s"  />
+          <field id="mqsr"         long_name="Net Downward Solar Flux Ensemble mean"                                        unit="W/m2"       />
+
           
           <!-- * variable relative to atmospheric pressure forcing : available with ln_apr_dyn -->
           <field id="ssh_ib"       long_name="Inverse barometer sea surface height"  standard_name="sea_surface_height_correction_due_to_air_pressure_at_low_frequency"   unit="m"        />
@@ -453,9 +521,46 @@
         <field id="udiff_salttr"  long_name="ocean diffusion salt transport along i-axis"                     standard_name="ocean_salt_x_transport_due_to_diffusion"        unit="1e-3*kg/s"                 />
 
         <!-- DRAKKAR adds -->
-        <field id="uoce10"        long_name="10m depth  current along i-axis"                                 standard_name="ocean U velocity at 10 m"                       unit="m/s"  />
-        <field id="uoce30"        long_name="30m depth  current along i-axis"                                 standard_name="ocean U velocity at 30 m"                       unit="m/s"  />
-        <field id="uoce50"        long_name="50m depth  current along i-axis"                                 standard_name="ocean U velocity at 50 m"                       unit="m/s"  />
+        <field id="uoce10"              long_name="10m depth  current along i-axis"         standard_name="ocean U velocity at 10 m"                       unit="m/s"  />
+        <field id="uoce30"              long_name="30m depth  current along i-axis"         standard_name="ocean U velocity at 30 m"                       unit="m/s"  />
+        <field id="uoce50"              long_name="50m depth  current along i-axis"         standard_name="ocean U velocity at 50 m"                       unit="m/s"  />
+<!-- START DRAKKAR ENSEMBLE RUN -->
+     <!-- Surface -->
+        <field id="e3u_mean"            long_name="e3u member average"                    unit="m"    grid_ref="grid_U_2D"/>
+        <field id="e3u_std"             long_name="e3u member std dev"                    unit="m"    grid_ref="grid_U_2D"/>
+        <field id="ssu_mean"            long_name="SSU member average"                    unit="m/s"  grid_ref="grid_U_2D"/>
+        <field id="ssu_mean_e3u"        long_name="SSU member average x e3u"              unit="m2/s" grid_ref="grid_U_2D">  ssu_mean * e3u_mean </field>
+        <field id="ssu_std"             long_name="SSU member std dev"                    unit="m/s"  grid_ref="grid_U_2D"/>
+        <field id="ssu_std_e3u"         long_name="SSU member std dev x e3u"              unit="m2/s" grid_ref="grid_U_2D">  ssu_std * e3u_mean </field>
+     <!--  50m -->
+        <field id="e3u_mean_050"        long_name="e3u member average at 50m"             unit="m"    grid_ref="grid_U_2D"/>
+        <field id="e3u_std_050"         long_name="e3u member std dev at 50m"             unit="m"    grid_ref="grid_U_2D"/>
+        <field id="uoce_mean_050"       long_name="U zonal member average at 50m"         unit="m/s"  grid_ref="grid_U_2D"/>
+        <field id="uoce_mean_050_e3u"   long_name="U zonal member average at 50m x e3u"   unit="m2/s" grid_ref="grid_U_2D" >  uoce_mean_050 * e3u_mean_050 </field>
+        <field id="uoce_std_050"        long_name="U zonal member std dev at 50m"         unit="m/s"  grid_ref="grid_U_2D"/>
+        <field id="uoce_std_050_e3u"    long_name="U zonal member std dev at 50m x e3u"   unit="m2/s" grid_ref="grid_U_2D" >  uoce_std_050 * e3u_mean_050 </field>
+     <!-- 100m -->
+        <field id="e3u_mean_100"        long_name="e3u member average at 100m"            unit="m"    grid_ref="grid_U_2D"/>
+        <field id="e3u_std_100"         long_name="e3u member std dev at 100m"            unit="m"    grid_ref="grid_U_2D"/>
+        <field id="uoce_mean_100"       long_name="U zonal member average at 100m"        unit="m/s"  grid_ref="grid_U_2D"/>
+        <field id="uoce_mean_100_e3u"   long_name="U zonal member average at 100m x e3u"  unit="m2/s" grid_ref="grid_U_2D" >  uoce_mean_100 * e3u_mean_100 </field>
+        <field id="uoce_std_100"        long_name="U zonal member std dev at 100m"        unit="m/s"  grid_ref="grid_U_2D"/>
+        <field id="uoce_std_100_e3u"    long_name="U zonal member std dev at 100m x e3u"  unit="m2/s" grid_ref="grid_U_2D" >  uoce_std_100 * e3u_mean_100 </field>
+     <!-- 200m -->
+        <field id="e3u_mean_200"        long_name="e3u member average at 200m"            unit="m"    grid_ref="grid_U_2D"/>
+        <field id="e3u_std_200"         long_name="e3u member std dev at 200m"            unit="m"    grid_ref="grid_U_2D"/>
+        <field id="uoce_mean_200"       long_name="U zonal member average at 200m"        unit="m/s"  grid_ref="grid_U_2D"/>
+        <field id="uoce_mean_200_e3u"   long_name="U zonal member average at 200m x e3u"  unit="m2/s" grid_ref="grid_U_2D" >  uoce_mean_200 * e3u_mean_200 </field>
+        <field id="uoce_std_200"        long_name="U zonal member std dev at 200m"        unit="m/s"  grid_ref="grid_U_2D"/>
+        <field id="uoce_std_200_e3u"    long_name="U zonal member std dev at 200m x e3u"  unit="m2/s" grid_ref="grid_U_2D" >  uoce_std_200 * e3u_mean_200 </field>
+     <!-- 300m -->
+        <field id="e3u_mean_300"        long_name="e3u member average at 300m"            unit="m"    grid_ref="grid_U_2D"/>
+        <field id="e3u_std_300"         long_name="e3u member std dev at 300m"            unit="m"    grid_ref="grid_U_2D"/>
+        <field id="uoce_mean_300"       long_name="U zonal member average at 300m"        unit="m/s"  grid_ref="grid_U_2D"/>
+        <field id="uoce_mean_300_e3u"   long_name="U zonal member average at 300m x e3u"  unit="m2/s" grid_ref="grid_U_2D" >  uoce_mean_300 * e3u_mean_300 </field>
+        <field id="uoce_std_300"        long_name="U zonal member std dev at 300m"        unit="m/s"  grid_ref="grid_U_2D"/>
+        <field id="uoce_std_300_e3u"    long_name="U zonal member std dev at 300m x e3u"  unit="m2/s" grid_ref="grid_U_2D" >  uoce_std_300 * e3u_mean_300 </field>
+<!-- END DRAKKAR ENSEMBLE RUN -->
 
       </field_group>
       
@@ -520,6 +625,43 @@
         <field id="voce10"        long_name="10m depth  current along j-axis"                                 standard_name="ocean V velocity at 10 m"                       unit="m/s"  />
         <field id="voce30"        long_name="30m depth  current along j-axis"                                 standard_name="ocean V velocity at 30 m"                       unit="m/s"  />
         <field id="voce50"        long_name="50m depth  current along j-axis"                                 standard_name="ocean V velocity at 50 m"                       unit="m/s"  />
+<!-- START DRAKKAR ENSEMBLE RUN -->
+     <!-- Surface -->
+        <field id="e3v_mean"           long_name="e3v member average"                   unit="m"    grid_ref="grid_V_2D"/>
+        <field id="e3v_std"            long_name="e3v member stdev"                     unit="m"    grid_ref="grid_V_2D"/>
+        <field id="ssv_mean"           long_name="SSV member average"                   unit="m/s"  grid_ref="grid_V_2D"/>
+        <field id="ssv_mean_e3v"       long_name="SSV member average x e3v"             unit="m2/s" grid_ref="grid_V_2D">  ssv_mean * e3v_mean </field>
+        <field id="ssv_std"            long_name="SSV member std dev"                   unit="m/s"  grid_ref="grid_V_2D"/>
+        <field id="ssv_std_e3v"        long_name="SSV member std dev x e3v"             unit="m2/s" grid_ref="grid_V_2D">  ssv_std * e3v_mean </field>
+     <!-- 50m  -->
+        <field id="e3v_mean_050"       long_name="e3v member average at 50m"            unit="m"    grid_ref="grid_V_2D"/>
+        <field id="e3v_std_050"        long_name="e3v member stdev at 50m"              unit="m"    grid_ref="grid_V_2D"/>
+        <field id="voce_mean_050"      long_name="V merid member average at 50m"        unit="m/s"  grid_ref="grid_V_2D"/>
+        <field id="voce_mean_050_e3v"  long_name="V merid member average at 50m x e3v"  unit="m2/s" grid_ref="grid_V_2D" > voce_mean_050 * e3v_mean_050 </field>
+        <field id="voce_std_050"       long_name="V merid member std dev at 50m"        unit="m/s"  grid_ref="grid_V_2D"/>
+        <field id="voce_std_050_e3v"   long_name="V merid member std dev at 50m x e3v"  unit="m2/s" grid_ref="grid_V_2D" > voce_std_050 * e3v_mean_050 </field>
+     <!-- 100m -->
+        <field id="e3v_mean_100"       long_name="e3v member average at 100m"           unit="m"    grid_ref="grid_V_2D"/>
+        <field id="e3v_std_100"        long_name="e3v member stdev at 100m"             unit="m"    grid_ref="grid_V_2D"/>
+        <field id="voce_mean_100"      long_name="V merid member average at 100m"       unit="m/s"  grid_ref="grid_V_2D"/>
+        <field id="voce_mean_100_e3v"  long_name="V merid member average at 100m x e3v" unit="m2/s" grid_ref="grid_V_2D" > voce_mean_100 * e3v_mean_100 </field>
+        <field id="voce_std_100"       long_name="V merid member std dev at 100m"       unit="m/s"  grid_ref="grid_V_2D"/>
+        <field id="voce_std_100_e3v"   long_name="V merid member std dev at 100m x e3v" unit="m2/s" grid_ref="grid_V_2D" > voce_std_100 * e3v_mean_100 </field>
+     <!-- 200m -->
+        <field id="e3v_mean_200"       long_name="e3v member average at 200m"           unit="m"    grid_ref="grid_V_2D"/>
+        <field id="e3v_std_200"        long_name="e3v member stdev at 200m"             unit="m"    grid_ref="grid_V_2D"/>
+        <field id="voce_mean_200"      long_name="V merid member average at 200m"       unit="m/s"  grid_ref="grid_V_2D"/>
+        <field id="voce_mean_200_e3v"  long_name="V merid member average at 200m x e3v" unit="m2/s" grid_ref="grid_V_2D" > voce_mean_200 * e3v_mean_200 </field>
+        <field id="voce_std_200"       long_name="V merid member std dev at 200m"       unit="m/s"  grid_ref="grid_V_2D"/>
+        <field id="voce_std_200_e3v"   long_name="V merid member std dev at 200m x e3v" unit="m2/s" grid_ref="grid_V_2D" > voce_std_200 * e3v_mean_200 </field>
+     <!-- 300m -->
+        <field id="e3v_mean_300"       long_name="e3v member average at 300m"           unit="m"    grid_ref="grid_V_2D"/>
+        <field id="e3v_std_300"        long_name="e3v member stdev at 300m"             unit="m"    grid_ref="grid_V_2D"/>
+        <field id="voce_mean_300"      long_name="V merid member average at 300m"       unit="m/s"  grid_ref="grid_V_2D"/>
+        <field id="voce_mean_300_e3v"  long_name="V merid member average at 300m x e3v" unit="m2/s" grid_ref="grid_V_2D" > voce_mean_300 * e3v_mean_300 </field>
+        <field id="voce_std_300"       long_name="V merid member std dev at 300m"       unit="m/s"  grid_ref="grid_V_2D"/>
+        <field id="voce_std_300_e3v"   long_name="V merid member std dev at 300m x e3v" unit="m2/s" grid_ref="grid_V_2D" > voce_std_300 * e3v_mean_300 </field>
+<!-- END DRAKKAR ENSEMBLE RUN -->
       </field_group>
       
       <!-- W grid -->
