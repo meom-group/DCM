@@ -65,7 +65,7 @@ MODULE lib_mpp
    PUBLIC   mpp_start_ensemble
    PUBLIC   mpp_ens_ave_std
    INTERFACE mpp_ens_ave_std
-      MODULE PROCEDURE mpp_ens_ave_std_2d, mpp_ens_ave_std_3d
+      MODULE PROCEDURE mpp_ens_ave_std_2d, mpp_ens_ave_std_3d, mpp_ens_ave_std_vvl
    END INTERFACE
 #endif
    PUBLIC   mpp_ini_north
@@ -438,6 +438,60 @@ CONTAINS
       ENDIF
 
    END SUBROUTINE mpp_ens_ave_std_2d
+
+   SUBROUTINE mpp_ens_ave_std_vvl(ptab,pe3, pave,pe3ave,  pstd )
+      !!----------------------------------------------------------------------
+      !!                  ***  routine mpp_ens_ave_std_vvl ***
+      !!
+      !! ** Purpose :   compute ensemble mean and standard deviation
+      !!                for a 2D array in vvl case
+      !!
+      !! ** Method  :   From Stephanie Leroux analytical dev. (2022)
+      !!-----------------------------------------------------------------------
+      REAL(wp), DIMENSION(:,:), INTENT(in )  :: ptab              ! input array
+      REAL(wp), DIMENSION(:,:), INTENT(in )  :: pe3               ! input array for e3 metrics
+      REAL(wp), DIMENSION(:,:), INTENT(out)  :: pave              ! ensemble average
+      REAL(wp), DIMENSION(:,:), INTENT(out)  :: pe3ave            ! ensemble average e3 mean
+      REAL(wp), DIMENSION(:,:), INTENT(out), OPTIONAL  :: pstd    ! ensemble standard deviation
+      !! * Local variables   (MPI version)
+      INTEGER  :: ierror, localcomm
+      REAL(wp), DIMENSION(jpi,jpj)  ::   ztab, ztab2   ! temporary workspace
+      !!-----------------------------------------------------------------------
+      localcomm = ncomm_area(narea)
+      ! compute ensemble mean of e3
+      CALL MPI_ALLREDUCE (pe3, pe3ave, jpi*jpj, MPI_DOUBLE_PRECISION, &
+                          MPI_SUM, localcomm, ierror)
+      ztab= ptab*pe3
+      ! compute ensemble mean of e3 * ptab
+      CALL MPI_ALLREDUCE (ztab, pave, jpi*jpj, MPI_DOUBLE_PRECISION, &
+                          MPI_SUM, localcomm, ierror)
+      WHERE (pe3ave /= 0 ) 
+        pave = pave / pe3ave 
+      ELSEWHERE
+        pave=0.d0
+      END WHERE
+      ! compute ensemble standard deviation
+      IF( PRESENT(pstd) ) THEN
+         ! compute  SOMME( e3*ptab^2)
+         ztab = pe3*ptab*ptab
+         CALL MPI_ALLREDUCE (ztab, ztab2, jpi*jpj, MPI_DOUBLE_PRECISION, &
+                          MPI_SUM, localcomm, ierror)
+         ! compute weighted variance
+         WHERE (pe3ave /=0.) 
+           ztab=ztab2/pe3ave -pave*pave
+         ELSEWHERE 
+           ztab=0.d0
+         END WHERE
+
+         ! compute standard deviation
+         WHERE ( ztab >= 0 ) 
+           pstd = SQRT ( ztab )
+         ELSEWHERE
+           pstd=0.d0
+         END WHERE
+      ENDIF
+
+   END SUBROUTINE mpp_ens_ave_std_vvl
 
    SUBROUTINE mpp_ens_ave_std_3d( ptab, pave, pstd )
       !!----------------------------------------------------------------------

@@ -112,6 +112,9 @@ MODULE dom_oce
    INTEGER, PUBLIC ::   nmember           !: number for ensemble member
    CHARACTER(len=4), PUBLIC :: cn_member  !: charcater string with ensemble member index JMM REM : not Dr complient !
                                           !: This will be for instance .001 or .025 for member 1 or 25 (set in lib_mpp)
+   INTEGER, PARAMETER           :: jp_nlev=5  ! number of specific level for intermember mean/std
+   INTEGER, DIMENSION(jp_nlev)  :: ik_lev     ! index of the levels
+   REAL(wp), DIMENSION(jp_nlev) :: rd_lev =(/0.,50.,100.,200.,300./)   ! depth in m of the level
 #endif
    !!----------------------------------------------------------------------
    !! horizontal curvilinear coordinate and scale factors

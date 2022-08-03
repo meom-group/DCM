@@ -138,6 +138,19 @@ CONTAINS
       CALL dom_msk( ik_top, ik_bot )   ! Masks
       IF( ln_closea )   CALL dom_clo   ! ln_closea=T : closed seas included in the simulation
                                        ! Read in masks to define closed seas and lakes 
+#if defined key_drakkar_ensemble
+     ! Look for specific depth index ( surface = ik_top) 50 100 200 300 ) for inter member average
+     ! work with gdept_1d
+     ik_lev(1)=1
+     DO jk = 1, jpk-1
+       DO ji=2, jp_nlev
+         IF (gdept_1d (jk) <= rd_lev(ji) ) ik_lev(ji)=jk
+       ENDDO
+     END DO
+     IF ( lwp ) THEN
+        WRITE(numout,*) '       Selected index for intermember average: ', ik_lev
+     ENDIF
+#endif
       !
       DO jj = 1, jpj                   ! depth of the iceshelves
          DO ji = 1, jpi
