@@ -98,6 +98,7 @@ MODULE sbcblk
    LOGICAL             ::   ln_wdmp         = .false.   ! Logical flag for use of FW correction corresponding to SSS damping term
    ! note that jp_uw and jp_vw replace jp_wndi and jp_wndj.
    !           jp_wmod use the same value as jp_tdif. They cannot be used together
+   !           jp_wdmp use the same value as jp_tdif  or jp_wmod They cannot be used together !! 
    INTEGER  ::   jp_wmod =11           ! index of wind module                     (m/s)
    INTEGER  ::   jp_wdmp =11           ! index of wdmp field                      (kg/m2/sec)
    INTEGER  ::   jp_uw   = 1           ! index of zonal pseudo stress             (m2/s2)
