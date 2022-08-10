@@ -247,11 +247,19 @@ runcode_mpmdOLD() {
            return 1
          fi
 
-         rm -f ./zapp.conf
-         for ipair in $(seq 1 $npair) ; do
-            echo $1 $2 >> zapp.conf
-            shift 2
-         done
+         rm -f ./zapp.conf.$$
+#         for ipair in $(seq 1 $npair) ; do
+#            echo $1 $2 >> zapp.conf
+#            shift 2
+#         done
+        irank=0
+        for  ipair in $(seq 1 $npair) ; do
+           itsk=$1
+           irank1=$(( irank + itsk -1 ))
+           echo ${irank}-${irank1} $2 >> zapp.conf.$$
+           shift 2
+           irank=$(( irank1 + 1 ))
+        done
 #for zn in $(seq 1 56) ; do
 #      cat << eof >> zapp.conf
 #      7  $2
@@ -260,7 +268,10 @@ runcode_mpmdOLD() {
 #done
 
 
-       ccc_mprun -f zapp.conf
+#      ccc_mprun -f zapp.conf
+srun --mpi=pmi2   -K1 \
+    --multi-prog  ./zapp.conf.$$
+
                }
 # ---
 

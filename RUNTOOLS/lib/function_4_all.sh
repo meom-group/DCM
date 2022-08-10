@@ -1042,7 +1042,7 @@ eof1
   if [ ! \$mmm ] ; then
      ./$1\${mmm}.sh                                 # not an ensemble run : serial process
   else
-     runcode_mpmd  \$mpmd_arg                        # launch the scripts in parallele (mpmd mode)
+     runcode_mpmdOLD  \$mpmd_arg                        # launch the scripts in parallele (mpmd mode)
   fi
 eof
 
