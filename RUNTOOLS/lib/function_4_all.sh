@@ -611,6 +611,7 @@ getobs () {
  fi
 
  if [ $SLA = 1 ] ; then
+   slaAnnual = 1  # forced HERE JMM !
    rapatrie $slaRefLevel $P_SLA_DIR $F_SLA_DIR $slaRefLevel
    flist=
    if [ $slaAnnual = 1 ] ; then
@@ -1015,7 +1016,7 @@ cat << eof >> $1    # Submit script name given as argument
    # $ to be maintained in the final script are replaces by @, then automatic edition
    # replace the @ by $ [ this is necessary because we are at the second level of script
    # creation !
-   cat << eof1 > ztmprst
+   cat << eof1 > ztmprst.$$.$ext
 #!/bin/bash
    set -x
    . ./includefile.sh
@@ -1032,7 +1033,7 @@ cat << eof >> $1    # Submit script name given as argument
    cd $DDIR
    tar cf $F_R_DIR/${CONFIG_CASE}\${mmm}-RST.$ext.tar ${CONFIG_CASE}-RST.$ext/\$nnn
 eof1
-   cat ztmprst | sed -e 's/@/\$/g' > ./$1\${mmm}.sh    # change @ into \$ and create script for current member
+   cat ztmprst.$$.$ext | sed -e 's/@/\$/g' > ./$1\${mmm}.sh    # change @ into \$ and create script for current member
    chmod 755 ./$1\${mmm}.sh                         # made it executable
 
    mpmd_arg="\$mpmd_arg 1 ./$1\${mmm}.sh"           # prepare the command line for runcode function
@@ -1538,12 +1539,13 @@ mergefiles_ens()  {
          done
          ln -sf  $zXIOS/$CN_DOMCFG ./
          ln -sf $MERGE_EXEC ./
-         getlst0000 24000
-         idxmax=$(( ${#lst0000[@]} - 1 )) #  index max in the list, starting from 0
+#         getlst0000 24000
+#         idxmax=$(( ${#lst0000[@]} - 1 )) #  index max in the list, starting from 0
 
-         for idx in $( seq 0 $idxmax ) ; do
-             runcode_u $NB_NPROC_MER ./$mergeprog -f ${lst0000[$idx]} -c $CN_DOMCFG -r
-         done
+#         for idx in $( seq 0 $idxmax ) ; do
+#             runcode_u $NB_NPROC_MER ./$mergeprog -f ${lst0000[$idx]} -c $CN_DOMCFG -r
+#         done
+         runcode $NB_NPROC_MER ./\$mergeprog -F -c $CN_DOMCFG -r
          \rm *.nc  # in WKDIR
          cd $TMPDIR  # for the remnant of the script
               }
