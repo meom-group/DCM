@@ -6,7 +6,7 @@
 
 usage() {
     echo
-    echo "USAGE: $(basename $0) [-h] [list of directories]"
+    echo "USAGE: $(basename $0) [-h] [-s] [list of directories]"
     echo
     echo "  PURPOSE:"
     echo "     Count the number of inodes in all the directories below the actual"
@@ -16,16 +16,20 @@ usage() {
     echo
     echo "  OPTIONS:"
     echo "     -h : print this message "
+    echo "     -s : add the size of the directories"
     echo "     list_of_directories: restrict the inodes counting to the directories"
     echo "                          in the list."
     echo
     exit 0
         }
 
-while getopts :h  opt
+psz=0  # print size flag
+
+while getopts :hs  opt
   do
     case $opt in 
        (h)  usage ;;
+       (s)  psz=1 ;;
        (*) ;;
     esac
   done
@@ -41,6 +45,10 @@ for f in $dirs ; do
 #  nf=$( \ls -lR $f | grep -vi total | grep -vi ':$' | grep -vi '^$' | wc -l )
 #  nf=$( find $f -type f  | wc -l )
   nf=$( find $f \( -type f -o -type l \)  | wc -l )
-  echo $nf " " $f
+  s=''
+  if [ $psz = 1 ] ; then
+   s="( $( du -sh $f | awk '{ print $1}' ) )"
+  fi
+  echo $nf " " $s $f
   fi
 done
