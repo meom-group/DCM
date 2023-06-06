@@ -237,6 +237,8 @@ copyref:
 	@cp -f -R $(REF)/makenemo $(COMPIL_DIR)/
 ifeq ($(REFONLY),'yes')
 	@echo "    WARNING : DRAKKAR version is not used "
+	@echo "    WARNING :   however, customized arch are copied."
+	@cp -f -R $(CUS)/arch  $(COMPIL_DIR)/.
 else
 	@echo "    copy DRAKKAR version to $(COMPIL_DIR) "
 	@cp -f -R $(CUS)/src $(COMPIL_DIR)/.
@@ -252,8 +254,8 @@ else
 	@cp $(CONFIG)-$(CASE)_cfgs.txt $(COMPIL_DIR)/cfgs/ref_cfgs.txt
 endif
 	@dcm_cpp2fcm > $(COMPIL_DIR)/cfgs/$(CONFIG)-$(CASE)/cpp_$(CONFIG)-$(CASE).fcm
-	@echo  ./makenemo -r $(CONFIG)-$(CASE) -m $(MACHINE)  -j0
-	@cd $(COMPIL_DIR) ;  ./makenemo -r $(CONFIG)-$(CASE) -m $(MACHINE)  -j0
+	@echo  ./makenemo -r $(CONFIG)-$(CASE) -m $(MACHINE)  -j 0
+	@cd $(COMPIL_DIR) ;  ./makenemo -r $(CONFIG)-$(CASE) -m $(MACHINE)  -j 0
 
 WORK:
 	@ln -s $(WK) WORK
