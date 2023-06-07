@@ -102,7 +102,7 @@ compile: copyfile copynamelist
 	@echo '... compile nemo  with fcm ...'
 	@cp CPP.keys $(PDIR)/RUN_$(CONFIG)/$(CONFIG)-$(CASE)/EXE/
 	@dcm_cpp2fcm > $(COMPIL_DIR)/cfgs/$(CONFIG)-$(CASE)/cpp_$(CONFIG)-$(CASE).fcm
-	@cd $(COMPIL_DIR) ; ./makenemo -r $(CONFIG)-$(CASE)  -j $(NCOMPIL_PROC)
+	@cd $(COMPIL_DIR) ; ./makenemo -r $(CONFIG)-$(CASE) -m $(MACHINE) -j $(NCOMPIL_PROC)
 	@ln -sf $(COMPIL_DIR)/cfgs/$(CONFIG)-$(CASE)/BLD/bin/nemo.exe $(PDIR)/RUN_$(CONFIG)/$(CONFIG)-$(CASE)/EXE/nemo4.exe
 
 
