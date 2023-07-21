@@ -57,6 +57,10 @@ prepend-path    PATH            ${base_path}/bin
 prepend-path    PATH            ${runtool_path}/toolkit
 prepend-path    PATH            ${runtool_path}/bin
 
+
+set             runtool_path2    $::env(DEVGIT)/DCM_${alter_version}/RUNTOOLS
+setenv          RUNTOOLS2        ${runtool_path2}
+
 #
 if {[module-info mode load]==1} {
     ##########################

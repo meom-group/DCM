@@ -1,9 +1,8 @@
 #!/bin/bash
-#set -x
 set -o posix
+#set -x
 #set -u
 #set -e
-#+
 #
 # ===============
 # makenemo
@@ -16,14 +15,11 @@ set -o posix
 # SYNOPSIS
 # ========
 #
-# ::
-#
 #  $ makenemo
 #
 #
 # DESCRIPTION
 # ===========
-#
 #
 # This script aims :
 #
@@ -40,16 +36,12 @@ set -o posix
 # - REF_CONF    : reference configuration to build the new one from
 # - CMP_NAM     : compiler name
 # - NBR_PRC     : number of processes used to compile
-# - RMT_CONF    : unsupported (external) configuration to build the new one from
 # - NEM_SUBDIR  : NEMO subdirectory used (specified)
 #
 #  Locally defined :
 #
-# - TAB         : NEMO subdirectory used (read)
 # - MAIN_DIR    : self explaining
 # - CONFIG_DIR  :   "    "    "
-# - MODELES_DIR :   "    "    "
-# - TOOLS_DIR   :   "    "    "
 # - NEMO_DIR    :   "    "    "
 # - REMOTE_CTL  : URL link to a remote resource list for an external configuration
 #                 which is not part of the reference suite
@@ -60,348 +52,349 @@ set -o posix
 # EXAMPLES
 # ========
 #
-# ::
-#
-#  $ ./makenemo -m ifort_osx - j3 -n ORCA2_SI3_PISCES
-#
-#
-# TODO
-# ====
-#
-# option debug
-#
-#
-# EVOLUTIONS
-# ==========
-#
-# $Id: makenemo 15186 2021-08-12 16:39:09Z gsamson $
-#
-#
-#
-#   * creation
-#
-#-
+#  $ ./makenemo -m ifort_osx -j 3 -r ORCA2_ICE_PISCES -n MY_ORCA2
 
-#-
-##- Initialization of the options ---
-x_d=''; x_h=''; x_n=''; x_r='';
-x_u=''; x_a=''; x_m=''; x_t='';
-x_c='';
-x_j='1'; x_e='none'; x_s='src'; x_v='1'
 
-##- Local variables ---
-b_n=$(basename ${0})
-OPTIND='1'
-MAIN_DIR=$(cd $(dirname "$0"); pwd)
-MAIN_DIR=${MAIN_DIR%/sette*}
-MAIN_DIR=${MAIN_DIR%/tools*}
-MAIN_DIR=${MAIN_DIR%/cfgs*}
-export MAIN_DIR
-#
-export CONFIG_DIR=${MAIN_DIR}/cfgs
-export TOOLS_DIR=${MAIN_DIR}/tools
-export COMPIL_DIR=${MAIN_DIR}/mk
-export NEMO_DIR=${MAIN_DIR}/${x_s}
-export AGRIFUSE='10'
+# Initialization of the options
+x_d=''; x_h=''; x_n=''; x_r=''; x_c='';
+x_u=''; x_a=''; x_m=''; x_t=''; x_b='';
+x_j='1'; x_e=''; x_s='src'; x_v='1'
 list_key='0'; chk_key='1'
-list_add_key=''; list_del_key='';
-conf_file=ref_cfgs.txt
-#-
-#- FCM and functions location ---
-export PATH=${MAIN_DIR}/ext/FCM/bin:$PATH
+list_add_key=''; list_def_key=''; list_del_key=''
+x_c_cfg=0; x_nocdf=0
 
-#-
-#- Choice of the options ---
-while getopts :hd:n:r:u:a:m:j:e:s:v:t:k: option; do
 
-	case $option in
-		('h') cat <<EOF
+# Local variables
+MAIN_DIR=$(cd $(dirname "$0"); pwd)
+MAIN_DIR=${MAIN_DIR%/+(sette|tools|cfgs|tests|ext|arch)}
+COMPIL_DIR=${MAIN_DIR}/mk
+PATH=${MAIN_DIR}/ext/FCM/bin:$PATH
+
+
+# Choice of the options
+while [ ${#1} -gt 0 ]; do
+    
+    case "$1" in
+	-h|--help) cat <<EOF
 Usage:
 ------
-./makenemo -[aru] CONFIG -m ARCH [-[dehjntv] ...] [{list_key,clean,clean_config}]
-                                                  [{add_key,del_key} ...]
+./makenemo -[arn] CONFIG -m ARCH [-[...] ...] 
 
 Mandatory
-   -m    Computing architecture (./arch), FCM file describing the compilation settings
+   -m, --mach, --machine, --arch <machine_name>
+            Computing architecture, will use the file arch_<machine_name>.fcm located
+            in ./arch (sub)directory(ies)
 
-   and one of the following option (use 'all' arg to list available items)
+   -n, --name <config_name>
+            Name of the configuration to compile
 
-   -r    Reference configuration (./cfgs), proven with long-term support
-   -a    Academic test case (./tests), ready-to-use configuration with no support over time
-   -u    Scripted remote configuration (see ./tests/rmt_cfgs.txt)
+ and, if -n defines a new configuration, one of the following option (use 'all' arg to
+ list available items):
+
+   -r, --ref <ref_config_name>  
+            To specify which reference configuration (./cfgs) must be used to buit the
+            new configuration
+   -a, --test <test_config_name>  
+            To specify which academic test case (./tests) must be used to buit the new
+            configuration
 
 Optional
-   -d    New set of sub-components (subfolders from ./src directory)
-   -e    Path for alter patch  location (default: 'MY_SRC' in configuration folder)
-   -h    Print this help
-   -j    Number of processes to compile (0: dry run with no build)
-   -n    Name for new configuration
-   -s    Path for alter source location (default: 'src' root directory)
-   -t    Path for alter build  location (default: 'BLD' in configuration folder)
-   -v    Level of verbosity ([0-3])
+   --add_key, key_add, add_key "<list of keys>"
+            list of cpp keys to be added in cpp_<config_name>.fcm file
+   -b, --dbg, --debug    
+            add it to compile in debug mode
+   --clean, --clean_compil, clean
+            Clean all files and directories used for  compilation + the REPRO_* and
+            the SHORT directories
+   --clean_config, clean_config
+            Completly delete a configuration 
+   -d, --dirs, --comp <sub-components>  
+            New set of sub-components (subfolders from ./src directory) to be used
+   --def_key, key_def, def_key "<list of keys>"
+            list of all cpp keys to be defined in cpp_<config_name>.fcm file
+   --del_key, key_del, del_key "<list of keys>"
+            list of cpp keys to be deleted in cpp_<config_name>.fcm file
+   -e, --my_srcpath, --my_src_path, --MY_SRCpath, --MY_SRC_path <path>  
+            Path for alter patch location (default: 'MY_SRC' in configuration folder)
+   -h, --help
+            Print this help
+   -j, --jobs <nb_job>
+            Number of processes to compile (0: dry run with no build)
+   -k, --chkkey <O/1>
+            Set to 0 to bypass the check of the cpp keys (takes time at the beginning
+            of makenemo). Default is 1
+   --list_key, --key_list, list_key
+            List all existing cpp keys in the configuration and exit without compiling 
+   --nonc, --nocdf, --nonetcdf, --no_nc, --no_cdf, --no_netcdf 
+            Compile without the NetCDF Library
+   -s, --srcpath, --src_path  <path>   
+            Path for alter source location (default: 'src' root directory)
+   -t, --bldpath, --bld_path, --BLDpath, --BLD_path <path>   
+            Path for alter build  location (default: 'BLD' in configuration folder)
+   -v, --verbose <0/1/2/3>
+            Level of verbosity ([0-3])
 
 Examples
    ¤ Configuration creation
-        Build          : ./makenemo         -[aru] ... [...]
-        Copy           : ./makenemo -n ...  -[aru] ... [...]
+        Build          : ./makenemo         -[ar] ... [...]
+        Copy           : ./makenemo -n ...  -[ar] ... [...]
    ¤ Configuration management
         List CPP keys  : ./makenemo -n ... list_key
-        Add-Remove keys: ./makenemo -n ... add_key '...' del_key '...'
-        Fresh start    : ./makenemo -n ... clean
-        Removal        : ./makenemo -n ... clean_config
+        Add-Remove keys: ./makenemo -n ... --add_key '...' --del_key '...'
+        Fresh start    : ./makenemo -n ... --clean
+        Removal        : ./makenemo -n ... --clean_config
+
 EOF
-				exit 0       ;;
-	  	('d') x_d=${OPTARG};; ('n') x_n=${OPTARG};; ('r') x_r=${OPTARG};; ('u') x_u=${OPTARG};;
-		('a') x_a=${OPTARG};; ('m') x_m=${OPTARG};; ('j') x_j=${OPTARG};; ('t') x_t=${OPTARG};;
-		('e') x_e=(${OPTARG});; ('s') x_s=${OPTARG};; ('v') x_v=${OPTARG}                      ;;
-		('k') chk_key=${OPTARG}                                                              ;;
-		(':') echo ${b_n}" : -"${OPTARG}" option : missing value" 1>&2;	exit 2             ;;
-		('?') echo ${b_n}" : -"${OPTARG}" option : not supported" 1>&2;	exit 2             ;;
-	esac
-
+	    exit 0       ;;
+	-b|--dbg|--debug)
+	    x_b="True" ;;
+	-d|--dirs|--comp)
+	    x_d=${2} ; shift ;;
+	-n|--name)
+	    x_n=${2} ; shift ;;
+	-r|--ref)
+	    x_r=${2} ; shift ;;
+	-a|--academic|--test)
+	    x_a=${2} ; shift ;;
+	-m|--mach|--machine|--arch)
+	    x_m=${2} ; shift ;;
+	-j) x_j=${2} ; shift ;;
+	-t|--bldpath|--bld_path|--BLDpath|--BLD_path)
+	    x_t=${2} ; shift ;;
+	-e|--my_srcpath|--my_src_path|--MY_SRCpath|--MY_SRC_path)
+	    x_e=${2} ; shift ;;
+	-s|--srcpath|--src_path)
+	    x_s=${2} ; shift ;;
+	-v|--verbose)
+	    x_v=${2} ; shift ;;
+	-k|--chkkey)
+	    chk_key=${2} ; shift ;;
+	--nonc|--nocdf|--nonetcdf|--no_nc|--no_cdf|--no_netcdf)
+	    x_nocdf=1  ;;
+	--clean|--clean_compil|clean)
+	    x_c="--clean"  ;;
+	--clean_config|clean_config)
+	    x_c_cfg=1  ;;
+	--add_key|--key_add|add_key     ) [[ ! "$2" =~ ^\ +$ ]] && list_add_key=$2; shift;;
+	--def_key|--key_def|def_key     ) [[ ! "$2" =~ ^\ +$ ]] && list_def_key=$2; shift;;
+	--del_key|--key_del|del_key     ) [[ ! "$2" =~ ^\ +$ ]] && list_del_key=$2; shift;;
+	--list_key|--key_list|list_key) list_key='1'                                   ;;
+	*) echo -e "\033[0;31m\n \"$1\" BAD OPTION\033[0m\n"; exit 2              ;;
+    esac
+    
+    shift
 done
 
-shift $(($OPTIND-1));
 
-## Get clean, clean_config options
-while [ ${#1} -gt 0 ]; do
-
-	case "$1" in
-		'clean'       ) x_c="--$1"                                     ;;
-		'clean_config') . ${COMPIL_DIR}/Fclean_config.sh; exit         ;;
-		## Checking if argument has anything other than whitespace
-		'add_key'     ) [[ ! "$2" =~ ^\ +$ ]] && list_add_key=$2; shift;;
-		'del_key'     ) [[ ! "$2" =~ ^\ +$ ]] && list_del_key=$2; shift;;
-		'list_key'    ) list_key='1'                                   ;;
-		'*'           ) echo " \"$1\" BAD OPTION"; exit 2              ;;
-	esac
-
-	shift
-done
-
-
-export NEW_CONF=${x_n}
+# Variables definition based on options
 NBR_PRC=${x_j}
 CMP_NAM=${x_m}
-NEM_SUBDIR=${x_d}
-REF_CONF=${x_r}
-DEMO_CONF=${x_a}
-RMT_CONF=${x_u}
-TML_CONF=${REF_CONF}
-export NEMO_DIR=${MAIN_DIR}/${x_s}
-
-[ "${CMP_NAM}" == 'all' ] && . ${COMPIL_DIR}/Flist_archfile.sh all && exit
+NEMO_DBG=${x_b}
+NEMO_DIR=${MAIN_DIR}/${x_s}
 
 
-## No ref. cfg, demo case, nor remote cfg selected
-if [[ -z "${REF_CONF}" && -z "${DEMO_CONF}" && -z "${RMT_CONF}" ]]; then
+# Print available arch files
+[ "${CMP_NAM}" == 'all' ] && ${COMPIL_DIR}/Flist_archfile.sh && exit 0
 
-		## Reuse last configuration compiled if any (existing 'work_cfgs.txt')
-#		if [[ $( find ./cfgs ./tests -name work_cfgs.txt ) ]]; then
-#			CONFIG_DIR=${MAIN_DIR}/$( ls -rt */work_cfgs.txt | awk -F/ 'END{ print $1}' )
-#			TML_CONF=$( tail -1 ${CONFIG_DIR}/work_cfgs.txt | awk '{ print $1 }' )
-#		else
-			## No ${REF_CONF}, ${DEMO_CONF}, ${RMT_CONF} nor ${NEM_SUBDIR} and 1st compilation => exit
-#			echo -e "\033[0;33m\nNo previous build found!"
-			echo -e "\033[0;31m\nAt least a reference configuration ('-r'), a test case ('-a'), "
-			echo -e "a remote configuration ('-u') has to be choosen!!!\033[0m"
-			${COMPIL_DIR}/Flist_cfgs.sh
-			exit 2
-#		fi
 
-## At least one config has been requested
+# New config case
+if [ -n "${x_n}" ]; then
+
+  # Look for already-existing new config
+  NEW_CONF=${x_n}
+  if [ -n "${x_t}" ]; then
+    NEW_DIR=$( find -L ${x_t} -maxdepth 1 -type d -name ${x_n} 2>/dev/null )
+  else
+    NEW_DIR=$( find -L ${MAIN_DIR}/cfgs ${MAIN_DIR}/tests -maxdepth 1 -type d -name ${NEW_CONF} 2>/dev/null )
+  fi
+  NEW_NB=$( echo ${NEW_DIR} | wc -w )
+  NEW_CMP=$( grep -l "^${NEW_CONF} " ${MAIN_DIR}/cfgs/*_cfgs.txt ${MAIN_DIR}/tests/*_cfgs.txt | tail -1 )
+
+  # Define if new config needs to be created or not
+  if [[ ${NEW_NB:-0} -eq 0 || -z "${NEW_CMP}" ]]; then
+    DO_NEW=1
+  else
+    DO_NEW=0
+    NEW_SUB="$( grep "^${NEW_CONF} " ${NEW_CMP} | awk '{$1 = ""; print $0}' )"
+    if [[ -n "${x_r}" || -n "${x_a}" ]]; then
+      echo -e "\nWARNING: ${NEW_CONF} configuration is already existing, we ignore \"-r\" & \"-a\" options\n"
+    fi
+  fi
+
+fi
+
+
+# Define ref config if new config not defined or not existing yet
+if [[ ${DO_NEW:-0} -eq 1 || -z "${NEW_CONF}" ]]; then
+
+  if [[ -n "${x_r}" || -n "${x_a}" ]]; then
+    REF_DIR=$( find ${MAIN_DIR}/cfgs ${MAIN_DIR}/tests -maxdepth 1 -type d -name ${x_r:-""} -o -name ${x_a:-""} 2>/dev/null )
+    REF_NB=$( echo ${REF_DIR} | wc -w )
+    REF_CMP=$( grep -l "^${x_r} \|^${x_a} " ${MAIN_DIR}/cfgs/ref_cfgs.txt ${MAIN_DIR}/tests/demo_cfgs.txt )
+    if [[ ${REF_NB} -eq 1 && -n "${REF_CMP}" ]]; then
+      REF_CONF=$(basename ${REF_DIR})
+      REF_TYPE=$(basename ${REF_DIR%\/*})
+      REF_FILE=$(basename ${REF_CMP})
+      REF_SUB="$( grep "^${REF_CONF} " ${REF_CMP} | awk '{$1 = ""; print $0}' )"
+    elif [ ${REF_NB} -gt 1 ]; then
+      echo -e "Please choose only one reference configuration (-r) or testcase (-a)"; exit 2
+    elif [ ${REF_NB} -eq 0 ]; then
+      echo -e "Please choose at least one reference configuration (-r) or testcase (-a) from:"
+      ${COMPIL_DIR}/Flist_cfgs.sh ${MAIN_DIR}; exit 2
+    fi
+  else
+    echo -e "Please choose at least one reference configuration (-r) or testcase (-a) from:"
+    ${COMPIL_DIR}/Flist_cfgs.sh ${MAIN_DIR}; exit 2
+  fi
+
+  # force config creation if ref config installed outside nemo directory
+  if [[ -n "${x_t}" && ${x_t} != ${REF_DIR%\/*} ]]; then DO_NEW=1; fi
+
+fi
+
+
+# Current config (new or ref) definition
+CFG_DIR=$( dirname ${NEW_CMP:-${REF_CMP}} )
+CUR_DIR=${NEW_DIR:-${REF_DIR}}
+CUR_CONF=${NEW_CONF:-${REF_CONF}}
+CUR_SUB=${NEW_SUB:-${REF_SUB}}
+NEMO_TDIR=${x_t:-${CUR_DIR%\/*}}
+
+
+# Config cleaning
+if [ -d ${NEMO_TDIR}/${CUR_CONF} ]; then
+
+    if [ $x_c_cfg -eq 1 ] ; then
+        ${COMPIL_DIR}/Fclean_config.sh ${NEMO_TDIR}/${CUR_CONF}
+        exit 0
+    elif [ ${#x_c} -ne 0 ]; then
+
+        #read -p "Are you sure that you want to clean $CUR_CONF configuration ? " -n 1 -r; echo
+        #if [[ $REPLY =~ ^[Yy]$ ]]; then
+            # choose & generate fcm cfg file
+            [ $x_nocdf -eq 1 ] && USEBLD=bldxagxcdf.cfg || USEBLD=bldxag.cfg
+            grep key_agrif ${NEMO_TDIR}/${CUR_CONF}/BLD/cpp.fcm 2>/dev/null && USEBLD=${USEBLD/xag/}
+            sed -e "s~MAIN_DIR~${MAIN_DIR}~; s~NEMO_TDIR~${NEMO_TDIR}~; s~CUR_CONF~${CUR_CONF}~; s~COMPIL_DIR~${COMPIL_DIR}~" ${COMPIL_DIR}/${USEBLD} > ${NEMO_TDIR}/${CUR_CONF}/BLD/${USEBLD}
+
+            # fcm clean
+            fcm build ${x_c} --ignore-lock -v ${x_v} -j ${NBR_PRC} ${NEMO_TDIR}/${CUR_CONF}/BLD/${USEBLD} || exit 1
+
+            # remove all build directories
+            echo -e '\nCleaning '${CUR_CONF}' building directories and variables\n'
+            for dir in AGRIFLIB BLD LONG NEMOFILES REPRO_* SHORT WORK; do
+               rm -rf ${NEMO_TDIR}/${CUR_CONF}/$dir
+            done
+            for file in cpp.history cpp.fcm full_key_list.txt; do
+               rm -f ${NEMO_TDIR}/${CUR_CONF}/BLD/$file
+            done
+            exit 0
+        #else
+        #    echo "cleaning cancelled"
+        #    exit 2
+        #fi
+    fi
 else
-
-	## 'all' arg: list all available configurations
-	if [[ "${REF_CONF}" == 'all' || "${DEMO_CONF}" == 'all' || "${RMT_CONF}" == 'all' ]]; then
-		${COMPIL_DIR}/Flist_cfgs.sh
-		exit 2
-   ## Probably useless but who knows?
-	elif [[ -n "${REF_CONF}" && -n "${DEMO_CONF}" ]]; then
-		echo -e "\033[0;31m\nYou have to choose whether you work with:"
-		echo -e "  - LTS configurations in ./cfgs  ('-r') or"
-		echo -e "  - Unsupported cases  in ./tests ('-a')\033[0m\n"
-		exit 2
-	fi
-
-	## Remote cfg
-	if   [ -n "${RMT_CONF}" ]; then
-		conf_file=rmt_cfgs.txt; CONFIG_DIR=${MAIN_DIR}/tests;
-
-		if [[ ! $( grep ${RMT_CONF} ${CONFIG_DIR}/${conf_file} ) ]]; then
-				echo -e "\033[0;31m\nThe reference configuration ('-r'), test case ('-a') or "
-				echo -e "remote configuration ('-u') selected is not available!!!"
-				echo -e "Check the option used and the available items in .txt files\033[0m"
-				${COMPIL_DIR}/Flist_cfgs.sh
-				exit 2
-		fi
-
-		## Little tricky this one
-		for word in $( grep ${RMT_CONF} ${CONFIG_DIR}/${conf_file} ); do
-			words[${#words[@]}]=$word
-		done
-
-		TML_CONF=${words[2]}; NEM_SUBDIR=${words[4]}; URL=${words[6]}
-
-	## Demo case
-	elif [ -n "${DEMO_CONF}" ]; then
-		conf_file=demo_cfgs.txt; CONFIG_DIR=${MAIN_DIR}/tests; TML_CONF=${DEMO_CONF}
-	fi
-
+    [ $x_c_cfg -eq 1 ] && echo -e "\nWARNING: Configuration cleaning of a non-existing configuration, we ignore\n" && exit 0
+    [  ${#x_c} -ne 0 ] && echo -e "\nWARNING: Compilation cleaning of a non-existing configuration, we ignore\n" && exit 0
 fi
 
-## Test if ref. cfg or demo case does exist
-if [[ ! $( grep "${TML_CONF} " ${CONFIG_DIR}/*_cfgs.txt ) ]]; then
-	echo -e "\033[0;31m\nThe reference configuration ('-r'), demonstration case ('-a') or "
-	echo -e "remote configuration ('-u') selected is not available!!!"
-	echo -e "Check the option used and the available items in .txt files\033[0m"
-	${COMPIL_DIR}/Flist_cfgs.sh
-	exit 2
 
+# Create/update config components list
+NEM_SUBDIR=( ${x_d:-${CUR_SUB}} )
+if [ ${DO_NEW:-0} -eq 1 ]; then
+    echo
+    printf "\nYou are installing a new configuration %s from %s " ${CUR_CONF} ${REF_CONF}
+    printf  "with sub-components: %s\n"  "${NEM_SUBDIR[*]}"
+    echo
 else
-
-	## Reuse a working cfg
-	if [[ -f ${CONFIG_DIR}/work_cfgs.txt && $( grep "${TML_CONF} " ${CONFIG_DIR}/work_cfgs.txt ) ]]; then
-		conf_file=work_cfgs.txt
-	fi
-
-	## If new cfg exists, work in it
-	[ -z "${NEW_CONF}" ] && NEW_CONF=${TML_CONF}
-
-	## Update sub-comps if needed
-	if [ -z "${NEM_SUBDIR}" ]; then
-			NEM_SUBDIR=$( grep "${TML_CONF} " ${CONFIG_DIR}/${conf_file}  | awk '{$1 = ""; print $0}' )
-	fi
-
+    echo
+    printf "\nYou are compiling an existing configuration %s " ${CUR_CONF}
+    printf  "with sub-components: %s\n"  "${NEM_SUBDIR[*]}"
+    echo
+fi
+if [[ -n "${x_d}" || ${DO_NEW:-0} -eq 1 ]]; then
+    [ -f ${CFG_DIR}/work_cfgs.txt ] && sed -i'' -e "/^${CUR_CONF} /d" ${CFG_DIR}/work_cfgs.txt
+    echo ${CUR_CONF} "${NEM_SUBDIR[*]}" >> ${CFG_DIR}/work_cfgs.txt
 fi
 
-export NEMO_TDIR=${x_t:-$CONFIG_DIR}
-export NEM_SUBDIR="${NEM_SUBDIR}" NEW_CONF="${NEW_CONF}"
 
-## Save new configuration with sub-components set in work_cfgs.txt
-[ -f ${CONFIG_DIR}/work_cfgs.txt ] && sed -i "/${NEW_CONF} /d" ${CONFIG_DIR}/work_cfgs.txt
-echo ${NEW_CONF} "${NEM_SUBDIR}" \
-	>> ${CONFIG_DIR}/work_cfgs.txt
+# Create config directories
+${COMPIL_DIR}/Fmake_config.sh ${NEMO_TDIR}/${CUR_CONF} ${REF_DIR:-${NEMO_TDIR}/${CUR_CONF}}
 
-cd ${CONFIG_DIR}
 
-printf "\nYou are installing a new configuration %s from %s " ${NEW_CONF} ${TML_CONF}
-printf  "with sub-components: %s\n"  "${NEM_SUBDIR}"
+# Create/update WORK directory
+${COMPIL_DIR}/Fmake_WORK.sh "${NEM_SUBDIR[*]/#/${NEMO_DIR}/}" "${x_e:-"MY_SRC"}" ${NEMO_TDIR}/${CUR_CONF} || exit 3
 
-## Create new config even in existing one (mkdir with -p option, cp with -n)
-${COMPIL_DIR}/Fmake_config.sh ${NEW_CONF} ${TML_CONF}
 
-## create EXP00 if needed
-[ ! -d ${CONFIG_DIR}/${NEW_CONF}/EXP00 ] && \cp -R -n ${CONFIG_DIR}/${NEW_CONF}/EXPREF ${CONFIG_DIR}/${NEW_CONF}/EXP00
-
-## Get online script file for remote cfg
-[ -n "${RMT_CONF}" ] && ${COMPIL_DIR}/Ffetch_extdir.sh ${NEW_CONF} $URL
-
-#- Create the WORK ---
-#- Clean links and librairies ---
-#- Creating the good links, at first on OCE ---
-. ${COMPIL_DIR}/Fmake_WORK.sh ${x_e[@]} || exit 3
-
-. ${COMPIL_DIR}/Fmake_bld.sh ${CONFIG_DIR} ${NEW_CONF} ${NEMO_TDIR} || exit 3
-
-# build the complete list of the cpp keys of this configuration
-if [ ${chk_key} -eq 1 ] ; then
-
-       grep key_ ${NEW_CONF}/WORK/[a-z]*90 | awk -F: '{print $2}' | grep '^#' | grep defined | \
-       awk ' { if (match($0,"defined")) { \
-            before = substr($0,1,RSTART-1); \
-            pattern = substr($0,RSTART,RLENGTH); \
-            after = substr($0,RSTART+RLENGTH); \
-            printf("%s\n", after); }  }' | awk '{print $1}' | sort -u > ${COMPIL_DIR}/full_key_list.txt
-
-	[ ${list_key} -eq 1 ] && cat ${COMPIL_DIR}/full_key_list.txt && exit 0
-
+# Build the complete list of the CPP keys of this configuration
+if [[ ${chk_key} -eq 1 || ${list_key} -eq 1 ]] ; then
+    grep -h "^#.*defined.*\|^#if.*def.*" ${NEMO_TDIR}/${CUR_CONF}/WORK/* | \
+    grep -o "key_[[:alnum:]]\+\|key_[[:alnum:]]\+_[[:alnum:]]\+\|iso_[[:alnum:]]\+_[[:alnum:]]\+" | \
+    sort | uniq > ${NEMO_TDIR}/${CUR_CONF}/BLD/full_key_list.txt
+    [ ${list_key} -eq 1 ] && echo && cat ${NEMO_TDIR}/${CUR_CONF}/BLD/full_key_list.txt && exit 0
 fi
 
-#- At this stage new configuration has been added, we add or remove keys
-[ ! -z "${list_add_key}" ] && { . ${COMPIL_DIR}/Fadd_keys.sh ${NEW_CONF} add_key ${list_add_key}; }
-[ ! -z "${list_del_key}" ] && { . ${COMPIL_DIR}/Fdel_keys.sh ${NEW_CONF} del_key ${list_del_key}; }
 
-#- check that all keys are really existing...
+# CPP keys addition/removal
+[ -n "${list_add_key}" ] && ${COMPIL_DIR}/Fadd_keys.sh ${NEMO_TDIR}/${CUR_CONF} "${list_add_key}"
+[ -n "${list_def_key}" ] && ${COMPIL_DIR}/Fdef_keys.sh ${NEMO_TDIR}/${CUR_CONF} "${list_def_key}"
+[ -n "${list_del_key}" ] && ${COMPIL_DIR}/Fdel_keys.sh ${NEMO_TDIR}/${CUR_CONF} "${list_del_key}"
+
+
+# CPP keys check
 if [ $chk_key -eq 1 ] ; then
-
-	for kk in $( cat ${NEW_CONF}/cpp_${NEW_CONF}.fcm ); do
-
-		if [ "$( echo $kk | cut -c 1-4 )" == "key_" ]; then
-			kk=${kk/=*/}
-
-			if [ ! $( grep -w $kk ${COMPIL_DIR}/full_key_list.txt ) ]; then
-				echo
-				echo "E R R O R : key "$kk" is not found in ${NEW_CONF}/WORK routines..."
-				echo "we stop..."
-				echo
-				exit 1
-			fi
-
-		fi
-
-	done
-
+    for kk in $( sed -n -e "s/bld::tool::fppkeys \+//p" ${NEMO_TDIR}/${CUR_CONF}/cpp_${CUR_CONF}.fcm ); do
+        if ! grep -q $kk ${NEMO_TDIR}/${CUR_CONF}/BLD/full_key_list.txt; then
+	    echo
+	    echo "E R R O R : key "$kk" is not found in ${NEMO_TDIR}/${CUR_CONF}/WORK routines..."
+	    echo "we stop..."
+	    echo
+	    exit 1
+        fi
+    done  
 fi
 
-#- At this stage cpp keys have been updated. we can check the arch file
-#- When used for the first time, choose a compiler ---
-. ${COMPIL_DIR}/Fcheck_archfile.sh arch_nemo.fcm cpp.fcm ${CMP_NAM} || exit 3
 
-#- At this stage the configuration has beeen chosen
-#- We coose the default light file
-export USEBLD=bldxag.cfg
+# CPP & arch files check
+ln -sf ${NEMO_TDIR}/${CUR_CONF}/cpp_${CUR_CONF}.fcm ${NEMO_TDIR}/${CUR_CONF}/BLD/cpp.fcm
+${COMPIL_DIR}/Fcheck_archfile.sh ${NEMO_TDIR}/${CUR_CONF}/BLD/arch_nemo.fcm ${NEMO_TDIR}/${CUR_CONF}/BLD/cpp.fcm ${MAIN_DIR}/arch/arch-${CMP_NAM}.fcm ${NEMO_DBG} || exit 3
 
-#- We look after agrif
-grep key_agrif ${COMPIL_DIR}/cpp.fcm && export AGRIFUSE=1 && export USEBLD=${USEBLD/xag/}
-. ${COMPIL_DIR}/Fprep_agrif.sh ${NEW_CONF} ${NEMO_TDIR} arch_nemo.fcm || exit 3
 
-#-
-#_ END OF CONFIGURATION PHASE
-#_
-
-#-
-#- Compile ---
-
+# Compilation
 if [ "${NBR_PRC}" -gt 0 ]; then
-	cd ${NEMO_TDIR}/${NEW_CONF} || cd -
 
-	## if AGRIF we do a first preprocessing
-	if [[ ${#x_c} -eq 0 && "$AGRIFUSE" -eq 1 ]]; then
-		fcm build --ignore-lock -j 1 ${COMPIL_DIR}/bld_preproagr.cfg ||{ cd - ; exit 1 ;}
-		echo ''
-		echo "---------------------------------"
-		echo "CONV preprocessing successfull !!"
-		echo "---------------------------------"
-		echo ''
-	fi
+    # choose & generate fcm cfg file
+    [ $x_nocdf -eq 1 ] && USEBLD=bldxagxcdf.cfg || USEBLD=bldxag.cfg
 
-	fcm build ${x_c} --ignore-lock -v ${x_v} -j ${NBR_PRC} ${COMPIL_DIR}/$USEBLD ||{ cd - ; exit 1 ;}
+    # AGRIF preprocessing
+    grep key_agrif ${NEMO_TDIR}/${CUR_CONF}/BLD/cpp.fcm 2>/dev/null && USEBLD=${USEBLD/xag/}
+    if [[ ! ${USEBLD} =~ "xag" ]]; then
+        ${COMPIL_DIR}/Fprep_agrif.sh ${MAIN_DIR} ${NEMO_TDIR}/${CUR_CONF} || exit 3
 
-	if [ -f ${NEMO_TDIR}/${NEW_CONF}/BLD/bin/nemo.exe ]; then
-		ln -sf ${NEMO_TDIR}/${NEW_CONF}/BLD/bin/nemo.exe  ${CONFIG_DIR}/${NEW_CONF}/EXP00/nemo
-	fi
+        # compile & copy conv
+        sed -e "s~MAIN_DIR~${MAIN_DIR}~; s~NEMO_TDIR~${NEMO_TDIR}~; s~CUR_CONF~${CUR_CONF}~; s~COMPIL_DIR~${COMPIL_DIR}~" ${COMPIL_DIR}/conv.cfg > ${NEMO_TDIR}/${CUR_CONF}/BLD/conv.cfg
+        fcm build ${NEMO_TDIR}/${CUR_CONF}/BLD/conv.cfg || exit 1
+        ln -sfv ${MAIN_DIR}/ext/AGRIF/agrif_oce.in ${NEMO_TDIR}/${CUR_CONF}/AGRIFLIB/bin/conv ${NEMO_TDIR}/${CUR_CONF}/NEMOFILES/.
 
-	## add remove for clean option
-	if [ ${#x_c} -ne 0 ]; then
+        sed -e "s~MAIN_DIR~${MAIN_DIR}~; s~NEMO_TDIR~${NEMO_TDIR}~; s~CUR_CONF~${CUR_CONF}~; s~COMPIL_DIR~${COMPIL_DIR}~" ${COMPIL_DIR}/bld_preproagr.cfg > ${NEMO_TDIR}/${CUR_CONF}/BLD/bld_preproagr.cfg
+	fcm build --ignore-lock -j 1 ${NEMO_TDIR}/${CUR_CONF}/BLD/bld_preproagr.cfg || exit 1
+	echo
+	echo "---------------------------------"
+	echo "CONV preprocessing successfull !!"
+	echo "---------------------------------"
+	echo
+    fi
 
-		echo 'Cleaning in '${NEW_CONF}' the building folders'
+    sed -e "s~MAIN_DIR~${MAIN_DIR}~; s~NEMO_TDIR~${NEMO_TDIR}~; s~CUR_CONF~${CUR_CONF}~; s~COMPIL_DIR~${COMPIL_DIR}~" ${COMPIL_DIR}/${USEBLD} > ${NEMO_TDIR}/${CUR_CONF}/BLD/${USEBLD}
+    fcm build --ignore-lock -v ${x_v} -j ${NBR_PRC} ${NEMO_TDIR}/${CUR_CONF}/BLD/${USEBLD} || exit 1
 
-      for dir in AGRIFLIB BLD EXP00 LONG NEMOFILES REPRO_* SHORT WORK; do
-         rm -rf ${NEMO_TDIR}/${NEW_CONF}/$dir
-      done
-
-      for file in cpp.history cpp.fcm full_key_list.txt; do
-         rm -f  ${COMPIL_DIR}/$file
-      done
-
-   fi
-
+    if [ -f ${NEMO_TDIR}/${CUR_CONF}/BLD/bin/nemo.exe ]; then
+	(cd ${NEMO_TDIR}/${CUR_CONF}/EXP00; ln -sfv ../BLD/bin/nemo.exe ./nemo)
+    else
+        exit 1
+    fi
+    
 fi
 
-#- Come back to original directory ---
-cd -
 
-#-
-#- Unset variables
-${COMPIL_DIR}/Fclean_var.sh
+exit 0
