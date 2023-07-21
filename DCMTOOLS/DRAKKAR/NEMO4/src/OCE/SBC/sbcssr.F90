@@ -165,14 +165,15 @@ CONTAINS
 
                DO_2D( nn_hls, nn_hls, nn_hls, nn_hls )
                    ! use filters model fields and multiply zerp by erpcoef
-                     zerp = zsrp * ( 1. - 2.*rnfmsk(ji,jj) )   &      ! No damping in vicinity of river mouths
-                        &        *   coefice(ji,jj)            &      ! Optional control of damping under sea-ice
-                        &        * ( zsss_m(ji,jj) - sf_sss(1)%fnow(ji,jj,1) )   &
-                        &        / MAX(  zsss_m(ji,jj), 1.e-20   ) * tmask(ji,jj,1)              &
-                        &        * erpcoef(ji,jj)
-                     IF( ln_sssr_bnd )   zerp = SIGN( 1., zerp ) * MIN( zerp_bnd, ABS(zerp) )
-                   ! use distance to the coast
-                     IF( ln_sssr_msk )   zerp = zerp * distcoast(ji,jj) ! multiply by weigh to fade zerp out near the coast
+                  zerp = zsrp * ( 1. - 2.*rnfmsk(ji,jj) )   &      ! No damping in vicinity of river mouths
+                     &        *   coefice(ji,jj)            &      ! Optional control of damping under sea-ice
+                     &        * ( zsss_m(ji,jj) - sf_sss(1)%fnow(ji,jj,1) )   &
+                     &        / MAX(  zsss_m(ji,jj), 1.e-20   ) * tmask(ji,jj,1)              &
+                     &        * erpcoef(ji,jj)
+                  IF( ln_sssr_bnd )   zerp = SIGN( 1., zerp ) * MIN( zerp_bnd, ABS(zerp) )
+                  ! use distance to the coast
+                  IF( ln_sssr_msk )   zerp = zerp * distcoast(ji,jj) ! multiply by weigh to fade zerp out near the coast
+                  emp(ji,jj) = emp (ji,jj) + zerp
                   qns(ji,jj) = qns(ji,jj) - zerp * rcp * sst_m(ji,jj)
                   erp(ji,jj) = zerp
                   qrp(ji,jj) = qrp(ji,jj) - zerp * rcp * sst_m(ji,jj)
