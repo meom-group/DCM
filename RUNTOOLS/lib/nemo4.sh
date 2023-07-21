@@ -630,6 +630,8 @@ eof
 # Check for specific iom_put 
    STERIC=0
    xmldef=file_def_nemo-oce.xml
+   for xmldef in file_def_nemo-oce*xml ; do
+     if [ $STERIC = 1 ] ; then break ; fi
    # look for specific field_ref in file_def xml file
    grep -q -w 'field field_ref="sshthst"' $xmldef
    if [ $? = 0 ] ; then
@@ -656,6 +658,7 @@ eof
   else
      STERIC=0
   fi
+  done
   echo "   *** STERIC = " $STERIC
 
 
@@ -1030,7 +1033,7 @@ else
 ##### I C B
 ###########
             if [ $ICB = 1 ] ; then  # need iceberg restart
-                ICB_RST_IN=$(LookInNamelist cn_iscbrst_in  )$mmm
+                ICB_RST_IN=$(LookInNamelist cn_icbrst_in  )$mmm
                 ICB_RST_OUT=$(LookInNamelist cn_icbrst_out )$mmm
 
 
