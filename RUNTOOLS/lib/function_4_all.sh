@@ -202,26 +202,28 @@ getforcing()        {
          tmp=$( LookInNamelist  sn_cc ) 
          if [ $tmp = NOT ] ; then filter="$filter | grep -v sn_cc " ; fi
 
+         getweight $blk $P_WEI_DIR $F_WEI_DIR
+         getfiles $blk  $P_FOR_DIR $F_FOR_DIR
+
+
          # check for WDMP forcing
          tmp=$( LookInNamelist ln_wdmp );  tmp=$(normalize $tmp )
          ln_wdmp=$tmp
 
-         getweight $blk $P_WEI_DIR $F_WEI_DIR
-         getfiles $blk  $P_FOR_DIR $F_FOR_DIR
-
          # note than ln_clim_forcing and ln_wdmp cannot be T at the same time !!!
          if [ $ln_clim_forcing = T -o $ln_wdmp = T ] ; then
+           filter=''
            if [ $ln_clim_forcing = T ] ; then
              filter="$filter | grep -v sn_kati | grep -v sn_katj  "
            else
-             filter="$filter | grep -v sn_kati | grep -v sn_katj | grep v sn_wmod | grep -v sn_uw | grep -v sn_vw  "
+             filter="$filter | grep -v sn_kati | grep -v sn_katj | grep -v sn_wmod | grep -v sn_uw | grep -v sn_vw  "
            fi
            if [ $ln_wdmp = F ] ; then
              filter="$filter  grep -v sn_wdmp"
            fi
            blk_drk=namsbc_blk_drk
            getweight $blk_drk $P_WEI_DIR $F_WEI_DIR
-           getfiles $blk_drk  $P_FOR_DIR $F_FOR_DIR
+           getfiles  $blk_drk $P_FOR_DIR $F_FOR_DIR
          fi ;;
     
 
@@ -544,7 +546,9 @@ getobs () {
 
   # hard coded file names
   root_enact=EN.4.2.1.f.profiles.l09.
-  root_sla=fdbk_j2_
+#  root_sla=fdbk_j2_
+  root_sla=fdbk_dt_global_SAT_phy_l3_
+
   slaRefLevel='slaReferenceLevel.nc'
 
   rdt=$(LookInNamelist rn_rdt)
@@ -613,8 +617,19 @@ getobs () {
  fi
 
  if [ $SLA = 1 ] ; then
+#   rapatrie $slaRefLevel $P_SLA_DIR $F_SLA_DIR $slaRefLevel
+#   flist=
+#   for y in $(seq $yyyy1 $yyyy2) ; do
+#      f=$root_sla$y.nc
+#      if [ -f  $P_SLA_DIR/$f ] ; then
+#        flist="$flist '$f' "
+#        rapatrie $f  $P_SLA_DIR $F_SLA_DIR $f
+#      fi
+#   done
+   slaAnnual = 1  # forced HERE JMM !
    rapatrie $slaRefLevel $P_SLA_DIR $F_SLA_DIR $slaRefLevel
    flist=
+   if [ $slaAnnual = 1 ] ; then
    for y in $(seq $yyyy1 $yyyy2) ; do
       f=$root_sla$y.nc
       if [ -f  $P_SLA_DIR/$f ] ; then
@@ -622,6 +637,21 @@ getobs () {
         rapatrie $f  $P_SLA_DIR $F_SLA_DIR $f
       fi
    done
+   else
+   for y in $(seq $yyyy1 $yyyy2) ; do
+     for m in $(seq -f '%02g' 1 12 ) ; do
+       mdastpcur=$y$m
+       f=$root_sla${y}${m}.nc
+       if [ $mdastpcur -ge $mdastpdeb  -a $mdastpcur -le $mdastpfin ] ; then
+           if [ -f $P_SLA_DIR/$f ] ; then
+             flist="$flist '$f' "
+             rapatrie $f  $P_SLA_DIR $F_SLA_DIR $f
+           fi
+       fi
+     done
+   done
+   fi
+
 
    cat namelist_cfg | sed -e "s/SLAFBFILES_LIST/$flist/" > znamelist1
    mv znamelist1 namelist_cfg

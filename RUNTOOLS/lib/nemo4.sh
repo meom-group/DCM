@@ -295,6 +295,11 @@ echo "   ***  Time step is: $rdt "
 ndays=` echo 1 | awk "{ a=int( ($nitend - $nit000 +1)*$rdt /86400.) ; print a }" `
 ndastpfin=`./datfinyyyy $ndastpdeb $ndays `
 echo "   ***  $ndays days to run, starting $ndastpdeb ending $ndastpfin"
+## update time windows for OBS (in any case)
+cat namelist_cfg | sed -e "s/<RN_DOBSINI>/${ndastpdeb}.000000/" \
+                       -e "s/<RN_DOBSEND>/${ndastpfin}.000000/" > znamelist
+mv znamelist namelist_cfg
+cp namelist_cfg namelist_ref
 
 if [ $TOP = 1 ] ; then 
     echo ' [2.2]  Tracer namelist(s)'
